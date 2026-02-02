@@ -8,6 +8,12 @@ Conference talks, demos, and speaking materials.
 |------|-------|------|----------|
 | 2026-02 | MCPconference @ ContainerDays | Making (and Breaking) Agents by Adding 1,000 MCP Tools | London |
 
+## Blog Posts & Demos
+
+| Folder | What |
+|--------|------|
+| `mcp-app-blog/` | Blog post + working code: "Build Your First MCP App: An Interactive API Explorer" |
+
 ## Structure
 
 Each talk lives in a subfolder named `YYYY-MM-<event>-<city>/`:
@@ -21,5 +27,6 @@ stackone-talks/
 │   ├── demo-code/           — Demo source code
 │   ├── assets/              — Recordings, images, QR codes
 │   └── slides-notes/        — Slide deck and presenter notes
+├── mcp-app-blog/            — MCP Apps blog post + API Explorer demo
 └── README.md
 ```
