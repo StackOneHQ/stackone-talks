@@ -1,5 +1,4 @@
-import { anthropic } from "@ai-sdk/anthropic";
-import { generateText, tool } from "ai";
+import Anthropic from "@anthropic-ai/sdk";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import chalk from "chalk";
@@ -12,7 +11,7 @@ interface DashboardState {
   tokenEstimate: number;
   lastProvider: string;
   lastAction: string;
-  accounts: string[];
+  accounts: Map<string, { name: string; tools: number; client?: Client }>;
 }
 
 const dashboard: DashboardState = {
@@ -20,255 +19,328 @@ const dashboard: DashboardState = {
   tokenEstimate: 0,
   lastProvider: "-",
   lastAction: "-",
-  accounts: [],
+  accounts: new Map(),
 };
 
-// Available StackOne accounts (from API)
+// Real StackOne accounts with actual tool counts
 const AVAILABLE_ACCOUNTS = [
-  { id: "attio", provider: "Attio", toolCount: 45 },
-  { id: "zendesk", provider: "Zendesk", toolCount: 87 },
-  { id: "honeycomb", provider: "Honeycomb", toolCount: 23 },
-  { id: "trello", provider: "Trello", toolCount: 156 },
-  { id: "gmail", provider: "Gmail", toolCount: 34 },
-  { id: "gong", provider: "Gong", toolCount: 28 },
-  { id: "github", provider: "GitHub", toolCount: 89 },
-  { id: "hubspot", provider: "HubSpot", toolCount: 312 },
-  { id: "greenhouse", provider: "Greenhouse", toolCount: 78 },
-  // Mock enterprise accounts for demo
-  { id: "salesforce", provider: "Salesforce", toolCount: 370 },
-  { id: "workday", provider: "Workday", toolCount: 186 },
-  { id: "oracle-fusion", provider: "Oracle Fusion", toolCount: 1506 },
-  { id: "sap", provider: "SAP SuccessFactors", toolCount: 234 },
-  { id: "servicenow", provider: "ServiceNow", toolCount: 156 },
+  { id: "j7ahtiKsIeDWLKWvdLT2o", provider: "Gmail", toolCount: 42 },
+  { id: "GlSyNhL2kMnc7ufbyoy8R", provider: "Trello", toolCount: 109 },
+  { id: "kRm6w3fUMpzpsQR19mOUT", provider: "Gong", toolCount: 16 },
+  { id: "lxujn4SLe8d6u3VuwDJ91", provider: "GitHub", toolCount: 74 },
+  { id: "MFQob34emXsdPpqKd07CO", provider: "HubSpot", toolCount: 65 },
+  { id: "XCygsVa6dSOJdUnAX6qUg", provider: "Greenhouse", toolCount: 99 },
+  { id: "47336761421214075533", provider: "Zendesk", toolCount: 45 },
+  { id: "47337121114612380857", provider: "Attio", toolCount: 38 },
+  { id: "svJm9VFpt4ZtdBTo0ddEp", provider: "Pinpoint", toolCount: 52 },
+  { id: "8pJAk5Zcm7tNS0BJLBSAD", provider: "Honeycomb", toolCount: 28 },
+  { id: "UTeyrycq6tVPIr4WPkSsp", provider: "Range", toolCount: 22 },
+  { id: "ULaAZD6pw2C5PQzrLs8y0", provider: "Browserbase", toolCount: 18 },
 ];
 
-let mcpClient: Client | null = null;
-let mcpTools: Map<string, any> = new Map();
+let allTools: Map<string, any> = new Map();
+let anthropic: Anthropic;
 
 function renderDashboard() {
-  const width = 50;
+  const width = 55;
   const border = chalk.gray("─".repeat(width));
 
   console.log("\n" + border);
-  console.log(chalk.bold.green("  📊 MCP DEMO DASHBOARD"));
+  console.log(chalk.bold.hex("#05C168")("  📊 MCP DEMO DASHBOARD"));
   console.log(border);
   console.log(
     chalk.cyan("  Tools:    ") +
-      chalk.bold.yellow(dashboard.toolCount.toLocaleString()) +
-      chalk.gray(" loaded")
+      chalk.bold.yellow(dashboard.toolCount.toLocaleString().padStart(6)) +
+      chalk.gray(" loaded in context")
   );
   console.log(
     chalk.cyan("  Tokens:   ") +
-      chalk.bold.yellow("~" + dashboard.tokenEstimate.toLocaleString()) +
+      chalk.bold.yellow(("~" + dashboard.tokenEstimate.toLocaleString()).padStart(6)) +
       chalk.gray(" (tool definitions)")
   );
   console.log(
     chalk.cyan("  Accounts: ") +
-      chalk.bold.white(dashboard.accounts.length.toString())
+      chalk.bold.white(dashboard.accounts.size.toString().padStart(6))
   );
   console.log(
     chalk.cyan("  Last:     ") +
-      chalk.white(dashboard.lastProvider) +
+      chalk.hex("#05C168")(dashboard.lastProvider) +
       chalk.gray(" → ") +
       chalk.white(dashboard.lastAction)
   );
+  console.log(border);
+
+  // Show connected accounts
+  if (dashboard.accounts.size > 0) {
+    const accountList = Array.from(dashboard.accounts.values())
+      .map((a) => `${a.name}(${a.tools})`)
+      .join(", ");
+    console.log(chalk.gray("  " + accountList));
+  }
+
+  // Warnings
+  if (dashboard.toolCount > 1000) {
+    console.log(chalk.red("\n  🚨 CRITICAL: Over 1,000 tools. Context overload!"));
+  } else if (dashboard.toolCount > 500) {
+    console.log(chalk.yellow("\n  ⚠️  Warning: Tool count > 500. Performance degrading."));
+  }
+
   console.log(border + "\n");
 }
 
-async function connectToStackOne(accountIds: string[]) {
-  const apiKey = process.env.STACKONE_API_KEY;
-  if (!apiKey) {
-    console.log(chalk.red("Error: STACKONE_API_KEY not set"));
-    return;
-  }
-
-  const mcpUrl = process.env.STACKONE_MCP_URL || "https://mcp.stackone.com";
-
-  console.log(chalk.gray(`Connecting to StackOne MCP at ${mcpUrl}...`));
-
-  // For each account, we'd normally connect to StackOne's MCP endpoint
-  // In the demo, we simulate progressive tool loading
-  let totalTools = 0;
-
-  for (const accountId of accountIds) {
-    const account = AVAILABLE_ACCOUNTS.find((a) => a.id === accountId);
-    if (account) {
-      totalTools += account.toolCount;
-      dashboard.accounts.push(account.provider);
-      console.log(
-        chalk.green(`  ✓ ${account.provider}`) +
-          chalk.gray(` (+${account.toolCount} tools)`)
-      );
-    }
-  }
-
-  dashboard.toolCount = totalTools;
-  // Rough estimate: ~150 tokens per tool definition
-  dashboard.tokenEstimate = totalTools * 150;
-
-  renderDashboard();
-}
-
-async function addAccount(accountId: string) {
+async function connectAccount(accountId: string): Promise<boolean> {
   const account = AVAILABLE_ACCOUNTS.find((a) => a.id === accountId);
   if (!account) {
     console.log(chalk.red(`Unknown account: ${accountId}`));
-    console.log(
-      chalk.gray("Available: " + AVAILABLE_ACCOUNTS.map((a) => a.id).join(", "))
-    );
-    return;
+    return false;
   }
 
-  if (dashboard.accounts.includes(account.provider)) {
+  if (dashboard.accounts.has(accountId)) {
     console.log(chalk.yellow(`${account.provider} already connected`));
+    return false;
+  }
+
+  const apiKey = process.env.STACKONE_API_KEY;
+  if (!apiKey) {
+    console.log(chalk.red("Error: STACKONE_API_KEY not set"));
+    return false;
+  }
+
+  console.log(chalk.cyan(`Connecting to ${account.provider}...`));
+
+  try {
+    const client = new Client({ name: `demo-${account.provider}`, version: "1.0.0" });
+    const authToken = Buffer.from(`${apiKey}:`).toString("base64");
+
+    const transport = new StreamableHTTPClientTransport(
+      new URL("https://api.stackone.com/mcp"),
+      {
+        requestInit: {
+          headers: {
+            Authorization: `Basic ${authToken}`,
+            "x-account-id": accountId,
+            "Content-Type": "application/json",
+            Accept: "application/json, text/event-stream",
+          },
+        },
+      }
+    );
+
+    await client.connect(transport);
+
+    // Get tools from this account
+    const toolsResult = await client.listTools();
+    const toolCount = toolsResult.tools?.length || 0;
+
+    // Store tools with provider prefix
+    for (const tool of toolsResult.tools || []) {
+      allTools.set(`${account.provider}::${tool.name}`, {
+        ...tool,
+        provider: account.provider,
+        accountId: accountId,
+      });
+    }
+
+    dashboard.accounts.set(accountId, {
+      name: account.provider,
+      tools: toolCount,
+      client,
+    });
+    dashboard.toolCount += toolCount;
+    dashboard.tokenEstimate = dashboard.toolCount * 150;
+
+    console.log(
+      chalk.green(`  ✓ ${account.provider}`) +
+        chalk.gray(` (+${toolCount} tools)`)
+    );
+
+    renderDashboard();
+    return true;
+  } catch (error: any) {
+    console.log(chalk.red(`  ✗ Failed to connect ${account.provider}: ${error.message}`));
+    return false;
+  }
+}
+
+async function addAccount(providerName: string) {
+  const account = AVAILABLE_ACCOUNTS.find(
+    (a) => a.provider.toLowerCase() === providerName.toLowerCase() || a.id === providerName
+  );
+  if (!account) {
+    console.log(chalk.red(`Unknown provider: ${providerName}`));
+    console.log(
+      chalk.gray("Available: " + AVAILABLE_ACCOUNTS.map((a) => a.provider).join(", "))
+    );
     return;
   }
-
-  console.log(
-    chalk.cyan(`Adding ${account.provider}...`) +
-      chalk.gray(` (+${account.toolCount} tools)`)
-  );
-
-  dashboard.accounts.push(account.provider);
-  dashboard.toolCount += account.toolCount;
-  dashboard.tokenEstimate = dashboard.toolCount * 150;
-
-  renderDashboard();
-
-  // Show warning when context gets large
-  if (dashboard.toolCount > 500) {
-    console.log(
-      chalk.yellow("⚠️  Warning: Tool count > 500. Context window filling up.")
-    );
-  }
-  if (dashboard.toolCount > 1000) {
-    console.log(
-      chalk.red("🚨 Critical: Tool count > 1,000. Expect degraded performance.")
-    );
-  }
+  await connectAccount(account.id);
 }
 
 async function runAgent(prompt: string) {
-  console.log(chalk.gray("\n🤖 Processing..."));
-
-  // Simulate agent response with tool usage
-  await new Promise((resolve) => setTimeout(resolve, 800));
-
-  // Add artificial latency based on tool count (demo effect)
-  if (dashboard.toolCount > 500) {
-    console.log(chalk.yellow("⏳ Loading tool definitions..."));
-    await new Promise((resolve) =>
-      setTimeout(resolve, Math.min(dashboard.toolCount * 2, 3000))
-    );
+  if (!anthropic) {
+    const apiKey = process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      console.log(chalk.red("Error: ANTHROPIC_API_KEY not set"));
+      return;
+    }
+    anthropic = new Anthropic({ apiKey });
   }
 
-  // Simulate picking a tool
-  if (dashboard.accounts.length > 0) {
-    const randomAccount =
-      dashboard.accounts[Math.floor(Math.random() * dashboard.accounts.length)];
-    dashboard.lastProvider = randomAccount;
-    dashboard.lastAction = getRandomAction(prompt);
+  if (dashboard.accounts.size === 0) {
+    console.log(chalk.yellow("No accounts connected. Use /add <provider> first."));
+    return;
   }
 
-  // In real implementation, this would use the AI SDK:
-  // const result = await generateText({
-  //   model: anthropic("claude-sonnet-4-20250514"),
-  //   prompt,
-  //   tools: Object.fromEntries(mcpTools),
-  // });
+  console.log(chalk.gray("\n🤖 Processing with Claude..."));
 
-  console.log(
-    chalk.green("\n✓ Agent response:") +
-      chalk.white(` Used ${dashboard.lastProvider}::${dashboard.lastAction}`)
-  );
+  // Convert tools to Anthropic format
+  const tools: Anthropic.Tool[] = Array.from(allTools.values()).map((tool) => ({
+    name: tool.name,
+    description: `[${tool.provider}] ${tool.description || ""}`,
+    input_schema: tool.inputSchema || { type: "object", properties: {} },
+  }));
 
-  renderDashboard();
-}
+  const startTime = Date.now();
 
-function getRandomAction(prompt: string): string {
-  const actions = [
-    "list_records",
-    "get_employee",
-    "search_contacts",
-    "create_ticket",
-    "send_message",
-    "list_deals",
-    "get_user",
-  ];
-  return actions[Math.floor(Math.random() * actions.length)];
+  try {
+    // Show context size warning for large tool sets
+    if (tools.length > 100) {
+      console.log(
+        chalk.yellow(`⏳ Loading ${tools.length} tool definitions into context...`)
+      );
+    }
+
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 1024,
+      tools,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const elapsed = Date.now() - startTime;
+
+    // Process response
+    for (const block of response.content) {
+      if (block.type === "text") {
+        console.log(chalk.white("\n" + block.text));
+      } else if (block.type === "tool_use") {
+        const toolInfo = allTools.get(
+          Array.from(allTools.keys()).find((k) => k.endsWith(`::${block.name}`)) || ""
+        );
+        dashboard.lastProvider = toolInfo?.provider || "unknown";
+        dashboard.lastAction = block.name;
+
+        console.log(
+          chalk.hex("#05C168")(`\n🔧 Tool call: `) +
+            chalk.white(`${dashboard.lastProvider}::${block.name}`)
+        );
+        console.log(chalk.gray(`   Input: ${JSON.stringify(block.input).substring(0, 100)}...`));
+
+        // Actually execute the tool via MCP
+        if (toolInfo?.accountId) {
+          const accountData = dashboard.accounts.get(toolInfo.accountId);
+          if (accountData?.client) {
+            try {
+              const result = await accountData.client.callTool({
+                name: block.name,
+                arguments: block.input as Record<string, unknown>,
+              });
+              console.log(
+                chalk.green(`   ✓ Result: `) +
+                  chalk.gray(JSON.stringify(result).substring(0, 150) + "...")
+              );
+            } catch (err: any) {
+              console.log(chalk.red(`   ✗ Error: ${err.message}`));
+            }
+          }
+        }
+      }
+    }
+
+    console.log(chalk.gray(`\n⏱  Response time: ${elapsed}ms`));
+    renderDashboard();
+  } catch (error: any) {
+    console.log(chalk.red(`\nError: ${error.message}`));
+    if (error.message.includes("context")) {
+      console.log(
+        chalk.yellow("💡 Tip: Too many tools in context. This is the problem we're demonstrating!")
+      );
+    }
+  }
 }
 
 function showHelp() {
   console.log(chalk.bold("\n📖 Demo Commands:"));
-  console.log(chalk.cyan("  /add <account>") + chalk.gray(" - Add an account"));
-  console.log(
-    chalk.cyan("  /accounts") + chalk.gray(" - List available accounts")
-  );
-  console.log(
-    chalk.cyan("  /reset") + chalk.gray(" - Reset to clean state")
-  );
-  console.log(
-    chalk.cyan("  /demo") + chalk.gray(" - Run the full demo sequence")
-  );
+  console.log(chalk.cyan("  /add <provider>") + chalk.gray(" - Connect a StackOne account"));
+  console.log(chalk.cyan("  /accounts") + chalk.gray(" - List available accounts"));
+  console.log(chalk.cyan("  /connected") + chalk.gray(" - Show connected accounts"));
+  console.log(chalk.cyan("  /tools") + chalk.gray(" - List all loaded tools"));
+  console.log(chalk.cyan("  /reset") + chalk.gray(" - Disconnect all accounts"));
+  console.log(chalk.cyan("  /demo") + chalk.gray(" - Run the full demo sequence"));
   console.log(chalk.cyan("  /help") + chalk.gray(" - Show this help"));
   console.log(chalk.cyan("  /quit") + chalk.gray(" - Exit"));
   console.log(chalk.gray("\nOr type any prompt to run the agent.\n"));
 }
 
 async function runDemoSequence() {
-  console.log(chalk.bold.green("\n🎬 Starting Demo Sequence...\n"));
+  console.log(chalk.bold.hex("#05C168")("\n🎬 Starting Demo Sequence...\n"));
 
   // Phase 1: Start small
-  console.log(chalk.bold.blue("Phase 1: Personal Assistant"));
-  console.log(chalk.gray("Adding basic productivity tools..."));
-  await addAccount("gmail");
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  await addAccount("trello");
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  await addAccount("gong");
+  console.log(chalk.bold.blue("━━━ Phase 1: Personal Assistant ━━━"));
+  console.log(chalk.gray("Starting with basic productivity tools...\n"));
+  await addAccount("Gmail");
+  await new Promise((r) => setTimeout(r, 1000));
+  await addAccount("Trello");
+  await new Promise((r) => setTimeout(r, 1000));
+  await addAccount("Gong");
 
-  console.log(chalk.gray("\nDemo prompt: 'Summarize my last meeting'\n"));
-  await runAgent("Summarize my last meeting");
+  console.log(chalk.gray('\nDemo prompt: "List my recent emails"\n'));
+  await runAgent("List my recent emails from today");
 
   // Phase 2: Add enterprise
-  console.log(chalk.bold.blue("\n\nPhase 2: Enterprise Systems"));
-  console.log(chalk.gray("Adding enterprise integrations..."));
-  await new Promise((resolve) => setTimeout(resolve, 1500));
-  await addAccount("salesforce");
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  await addAccount("workday");
+  console.log(chalk.bold.blue("\n\n━━━ Phase 2: Enterprise Systems ━━━"));
+  console.log(chalk.gray("Adding CRM and ATS...\n"));
+  await new Promise((r) => setTimeout(r, 1500));
+  await addAccount("HubSpot");
+  await new Promise((r) => setTimeout(r, 1000));
+  await addAccount("Greenhouse");
 
-  console.log(chalk.gray("\nDemo prompt: 'Find the latest deal and check if the owner is on PTO'\n"));
-  await runAgent("Find the latest deal and check if the owner is on PTO");
+  console.log(chalk.gray('\nDemo prompt: "Find contacts and open job positions"\n'));
+  await runAgent("List contacts from HubSpot and show open job positions from Greenhouse");
 
   // Phase 3: The break
-  console.log(chalk.bold.blue("\n\nPhase 3: Scale to 1,000+ Tools"));
-  console.log(chalk.gray("Adding more systems..."));
-  await new Promise((resolve) => setTimeout(resolve, 1500));
-  await addAccount("oracle-fusion");
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  await addAccount("sap");
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  await addAccount("servicenow");
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  await addAccount("hubspot");
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  await addAccount("greenhouse");
+  console.log(chalk.bold.blue("\n\n━━━ Phase 3: Scale to Many Tools ━━━"));
+  console.log(chalk.gray("Adding more systems - watch the tool count climb...\n"));
+  await new Promise((r) => setTimeout(r, 1500));
+  await addAccount("GitHub");
+  await new Promise((r) => setTimeout(r, 1000));
+  await addAccount("Zendesk");
+  await new Promise((r) => setTimeout(r, 1000));
+  await addAccount("Attio");
+  await new Promise((r) => setTimeout(r, 1000));
+  await addAccount("Pinpoint");
 
-  console.log(
-    chalk.bold.red("\n\n🚨 CONTEXT EXPLOSION DEMO")
-  );
-  console.log(chalk.gray("Watch what happens with 1,000+ tools...\n"));
+  console.log(chalk.bold.red("\n\n🚨 CONTEXT EXPLOSION"));
+  console.log(chalk.gray("Watch what happens with 400+ tools...\n"));
   await runAgent("List my contacts");
 
-  console.log(chalk.bold.green("\n\n✅ Demo Sequence Complete"));
+  console.log(chalk.bold.hex("#05C168")("\n\n✅ Demo Sequence Complete"));
   console.log(chalk.gray("Type /help for commands or any prompt to continue.\n"));
 }
 
 async function main() {
-  console.log(chalk.bold.green("\n═══════════════════════════════════════════"));
-  console.log(chalk.bold.green("   MCP Demo Agent - MCPconf London 2026"));
-  console.log(chalk.bold.green("═══════════════════════════════════════════\n"));
+  console.log(chalk.bold.hex("#05C168")("\n═══════════════════════════════════════════════════════"));
+  console.log(chalk.bold.hex("#05C168")("   MCP Demo Agent - MCPconf London 2026"));
+  console.log(chalk.bold.hex("#05C168")("   Powered by StackOne + Claude"));
+  console.log(chalk.bold.hex("#05C168")("═══════════════════════════════════════════════════════\n"));
+
+  // Check for required env vars
+  if (!process.env.STACKONE_API_KEY) {
+    console.log(chalk.red("⚠️  STACKONE_API_KEY not set in .env"));
+  }
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.log(chalk.red("⚠️  ANTHROPIC_API_KEY not set in .env"));
+  }
 
   showHelp();
 
@@ -278,10 +350,16 @@ async function main() {
   });
 
   const prompt = () => {
-    rl.question(chalk.cyan("❯ "), async (input) => {
+    rl.question(chalk.hex("#05C168")("❯ "), async (input) => {
       const trimmed = input.trim();
 
       if (trimmed === "/quit" || trimmed === "/exit") {
+        // Close all MCP connections
+        for (const account of dashboard.accounts.values()) {
+          if (account.client) {
+            await account.client.close().catch(() => {});
+          }
+        }
         console.log(chalk.gray("Goodbye!"));
         rl.close();
         process.exit(0);
@@ -290,24 +368,56 @@ async function main() {
       if (trimmed === "/help") {
         showHelp();
       } else if (trimmed === "/accounts") {
-        console.log(chalk.bold("\nAvailable accounts:"));
+        console.log(chalk.bold("\nAvailable StackOne accounts:"));
         AVAILABLE_ACCOUNTS.forEach((a) => {
-          const connected = dashboard.accounts.includes(a.provider);
+          const connected = dashboard.accounts.has(a.id);
           const status = connected ? chalk.green("✓") : chalk.gray("○");
           console.log(
-            `  ${status} ${chalk.cyan(a.id.padEnd(15))} ${a.provider.padEnd(20)} ${chalk.gray(`${a.toolCount} tools`)}`
+            `  ${status} ${chalk.cyan(a.provider.padEnd(15))} ${chalk.gray(`~${a.toolCount} tools`)}`
           );
         });
         console.log();
+      } else if (trimmed === "/connected") {
+        console.log(chalk.bold("\nConnected accounts:"));
+        if (dashboard.accounts.size === 0) {
+          console.log(chalk.gray("  None"));
+        } else {
+          for (const [id, account] of dashboard.accounts) {
+            console.log(
+              `  ${chalk.green("✓")} ${chalk.cyan(account.name.padEnd(15))} ${chalk.gray(`${account.tools} tools`)}`
+            );
+          }
+        }
+        console.log();
+      } else if (trimmed === "/tools") {
+        console.log(chalk.bold(`\nLoaded tools (${allTools.size}):`));
+        const byProvider = new Map<string, string[]>();
+        for (const [key, tool] of allTools) {
+          const provider = tool.provider;
+          if (!byProvider.has(provider)) byProvider.set(provider, []);
+          byProvider.get(provider)!.push(tool.name);
+        }
+        for (const [provider, tools] of byProvider) {
+          console.log(chalk.cyan(`\n  ${provider} (${tools.length}):`));
+          console.log(chalk.gray(`    ${tools.slice(0, 5).join(", ")}${tools.length > 5 ? "..." : ""}`));
+        }
+        console.log();
       } else if (trimmed.startsWith("/add ")) {
-        const accountId = trimmed.slice(5).trim();
-        await addAccount(accountId);
+        const provider = trimmed.slice(5).trim();
+        await addAccount(provider);
       } else if (trimmed === "/reset") {
+        // Close all connections
+        for (const account of dashboard.accounts.values()) {
+          if (account.client) {
+            await account.client.close().catch(() => {});
+          }
+        }
         dashboard.toolCount = 0;
         dashboard.tokenEstimate = 0;
-        dashboard.accounts = [];
+        dashboard.accounts.clear();
         dashboard.lastProvider = "-";
         dashboard.lastAction = "-";
+        allTools.clear();
         console.log(chalk.green("✓ Reset complete"));
         renderDashboard();
       } else if (trimmed === "/demo") {
