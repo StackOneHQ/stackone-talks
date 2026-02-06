@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCP Demo Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "SF Mono", "Monaco", "Inconsolata", "Fira Code", monospace;
+      background: #0a0a0a;
+      color: #fff;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #05C168;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .metric {
+      background: #141414;
+      border: 1px solid #222;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .metric-value {
+      font-size: 48px;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .metric-value.green { color: #05C168; }
+    .metric-value.yellow { color: #f5a623; }
+    .metric-value.red { color: #ff4757; }
+
+    .metric-unit {
+      font-size: 14px;
+      color: #666;
+      margin-left: 8px;
+    }
+
+    .metric-bar {
+      height: 4px;
+      background: #222;
+      border-radius: 2px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+
+    .metric-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.5s ease, background-color 0.3s ease;
+    }
+
+    .providers {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .provider-badge {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #999;
+    }
+
+    .provider-badge.active {
+      border-color: #05C168;
+      color: #05C168;
+    }
+
+    .last-call {
+      margin-top: 12px;
+      padding: 12px;
+      background: #0d0d0d;
+      border-radius: 8px;
+    }
+
+    .last-call-provider {
+      color: #05C168;
+      font-weight: 600;
+    }
+
+    .last-call-action {
+      color: #999;
+    }
+
+    .warning {
+      background: rgba(245, 166, 35, 0.1);
+      border: 1px solid rgba(245, 166, 35, 0.3);
+      color: #f5a623;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 16px;
+      font-size: 12px;
+      display: none;
+    }
+
+    .warning.visible { display: block; }
+
+    .danger {
+      background: rgba(255, 71, 87, 0.1);
+      border: 1px solid rgba(255, 71, 87, 0.3);
+      color: #ff4757;
+    }
+
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    button {
+      flex: 1;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: #fff;
+      padding: 12px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      border-color: #05C168;
+      color: #05C168;
+    }
+
+    button.primary {
+      background: #05C168;
+      border-color: #05C168;
+      color: #000;
+    }
+
+    button.primary:hover {
+      background: #07C983;
+    }
+
+    .stackone-badge {
+      text-align: center;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #222;
+    }
+
+    .stackone-badge svg {
+      height: 24px;
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>MCP Demo Dashboard</h1>
+    </div>
+
+    <div class="metric">
+      <div class="metric-label">Tools Loaded</div>
+      <div class="metric-value green" id="toolCount">0</div>
+      <div class="metric-bar">
+        <div class="metric-bar-fill" id="toolBar" style="width: 0%; background: #05C168;"></div>
+      </div>
+    </div>
+
+    <div class="metric">
+      <div class="metric-label">Context Tokens (est.)</div>
+      <div class="metric-value" id="tokenCount">0<span class="metric-unit">tokens</span></div>
+      <div class="metric-bar">
+        <div class="metric-bar-fill" id="tokenBar" style="width: 0%; background: #05C168;"></div>
+      </div>
+    </div>
+
+    <div class="metric">
+      <div class="metric-label">Connected Providers</div>
+      <div class="providers" id="providers">
+        <div class="provider-badge">None connected</div>
+      </div>
+    </div>
+
+    <div class="metric">
+      <div class="metric-label">Last Tool Call</div>
+      <div class="last-call" id="lastCall">
+        <span class="last-call-provider" id="lastProvider">-</span>
+        <span class="last-call-action" id="lastAction">::-</span>
+      </div>
+    </div>
+
+    <div class="warning" id="warningBox">
+      ⚠️ Warning: Tool count exceeds 500. Context window filling up.
+    </div>
+
+    <div class="warning danger" id="dangerBox">
+      🚨 Critical: Over 1,000 tools. Expect degraded performance.
+    </div>
+
+    <div class="controls">
+      <button onclick="addRandomProvider()">+ Add Provider</button>
+      <button onclick="reset()">Reset</button>
+      <button class="primary" onclick="runDemo()">Run Demo</button>
+    </div>
+
+    <div class="stackone-badge">
+      <svg viewBox="0 0 120 24" fill="#05C168">
+        <text x="0" y="18" font-family="system-ui" font-size="14" font-weight="600">StackOne</text>
+      </svg>
+    </div>
+  </div>
+
+  <script>
+    const PROVIDERS = [
+      { name: "Gmail", tools: 34 },
+      { name: "Slack", tools: 50 },
+      { name: "Trello", tools: 156 },
+      { name: "Salesforce", tools: 370 },
+      { name: "Workday", tools: 186 },
+      { name: "HubSpot", tools: 312 },
+      { name: "Greenhouse", tools: 78 },
+      { name: "Oracle Fusion", tools: 1506 },
+      { name: "SAP", tools: 234 },
+      { name: "ServiceNow", tools: 156 },
+      { name: "Zendesk", tools: 87 },
+      { name: "GitHub", tools: 89 },
+    ];
+
+    let state = {
+      tools: 0,
+      providers: [],
+      lastProvider: null,
+      lastAction: null,
+    };
+
+    const MAX_TOOLS = 2500;
+    const MAX_TOKENS = 200000;
+
+    function updateUI() {
+      const toolEl = document.getElementById("toolCount");
+      const tokenEl = document.getElementById("tokenCount");
+      const toolBar = document.getElementById("toolBar");
+      const tokenBar = document.getElementById("tokenBar");
+      const providersEl = document.getElementById("providers");
+      const lastProviderEl = document.getElementById("lastProvider");
+      const lastActionEl = document.getElementById("lastAction");
+      const warningBox = document.getElementById("warningBox");
+      const dangerBox = document.getElementById("dangerBox");
+
+      // Animate tool count
+      animateValue(toolEl, parseInt(toolEl.textContent.replace(/,/g, "")) || 0, state.tools, 500);
+
+      // Update tokens (150 per tool estimate)
+      const tokens = state.tools * 150;
+      const tokenUnit = tokenEl.querySelector(".metric-unit");
+      tokenEl.textContent = tokens.toLocaleString();
+      if (tokenUnit) {
+        tokenEl.appendChild(tokenUnit);
+      } else {
+        const unit = document.createElement("span");
+        unit.className = "metric-unit";
+        unit.textContent = "tokens";
+        tokenEl.appendChild(unit);
+      }
+
+      // Update bars
+      const toolPercent = Math.min((state.tools / MAX_TOOLS) * 100, 100);
+      const tokenPercent = Math.min((tokens / MAX_TOKENS) * 100, 100);
+      toolBar.style.width = toolPercent + "%";
+      tokenBar.style.width = tokenPercent + "%";
+
+      // Color based on health
+      if (state.tools > 1000) {
+        toolEl.className = "metric-value red";
+        toolBar.style.background = "#ff4757";
+        tokenBar.style.background = "#ff4757";
+      } else if (state.tools > 500) {
+        toolEl.className = "metric-value yellow";
+        toolBar.style.background = "#f5a623";
+        tokenBar.style.background = "#f5a623";
+      } else {
+        toolEl.className = "metric-value green";
+        toolBar.style.background = "#05C168";
+        tokenBar.style.background = "#05C168";
+      }
+
+      // Update providers using safe DOM methods
+      providersEl.replaceChildren();
+      if (state.providers.length === 0) {
+        const badge = document.createElement("div");
+        badge.className = "provider-badge";
+        badge.textContent = "None connected";
+        providersEl.appendChild(badge);
+      } else {
+        state.providers.forEach((name, i) => {
+          const badge = document.createElement("div");
+          badge.className = "provider-badge" + (i === state.providers.length - 1 ? " active" : "");
+          badge.textContent = name;
+          providersEl.appendChild(badge);
+        });
+      }
+
+      // Update last call using textContent
+      lastProviderEl.textContent = state.lastProvider || "-";
+      lastActionEl.textContent = "::" + (state.lastAction || "-");
+
+      // Warnings
+      warningBox.classList.toggle("visible", state.tools > 500 && state.tools <= 1000);
+      dangerBox.classList.toggle("visible", state.tools > 1000);
+    }
+
+    function animateValue(el, start, end, duration) {
+      const range = end - start;
+      const startTime = performance.now();
+
+      function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = Math.round(start + range * eased);
+        el.textContent = current.toLocaleString();
+        if (progress < 1) requestAnimationFrame(update);
+      }
+      requestAnimationFrame(update);
+    }
+
+    function addProvider(provider) {
+      if (state.providers.includes(provider.name)) return;
+      state.providers.push(provider.name);
+      state.tools += provider.tools;
+      state.lastProvider = provider.name;
+      state.lastAction = "connect";
+      updateUI();
+    }
+
+    function addRandomProvider() {
+      const available = PROVIDERS.filter(p => !state.providers.includes(p.name));
+      if (available.length === 0) {
+        alert("All providers connected!");
+        return;
+      }
+      const random = available[Math.floor(Math.random() * available.length)];
+      addProvider(random);
+    }
+
+    function reset() {
+      state = { tools: 0, providers: [], lastProvider: null, lastAction: null };
+      updateUI();
+    }
+
+    async function runDemo() {
+      reset();
+      await sleep(500);
+
+      // Phase 1: Personal assistant
+      addProvider(PROVIDERS.find(p => p.name === "Gmail"));
+      await sleep(800);
+      addProvider(PROVIDERS.find(p => p.name === "Slack"));
+      await sleep(800);
+      addProvider(PROVIDERS.find(p => p.name === "Trello"));
+      await sleep(1500);
+
+      // Phase 2: Enterprise
+      addProvider(PROVIDERS.find(p => p.name === "Salesforce"));
+      await sleep(1000);
+      addProvider(PROVIDERS.find(p => p.name === "Workday"));
+      await sleep(1500);
+
+      // Phase 3: Scale
+      addProvider(PROVIDERS.find(p => p.name === "HubSpot"));
+      await sleep(800);
+      addProvider(PROVIDERS.find(p => p.name === "Greenhouse"));
+      await sleep(800);
+      addProvider(PROVIDERS.find(p => p.name === "Oracle Fusion"));
+      await sleep(1000);
+      addProvider(PROVIDERS.find(p => p.name === "SAP"));
+      await sleep(800);
+      addProvider(PROVIDERS.find(p => p.name === "ServiceNow"));
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Initialize
+    updateUI();
+
+    // Listen for external messages (for integration with agent)
+    window.addEventListener("message", (event) => {
+      if (event.data.type === "add_provider") {
+        const provider = PROVIDERS.find(p => p.name === event.data.name);
+        if (provider) addProvider(provider);
+      } else if (event.data.type === "tool_call") {
+        state.lastProvider = event.data.provider;
+        state.lastAction = event.data.action;
+        updateUI();
+      } else if (event.data.type === "reset") {
+        reset();
+      }
+    });
+  </script>
+</body>
+</html>
