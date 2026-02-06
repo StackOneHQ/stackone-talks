@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Build Your First MCP App - Slides</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0f0f1a;
+      --surface: #1a1a2e;
+      --text: #e4e4f0;
+      --text-dim: #8888a8;
+      --accent: #7c3aed;
+      --accent-light: #a78bfa;
+      --green: #10b981;
+      --orange: #f59e0b;
+      --red: #ef4444;
+      --code-bg: #1e1e2e;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    /* Slide container */
+    .deck {
+      height: 100vh;
+      width: 100vw;
+      position: relative;
+    }
+
+    .slide {
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      padding: 60px 100px;
+      text-align: center;
+    }
+
+    .slide.active { display: flex; }
+
+    /* Typography */
+    h1 {
+      font-size: 72px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      background: linear-gradient(135deg, var(--accent-light), var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    h2 {
+      font-size: 56px;
+      font-weight: 600;
+      margin-bottom: 40px;
+      color: var(--text);
+    }
+
+    h3 {
+      font-size: 36px;
+      font-weight: 600;
+      margin-bottom: 24px;
+      color: var(--accent-light);
+    }
+
+    p, li {
+      font-size: 32px;
+      line-height: 1.6;
+      color: var(--text);
+    }
+
+    .subtitle {
+      font-size: 36px;
+      color: var(--text-dim);
+      margin-bottom: 40px;
+    }
+
+    .small {
+      font-size: 24px;
+      color: var(--text-dim);
+    }
+
+    /* Lists */
+    ul {
+      text-align: left;
+      list-style: none;
+      max-width: 900px;
+    }
+
+    ul li {
+      margin-bottom: 24px;
+      padding-left: 40px;
+      position: relative;
+    }
+
+    ul li::before {
+      content: "→";
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+    }
+
+    /* Code blocks */
+    pre {
+      background: var(--code-bg);
+      border-radius: 12px;
+      padding: 32px 40px;
+      text-align: left;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 22px;
+      line-height: 1.5;
+      overflow-x: auto;
+      max-width: 1000px;
+      border: 1px solid #333;
+    }
+
+    code {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      background: var(--code-bg);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 28px;
+    }
+
+    .code-highlight {
+      color: var(--accent-light);
+    }
+
+    .code-string { color: var(--green); }
+    .code-keyword { color: var(--accent-light); }
+    .code-comment { color: var(--text-dim); }
+
+    /* Diagrams / boxes */
+    .box-row {
+      display: flex;
+      gap: 40px;
+      margin-top: 40px;
+    }
+
+    .box {
+      background: var(--surface);
+      border: 2px solid var(--accent);
+      border-radius: 16px;
+      padding: 32px 48px;
+      min-width: 280px;
+    }
+
+    .box h4 {
+      font-size: 24px;
+      color: var(--accent-light);
+      margin-bottom: 12px;
+    }
+
+    .box p {
+      font-size: 20px;
+      color: var(--text-dim);
+    }
+
+    /* Flow diagram */
+    .flow {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-top: 40px;
+    }
+
+    .flow-item {
+      background: var(--surface);
+      border: 2px solid var(--accent);
+      border-radius: 12px;
+      padding: 20px 32px;
+      font-size: 24px;
+      font-weight: 600;
+    }
+
+    .flow-arrow {
+      font-size: 32px;
+      color: var(--accent);
+    }
+
+    /* Two column layout */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      text-align: left;
+      max-width: 1200px;
+    }
+
+    .two-col h3 {
+      margin-bottom: 20px;
+    }
+
+    .two-col ul {
+      margin: 0;
+    }
+
+    /* Emphasis */
+    .highlight {
+      color: var(--accent-light);
+      font-weight: 600;
+    }
+
+    .big-emoji {
+      font-size: 120px;
+      margin-bottom: 32px;
+    }
+
+    /* Progress bar */
+    .progress {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      height: 4px;
+      background: var(--accent);
+      transition: width 0.3s ease;
+    }
+
+    /* Slide counter */
+    .counter {
+      position: fixed;
+      bottom: 20px;
+      right: 30px;
+      font-size: 18px;
+      color: var(--text-dim);
+      font-family: monospace;
+    }
+
+    /* Navigation hints */
+    .nav-hint {
+      position: fixed;
+      bottom: 20px;
+      left: 30px;
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+
+    /* Export button */
+    .export-btn {
+      position: fixed;
+      top: 20px;
+      right: 30px;
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      color: var(--accent-light);
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      z-index: 100;
+    }
+
+    .export-btn:hover {
+      background: var(--accent);
+      color: white;
+    }
+
+    /* Title slide special */
+    .slide.title-slide h1 {
+      font-size: 84px;
+    }
+
+    /* Section divider */
+    .slide.section-divider {
+      background: linear-gradient(135deg, var(--accent) 0%, #4c1d95 100%);
+    }
+
+    .slide.section-divider h2 {
+      color: white;
+      font-size: 64px;
+    }
+  </style>
+</head>
+<body>
+  <button class="export-btn" onclick="exportMarkdown()">Export as Markdown</button>
+
+  <div class="deck">
+
+    <!-- Slide 1: Title -->
+    <div class="slide title-slide active" data-title="Title">
+      <h1>Build Your First MCP App</h1>
+      <p class="subtitle">Interactive UIs Inside AI Chat Windows</p>
+      <p class="small" style="margin-top: 60px;">MCP Apps Tutorial</p>
+    </div>
+
+    <!-- Slide 2: The Problem -->
+    <div class="slide" data-title="The Problem">
+      <h2>MCP servers return text.</h2>
+      <p style="margin-top: 40px; max-width: 800px;">
+        Great for fetching data and answering questions.<br><br>
+        But what happens when users need to <span class="highlight">interact</span> with something?
+      </p>
+    </div>
+
+    <!-- Slide 3: The Solution -->
+    <div class="slide" data-title="MCP Apps">
+      <h2>MCP Apps</h2>
+      <p class="subtitle">The first official extension to MCP</p>
+      <p style="max-width: 800px;">
+        Servers can now return <span class="highlight">interactive HTML UIs</span><br>
+        that render directly inside the chat window.
+      </p>
+      <p class="small" style="margin-top: 40px;">Announced January 26, 2026</p>
+    </div>
+
+    <!-- Slide 4: Four Concepts -->
+    <div class="slide" data-title="Four Concepts">
+      <h2>Four Key Concepts</h2>
+      <div class="box-row">
+        <div class="box">
+          <h4>ui:// Resources</h4>
+          <p>New URI scheme for UI</p>
+        </div>
+        <div class="box">
+          <h4>Tool-UI Linkage</h4>
+          <p>_meta.ui.resourceUri</p>
+        </div>
+      </div>
+      <div class="box-row">
+        <div class="box">
+          <h4>Sandboxed Iframes</h4>
+          <p>Isolated execution</p>
+        </div>
+        <div class="box">
+          <h4>Bidirectional Comms</h4>
+          <p>App ↔ Host ↔ Server</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 5: How it works -->
+    <div class="slide" data-title="How It Works">
+      <h2>How It Works</h2>
+      <div class="flow">
+        <div class="flow-item">User asks</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-item">LLM picks tool</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-item">Host fetches UI</div>
+        <span class="flow-arrow">→</span>
+        <div class="flow-item">Renders in iframe</div>
+      </div>
+      <p class="small" style="margin-top: 60px;">
+        The UI can call server tools directly, bypassing the LLM for fast iteration.
+      </p>
+    </div>
+
+    <!-- Slide 6: Why not a web app? -->
+    <div class="slide" data-title="Why Not a Web App?">
+      <h2>Why not just build a web app?</h2>
+      <ul style="margin-top: 40px;">
+        <li><span class="highlight">Context stays in the conversation</span> — no tab switching</li>
+        <li><span class="highlight">No separate API/auth layer</span> — uses existing MCP connection</li>
+        <li><span class="highlight">Host integration</span> — can call other connected tools</li>
+        <li><span class="highlight">Enforced sandbox</span> — host controls what the app can do</li>
+      </ul>
+    </div>
+
+    <!-- Slide 7: Section - What We're Building -->
+    <div class="slide section-divider" data-title="Demo Section">
+      <h2>What We're Building</h2>
+    </div>
+
+    <!-- Slide 8: API Explorer -->
+    <div class="slide" data-title="API Explorer">
+      <h2>API Explorer</h2>
+      <p style="max-width: 900px; margin-bottom: 40px;">
+        An interactive HTTP client that renders inside the chat.<br>
+        Ask the agent to test an endpoint, get a full request builder.
+      </p>
+      <ul>
+        <li>Method selector, URL input, editable headers</li>
+        <li>Response viewer with JSON syntax highlighting</li>
+        <li>History sidebar for replaying past requests</li>
+        <li>Direct re-send (bypasses LLM)</li>
+      </ul>
+    </div>
+
+    <!-- Slide 9: Project Structure -->
+    <div class="slide" data-title="Project Structure">
+      <h2>Project Structure</h2>
+      <pre>
+mcp-app/
+├── server.ts          <span class="code-comment"># MCP server + tools</span>
+├── mcp-app.html       <span class="code-comment"># HTML entry point</span>
+├── src/
+│   └── mcp-app.ts     <span class="code-comment"># UI logic</span>
+├── vite.config.ts     <span class="code-comment"># Bundles to single file</span>
+└── package.json</pre>
+    </div>
+
+    <!-- Slide 10: The Server - Resource URI -->
+    <div class="slide" data-title="Server: Resource URI">
+      <h3>Step 1: Define the Resource URI</h3>
+      <pre>
+<span class="code-keyword">const</span> resourceUri = <span class="code-string">"ui://api-explorer/mcp-app.html"</span>;
+</pre>
+      <p class="small" style="margin-top: 40px;">
+        The <code>ui://</code> scheme tells hosts this is a renderable UI.
+      </p>
+    </div>
+
+    <!-- Slide 11: The Server - Register Tool -->
+    <div class="slide" data-title="Server: Register Tool">
+      <h3>Step 2: Register Tool with UI</h3>
+      <pre>
+registerAppTool(server, <span class="code-string">"send-request"</span>, {
+  title: <span class="code-string">"Send API Request"</span>,
+  description: <span class="code-string">"Send an HTTP request..."</span>,
+  inputSchema: requestInputSchema,
+  <span class="code-highlight">_meta: { ui: { resourceUri } }</span>,
+}, handleRequest);</pre>
+      <p class="small" style="margin-top: 40px;">
+        <code>_meta.ui.resourceUri</code> links the tool to the UI.
+      </p>
+    </div>
+
+    <!-- Slide 12: The Server - App-only Tool -->
+    <div class="slide" data-title="Server: App-Only Tool">
+      <h3>Step 3: App-Only Tool</h3>
+      <pre>
+registerAppTool(server, <span class="code-string">"inspect-response"</span>, {
+  ...
+  _meta: {
+    ui: {
+      resourceUri,
+      <span class="code-highlight">visibility: ["app"]</span>
+    }
+  },
+}, handleRequest);</pre>
+      <p class="small" style="margin-top: 40px;">
+        Hidden from LLM. Only the UI can call it.
+      </p>
+    </div>
+
+    <!-- Slide 13: The UI - Connect -->
+    <div class="slide" data-title="UI: Connect">
+      <h3>Step 4: Connect to Host</h3>
+      <pre>
+<span class="code-keyword">import</span> { App } <span class="code-keyword">from</span> <span class="code-string">"@modelcontextprotocol/ext-apps"</span>;
+
+<span class="code-keyword">const</span> app = <span class="code-keyword">new</span> App({
+  name: <span class="code-string">"API Explorer"</span>,
+  version: <span class="code-string">"1.0.0"</span>
+});
+
+app.connect();</pre>
+      <p class="small" style="margin-top: 40px;">
+        Two lines to establish the postMessage channel.
+      </p>
+    </div>
+
+    <!-- Slide 14: The UI - Receive Results -->
+    <div class="slide" data-title="UI: Receive Results">
+      <h3>Step 5: Receive Tool Results</h3>
+      <pre>
+app.ontoolresult = (params) => {
+  <span class="code-keyword">const</span> data = JSON.parse(params.content[0].text);
+  displayResponse(data);
+  prefillForm(data);
+};</pre>
+      <p class="small" style="margin-top: 40px;">
+        Host pushes tool results to your app automatically.
+      </p>
+    </div>
+
+    <!-- Slide 15: The UI - Call Tools -->
+    <div class="slide" data-title="UI: Call Tools">
+      <h3>Step 6: Call Tools from UI</h3>
+      <pre>
+<span class="code-keyword">const</span> result = <span class="code-keyword">await</span> app.callServerTool({
+  name: <span class="code-string">"inspect-response"</span>,
+  arguments: { method, url, headers, body },
+});</pre>
+      <p class="small" style="margin-top: 40px;">
+        Direct UI → Host → Server → Host → UI. No LLM in the loop.
+      </p>
+    </div>
+
+    <!-- Slide 16: Build & Run -->
+    <div class="slide" data-title="Build & Run">
+      <h2>Build & Run</h2>
+      <pre>
+npm run build   <span class="code-comment"># Vite bundles to single HTML</span>
+npm run serve   <span class="code-comment"># Start server on :3001</span></pre>
+      <p style="margin-top: 40px;">
+        Test with <code>basic-host</code> or add to Claude as a custom connector.
+      </p>
+    </div>
+
+    <!-- Slide 17: Supported Hosts -->
+    <div class="slide" data-title="Supported Hosts">
+      <h2>Where It Runs</h2>
+      <ul>
+        <li>Claude (web) & Claude Desktop</li>
+        <li>VS Code Insiders</li>
+        <li>Goose</li>
+        <li>Postman</li>
+        <li>MCPJam</li>
+      </ul>
+    </div>
+
+    <!-- Slide 18: What's Next -->
+    <div class="slide" data-title="What's Next">
+      <h2>What's Next?</h2>
+      <div class="two-col">
+        <div>
+          <h3>Extend This App</h3>
+          <ul>
+            <li>Auth header presets</li>
+            <li>Saved collections</li>
+            <li>OpenAPI import</li>
+            <li>Response diffing</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Build Your Own</h3>
+          <ul>
+            <li>Data explorers</li>
+            <li>Config wizards</li>
+            <li>Real-time dashboards</li>
+            <li>Media viewers</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slide 19: Resources -->
+    <div class="slide" data-title="Resources">
+      <h2>Resources</h2>
+      <ul>
+        <li><span class="highlight">Docs:</span> modelcontextprotocol.io/docs/extensions/apps</li>
+        <li><span class="highlight">SDK:</span> github.com/modelcontextprotocol/ext-apps</li>
+        <li><span class="highlight">Examples:</span> ext-apps/examples/</li>
+      </ul>
+    </div>
+
+    <!-- Slide 20: Thank You -->
+    <div class="slide title-slide" data-title="Thank You">
+      <div class="big-emoji">🚀</div>
+      <h1>Go Build Something</h1>
+      <p class="subtitle">MCP Apps are ready. Your turn.</p>
+    </div>
+
+  </div>
+
+  <div class="progress" id="progress"></div>
+  <div class="counter" id="counter"></div>
+  <div class="nav-hint">← → or Space to navigate</div>
+
+  <script>
+    const slides = document.querySelectorAll('.slide');
+    let current = 0;
+
+    function showSlide(n) {
+      slides[current].classList.remove('active');
+      current = (n + slides.length) % slides.length;
+      slides[current].classList.add('active');
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const pct = ((current + 1) / slides.length) * 100;
+      document.getElementById('progress').style.width = pct + '%';
+      document.getElementById('counter').textContent = (current + 1) + ' / ' + slides.length;
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
+        e.preventDefault();
+        showSlide(current + 1);
+      } else if (e.key === 'ArrowLeft') {
+        showSlide(current - 1);
+      }
+    });
+
+    // Click to advance
+    document.querySelector('.deck').addEventListener('click', (e) => {
+      if (e.target.closest('.export-btn')) return;
+      showSlide(current + 1);
+    });
+
+    // Export as Markdown
+    function exportMarkdown() {
+      let md = '# Build Your First MCP App - Slides\n\n';
+      slides.forEach((slide, i) => {
+        const title = slide.dataset.title || 'Slide ' + (i + 1);
+        md += '---\n\n';
+        md += '## ' + (i + 1) + '. ' + title + '\n\n';
+
+        // Extract text content
+        const h1 = slide.querySelector('h1');
+        const h2 = slide.querySelector('h2');
+        const h3 = slide.querySelector('h3');
+        const subtitle = slide.querySelector('.subtitle');
+        const paragraphs = slide.querySelectorAll('p:not(.subtitle):not(.small)');
+        const items = slide.querySelectorAll('li');
+        const pre = slide.querySelector('pre');
+        const small = slide.querySelectorAll('.small');
+
+        if (h1) md += '# ' + h1.textContent + '\n\n';
+        if (h2) md += '## ' + h2.textContent + '\n\n';
+        if (h3) md += '### ' + h3.textContent + '\n\n';
+        if (subtitle) md += '*' + subtitle.textContent + '*\n\n';
+
+        paragraphs.forEach(p => {
+          md += p.textContent.replace(/\s+/g, ' ').trim() + '\n\n';
+        });
+
+        if (items.length > 0) {
+          items.forEach(li => {
+            md += '- ' + li.textContent.trim() + '\n';
+          });
+          md += '\n';
+        }
+
+        if (pre) {
+          md += '```\n' + pre.textContent + '\n```\n\n';
+        }
+
+        small.forEach(s => {
+          md += '*' + s.textContent + '*\n\n';
+        });
+      });
+
+      // Download
+      const blob = new Blob([md], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'mcp-apps-slides.md';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    updateProgress();
+  </script>
+</body>
+</html>
