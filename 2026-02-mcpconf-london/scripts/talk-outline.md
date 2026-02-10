@@ -98,12 +98,12 @@
 - "This is the difference between a menu and a kitchen. Pre-defined tools are the menu. Code mode is having a chef."
 - Bridges the gap for long-tail actions that aren't covered by standard tool definitions
 
-### Fix 3: Safety — defending against tool-triggered prompt injection
-- "Remember that rogue MCP server?"
-- Same scenario, but now with a safety layer in front
-- StackOne's utility scans and sanitizes tool descriptions, catches injection attempts
-- Demo (brief, 2-3 min): malicious tool description gets flagged. Agent refuses the injected instruction.
-- "Every tool description is a prompt injection surface. If you're not scanning them, you're trusting every MCP server author to not be malicious — or just sloppy."
+### Fix 3: Safety — defending against indirect prompt injection
+- "Remember that attack email?"
+- Same scenario, but now with `@stackone/prompt-defense` wrapping the Gmail tool results
+- Tier 1 regex patterns catch known injection signals, Tier 2 MLP classifier scores content at the sentence level
+- Demo (brief, 2-3 min): agent reads the same malicious email, but defense blocks the tool result before it reaches the LLM. The agent never sees the hidden instructions.
+- "Every piece of untrusted content your agent reads — emails, documents, tickets — is a prompt injection surface. If you're not scanning tool results, you're trusting every email sender."
 - Enterprise kicker: "This is the answer you give your security team when they ask why you're connecting AI agents to production systems."
 
 ### Fix 4 (stretch): RLM — Recursive Language Model patterns

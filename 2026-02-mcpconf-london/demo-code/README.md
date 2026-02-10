@@ -77,6 +77,49 @@ window.postMessage({ type: "tool_call", provider: "Workday", action: "list_emplo
 window.postMessage({ type: "reset" });
 ```
 
+### 4. Security Demo - Prompt Injection Attack + Defense (`stackone-agent-redteaming/`)
+
+Live demo showing a prompt injection attack via email and how `@stackone/prompt-defense` detects and blocks it.
+
+**Setup:**
+```bash
+# 1. Build the defense package
+cd stackone-agent-redteaming/guard/prompt-defense
+npm install && npm run build
+
+# 2. Install the gmail agent
+cd ../gmail-agent
+npm install
+
+# 3. Configure .env (already done - uses same API keys as agent/)
+```
+
+**Demo flow:**
+
+1. **Send the attack email manually** to the target Gmail account.
+   Subject: `Weekly Report Summary - Action Required`
+   The email looks benign but has a hidden `<div style="display:none">` with fake system admin instructions that trick the agent into replying with inbox summaries.
+
+2. **Run without defense** (agent gets tricked):
+   ```bash
+   cd stackone-agent-redteaming/guard/gmail-agent
+   npm run run-attack -- --no-defend-only
+   ```
+
+3. **Run with defense** (attack blocked):
+   ```bash
+   npm run run-attack -- --defend-only
+   ```
+
+**Other commands:**
+- `npm run test-payloads` - Test all 7 attack payloads against the classifier
+- `npm run run-attack` - Run both undefended and defended tests back-to-back
+
+**How defense works:**
+- Tier 1: Fast regex pattern matching catches known injection patterns
+- Tier 2: MLP neural classifier detects novel prompt injection attempts
+- Defense wraps StackOne tool results, scanning email content before it reaches the LLM
+
 ## Talk Structure
 
 | Part | Demo Component | What Breaks |
@@ -84,6 +127,7 @@ window.postMessage({ type: "reset" });
 | Part 1: Build | agent + dashboard | Nothing (yet) |
 | Part 2: Break | agent + dashboard + rogue-server | Context explosion, ambiguity, safety |
 | Part 3: Fix | Show StackOne solution | Meta tools, unified layer |
+| Part 4: Security | stackone-agent-redteaming | Prompt injection in emails → defense blocks it |
 
 ## Pre-recorded Fallbacks
 
