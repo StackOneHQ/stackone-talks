@@ -90,9 +90,9 @@
 
 **PERSONAL STORY + ABOUT ME:**
 
-> "So me, I use Claude Code for basically everything. For me it's the best agent harness out there for tool calling and handling context well. I've connected it to my email, Google Sheets, Datadog, Fireflies, Notion. You add all that up and you arrive at close to 1,000 tools pretty quickly. That might sound like a lot, but I think that's where agents are going. And anyone who's tried to build their own agent harness eventually hits the same wall."
+> "So me, I use Claude Code for basically everything. For me it's the best agent framework out there for tool calling and handling context well. I've connected it to my email, Google Sheets, Datadog, Fireflies, Notion. You add all that up and you arrive at close to 1,000 tools pretty quickly. That might sound like a lot, but I think that's where agents are going. And anyone who's tried to build their own has hit the same wall."
 >
-> "I'm Guillaume, CTO and co-founder at StackOne. We build integration infrastructure for AI agents. 200+ connectors, over 11,000 actions, all via MCP. We've spent the last year figuring out what breaks at scale. That's what I want to share today."
+> "I'm Guillaume, CTO and co-founder at StackOne. We build integration infrastructure for AI agents. 200+ connectors, over 11,000 actions, all via MCP. We've spent the last year figuring out what breaks when you connect hundreds of tools. That's what I want to share today."
 
 ---
 
@@ -364,7 +364,7 @@ npm run run-attack
 
 **TRADE-OFFS (mention briefly):**
 
-> "The trade-off is search quality. Lexical search like BM25 is sub-millisecond but keyword-only. Semantic search with embeddings is much better at matching 'get me my team members' to list_employees, but you need to build and maintain those embeddings. Anthropic and OpenAI are both adding tool search to their harnesses natively now, so the ecosystem is moving this way."
+> "The trade-off is search quality. Lexical search like BM25 is sub-millisecond but keyword-only. Semantic search with embeddings is much better at matching 'get me my team members' to list_employees, but you need to build and maintain those embeddings. Anthropic and OpenAI are both adding tool search to their SDKs natively now, so the approach is catching on."
 
 ---
 
@@ -460,7 +460,7 @@ npm run run-attack -- --defend-only
 
 > "So to recap. Context explosion: fix it with dynamic discovery, search instead of loading everything. Ambiguity: code mode, sandboxed execution. Safety: content sanitization, filter responses before they hit the agent."
 
-> "These aren't the only answers. They build on each other, and there's a whole ecosystem forming around this. Sub-agents with scoped permissions so one agent can't do everything. Formal verification for provable safety guarantees. MCP Gateways like Trail of Bits proposed, centralized policy enforcement. And approaches like RLM from MIT that handle unbounded context through recursive decomposition. Links are on the slide if you want to dig in."
+> "These aren't the only answers. They build on each other, and there's a lot of active work in this space. Sub-agents with scoped permissions so one agent can't do everything. Formal verification for provable safety guarantees. MCP Gateways like Trail of Bits proposed, centralized policy enforcement. And approaches like RLM from MIT that handle unbounded context through recursive decomposition. Links are on the slide if you want to dig in."
 
 ---
 

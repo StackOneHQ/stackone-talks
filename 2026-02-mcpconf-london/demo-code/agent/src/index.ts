@@ -441,6 +441,9 @@ async function setupCodeModeSandbox(): Promise<void> {
   const toolWrappers: string[] = [];
 
   for (const [_key, tool] of allTools) {
+    // Skip default tools — they're not real MCP endpoints
+    if (tool.accountId === "defaults") continue;
+
     const fnName = tool.name.replace(/-/g, "_");
     const accountId = tool.accountId;
 
@@ -471,10 +474,12 @@ async function setupCodeModeSandbox(): Promise<void> {
   }`);
   }
 
+  // Note: tool wrappers contain `await` in their bodies, which triggers
+  // the sandbox's async wrapper. Use `return` so the result propagates.
   const setupCode = `
 globalThis.tools = {${toolWrappers.join(",")}
 };
-"Sandbox ready: " + Object.keys(globalThis.tools).length + " tool wrappers configured"`;
+return "Sandbox ready: " + Object.keys(globalThis.tools).length + " tool wrappers loaded"`;
 
   const result = await sandbox.execute(setupCode);
   if (!result.success) {
@@ -658,6 +663,12 @@ async function runAgent(prompt: string) {
             dashboard.lastAction = "execute_code";
             dashboard.lastProvider = "sandbox";
 
+            // Re-check sandbox is alive (could have crashed between turns)
+            if (!sandbox || !sandbox.isRunning()) {
+              console.log(chalk.yellow("  Sandbox crashed, restarting..."));
+              await setupCodeModeSandbox();
+            }
+
             console.log(chalk.hex("#FF6B00")("\n💻 Code execution:"));
             console.log(chalk.gray("─".repeat(50)));
             console.log(chalk.cyan(input.code));
@@ -690,11 +701,10 @@ async function runAgent(prompt: string) {
             }
           } else {
             // MCP mode: dispatch to MCP client
-            const toolInfo = allTools.get(
-              Array.from(allTools.keys()).find((k) =>
-                k.endsWith(`::${block.name}`)
-              ) || ""
+            const toolKey = Array.from(allTools.keys()).find((k) =>
+              k.endsWith(`::${block.name}`)
             );
+            const toolInfo = toolKey ? allTools.get(toolKey) : undefined;
             dashboard.lastProvider = toolInfo?.provider || "unknown";
             dashboard.lastAction = block.name;
 
@@ -708,8 +718,16 @@ async function runAgent(prompt: string) {
               )
             );
 
-            let resultContent = "Tool execution failed";
-            if (toolInfo?.accountId) {
+            let resultContent: string;
+
+            if (!toolInfo) {
+              resultContent = `Error: Tool '${block.name}' not found in loaded tools`;
+              console.log(chalk.red(`   ✗ Tool not found: ${block.name}`));
+            } else if (toolInfo.accountId === "defaults") {
+              resultContent = `Tool '${block.name}' is a built-in agent capability (not an MCP tool). Use MCP-connected tools instead.`;
+              console.log(chalk.yellow(`   ⚠ ${block.name} is a default tool (not executable via MCP)`));
+            } else {
+              resultContent = "Tool execution failed";
               const accountData = dashboard.accounts.get(toolInfo.accountId);
               if (accountData?.client) {
                 try {
@@ -726,6 +744,8 @@ async function runAgent(prompt: string) {
                   resultContent = `Error: ${err.message}`;
                   console.log(chalk.red(`   ✗ Error: ${err.message}`));
                 }
+              } else {
+                console.log(chalk.red(`   ✗ No MCP client for account ${toolInfo.accountId}`));
               }
             }
 
@@ -842,6 +862,17 @@ async function cleanupAll() {
   }
 }
 
+// Graceful shutdown on Ctrl+C or kill
+process.on("SIGINT", async () => {
+  console.log(chalk.gray("\n\nShutting down..."));
+  await cleanupAll();
+  process.exit(0);
+});
+process.on("SIGTERM", async () => {
+  await cleanupAll();
+  process.exit(0);
+});
+
 async function main() {
   console.log(chalk.bold.hex("#05C168")("\n═══════════════════════════════════════════════════════"));
   console.log(chalk.bold.hex("#05C168")("   MCP Demo Agent - MCPconf London 2026"));
@@ -918,7 +949,7 @@ async function main() {
       } else if (trimmed === "/add-defaults") {
         await addDefaults();
       } else if (trimmed.startsWith("/add ")) {
-        const provider = trimmed.slice(5).trim();
+        const provider = trimmed.slice(5).trim().replace(/^["']|["']$/g, "");
         await addAccount(provider);
       } else if (trimmed === "/context") {
         await showContextUsage(true);
@@ -932,6 +963,7 @@ async function main() {
         dashboard.accounts.clear();
         dashboard.lastProvider = "-";
         dashboard.lastAction = "-";
+        dashboard.lastLatencyMs = null;
         allTools.clear();
         console.log(chalk.green("✓ Reset complete"));
         renderDashboard();
