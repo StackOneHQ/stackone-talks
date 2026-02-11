@@ -771,13 +771,41 @@ async function runAgent(prompt: string) {
     console.log(chalk.gray(`\n⏱  Response time: ${elapsed}ms`));
     renderDashboard();
   } catch (error: any) {
-    console.log(chalk.red(`\nError: ${error.message}`));
-    if (error.message.includes("context")) {
+    const msg = error.message || String(error);
+
+    // Parse "prompt is too long: 208645 tokens > 200000 maximum"
+    const tokenMatch = msg.match(/(\d[\d,]+)\s*tokens?\s*>\s*(\d[\d,]+)\s*max/i);
+
+    if (tokenMatch || msg.includes("too long") || msg.includes("context")) {
+      const used = tokenMatch ? parseInt(tokenMatch[1].replace(/,/g, "")) : null;
+      const limit = tokenMatch ? parseInt(tokenMatch[2].replace(/,/g, "")) : CONTEXT_WINDOW;
+
+      console.log(chalk.red("\n" + "═".repeat(55)));
+      console.log(chalk.bold.red("  💥 CONTEXT WINDOW EXCEEDED — AGENT CRASHED"));
+      console.log(chalk.red("═".repeat(55)));
+      if (used && limit) {
+        const pct = ((used / limit) * 100).toFixed(0);
+        console.log(
+          chalk.red(`  Requested: ${used.toLocaleString()} tokens (${pct}% of ${(limit / 1000).toFixed(0)}k limit)`)
+        );
+        console.log(chalk.red(`  Capacity:  ${limit.toLocaleString()} tokens`));
+        console.log(chalk.red(`  Overflow:  +${(used - limit).toLocaleString()} tokens over limit`));
+      }
       console.log(
-        chalk.yellow(
-          "💡 Tip: Too many tools in context. This is the problem we're demonstrating!"
-        )
+        chalk.red(`\n  API error: ${msg}`)
       );
+      console.log(chalk.red("═".repeat(55)));
+      console.log(
+        chalk.yellow("\n  The agent could not process your request.")
+      );
+      console.log(
+        chalk.yellow("  Tool definitions alone filled the context window.")
+      );
+      console.log(
+        chalk.yellow("  All conversation context has been lost.\n")
+      );
+    } else {
+      console.log(chalk.red(`\nError: ${msg}`));
     }
   }
 }
