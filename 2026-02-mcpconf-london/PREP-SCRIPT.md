@@ -227,9 +227,13 @@ List my recent emails
 ### Slide 9: Tool Count (slide=tool-count)
 **[ON SLIDES]**
 
-*Slide reinforces the number visually. Don't repeat it, just move straight to:*
+*Slide reinforces the number visually.*
 
-> "This is where it starts falling apart."
+> "916 tools. So yes, you've now realised we don't actually have 1,000. I could add more providers but then I couldn't stand up here and admit this title was just clickbait."
+
+*Let them laugh. Then:*
+
+> "Although if you saw my actual Claude Code setup you'd know it's easily doable. This is where it starts falling apart."
 
 ---
 
@@ -277,6 +281,12 @@ List my recent emails
 ### Slide 15: Tool Search / Discovery (slide=tool-search)
 **[ON SLIDES]**
 
+**AUDIENCE INTERACTION (hands up):**
+
+> "Quick show of hands: who here has heard of tool discovery, or tool search? Not just filtering tools by category, but dynamically searching and loading tool schemas on demand?"
+
+*Look around. Probably some hands. Acknowledge: "Good, some of you. For those who haven't..."*
+
 > "Tool search. Don't load 916 tool definitions upfront. Give the agent two meta-tools — search_tools and execute_tool — let it search for what it needs on demand."
 >
 > "Before: 916 tools, 138,000 tokens in context. After: 2 meta-tools, 500 tokens. That's a 276x reduction. The tools still exist, they're just sitting in an index. The agent says 'list CRM contacts', search returns the top matches, agent picks one and executes with the full schema."
@@ -316,6 +326,14 @@ List my recent emails
 
 > "See the logs? BM25 scores, TF-IDF scores, hybrid fusion. The model never sees 916 tool schemas. It sees 3-5 ranked results, picks one, and calls it."
 
+*If time, do a second query to prove it generalises:*
+```
+Show my Trello boards
+```
+*search_tools → "trello" is a rare term, TF-IDF ranks trello_list_boards #1.*
+
+> "Different provider, same two meta-tools. 'Trello' is a rare term in the corpus, so TF-IDF weighs it heavily. Sub-millisecond."
+
 *Leave search mode ON for now — it still works for the next section.*
 
 ---
@@ -330,7 +348,15 @@ List my recent emails
 ### Slide 18: Code Mode (slide=code-mode)
 **[ON SLIDES]**
 
-> "Code Mode fixes this. Instead of calling tools one at a time, the agent writes code and executes it in a sandbox. Raw data stays in the sandbox. Only a filtered summary reaches the LLM. Cloudflare pioneered this pattern, Anthropic validated the numbers: you can go from about 150,000 tokens down to 2,000. That's a 98.7% reduction."
+**AUDIENCE INTERACTION (hands up):**
+
+> "Who here has heard of code mode? Show of hands."
+
+*Look around. Probably very few hands.*
+
+> "Not many. Cloudflare coined this pattern last year when they built their MCP integration. Anthropic then shipped it as code_execution in their API. The idea is simple."
+>
+> "Instead of calling tools one at a time, the agent writes code and executes it in a sandbox. Raw data stays in the sandbox. Only a filtered summary reaches the LLM. Anthropic validated the numbers: you can go from about 150,000 tokens down to 2,000. That's a 98.7% reduction."
 
 ---
 
@@ -367,11 +393,11 @@ If time permits:
 > "One tool. Same accounts, same MCP connections, but Claude now has a single execute_code tool instead of 916."
 
 ```
-List my recent emails
+List my recent emails, just show subject and sender
 ```
-*Claude writes TypeScript code, calls `tools.gmail_list_messages()`, filters results, returns summary.*
+*Claude writes TypeScript: `tools.gmail_list_messages()` → `.map(m => ({ subject, from }))` → filtered array.*
 
-> "The raw API response stays inside the sandbox. Only the filtered summary comes back to Claude."
+> "The raw API response with all the headers, metadata, body text — stays inside the sandbox. Only the filtered summary with subject and sender comes back to Claude."
 
 ```
 /code
@@ -393,6 +419,12 @@ List my recent emails
 
 ### Slide 22: Prompt Injection (slide=prompt-injection)
 **[ON SLIDES]**
+
+**AUDIENCE INTERACTION (hands up):**
+
+> "Show of hands: who here was already aware that you can get prompt hijacking from tool responses? Not from user prompts, but from the data your tools return. Even with the latest models?"
+
+*Look around. Probably mixed. If most hands: "Good, you know the pain." If few: "That's the scary part."*
 
 > "Indirect prompt injection. This is the one that keeps security teams up at night. The danger isn't malicious tools or supply chain attacks. It's legitimate tools reading content that happens to contain malicious instructions. Emails, CRM records enriched from scraped data, web search results, call transcripts. Any system that accepts external input is an attack surface. The tool itself is fine. The data coming through it isn't."
 
@@ -527,10 +559,23 @@ Gmail (42), Trello (109), Gong (16), GitHub (74), HubSpot (65), Ashby (108), Zen
 12. *-- enable /search, demo query, show logs --*
 
 ### Demo queries to type
-- **"List my recent emails"** — works great with 3 providers (happy path)
-- **"List my recent emails"** (again, in search mode) — shows search logs + fast response
-- **"List my recent emails"** (again, in code mode) — shows sandbox + filtered summary
-- **"Check my inbox for recent emails and process any that need attention"** — triggers injection demo
+
+**Primary queries (rehearsed, safe):**
+| Query | Phase | Why it works |
+|-------|-------|-------------|
+| "List my recent emails" | Happy path (3 providers) | Simple, fast, always succeeds |
+| "List my recent emails" | Search mode | Shows BM25/TF-IDF logs, "gmail" rare term = high TF-IDF |
+| "Show my Trello boards" | Search mode (2nd query) | Different provider, proves search generalises |
+| "List my recent emails, just show subject and sender" | Code mode | Single-provider, shows filtering — agent writes `tools.gmail_list_messages()` + `.map()` |
+| "Check my inbox for recent emails and process any that need attention" | Injection demo | Broad phrasing triggers full email read |
+
+**Backup/alternative queries (if time or primary fails):**
+| Query | Phase | Notes |
+|-------|-------|-------|
+| "Create a Jira ticket for a bug" | Search mode | "jira" = rare term = great search logs. **Will actually create a ticket** |
+| "Show my Datadog monitors" | Search mode | Provider-specific, cuts through 916 tools |
+| "How many open issues do I have in Jira?" | Code mode | Shows aggregation: agent fetches + counts in sandbox |
+| "List my GitHub repos and their star counts" | Code mode | Shows structured summary from raw API data |
 
 ### If things go wrong
 - **Agent won't start:** Check `.env` file has both keys. Run `npm install` if needed.

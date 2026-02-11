@@ -52,6 +52,7 @@ Cascading **build → break → fix** structure. Each fix naturally reveals the 
 - Add 3 providers (Gmail, Trello, Gong), query "List my recent emails" — works great
 - Scale up: add 15 more providers live, watch context bar fill to 57%
 - Show `/usage` — real Anthropic count_tokens API, not an estimate
+- Clickbait joke: "916 tools. So yes, this title was just clickbait. Although if you saw my Claude Code setup..."
 
 ### Break: Context Explosion (slides 10-14, ~4 min)
 **"This is where it starts falling apart."**
@@ -63,6 +64,7 @@ Cascading **build → break → fix** structure. Each fix naturally reveals the 
 ### Fix: Tool Search / Discovery (slides 15-16, ~5 min)
 **"Search instead of loading everything."**
 
+- Audience interaction: "Who's heard of tool discovery / tool search?"
 - 916 tools → 2 meta-tools (`search_tools` + `execute_tool`), 276x context reduction
 - Before/after visual: 138k tokens → 500 tokens
 - Search strategies (with trade-offs): BM25 (60-80%), BM25+TF-IDF hybrid (75-90%), Semantic (90-99%) — accuracy on MCP tool routing specifically
@@ -73,6 +75,7 @@ Cascading **build → break → fix** structure. Each fix naturally reveals the 
 **"Tool search fixed definitions. But the responses..."**
 
 - Break: oversized responses (20k tokens per call), intermediate results pile up, unneeded fields
+- Audience interaction: "Who's heard of code mode?" (Cloudflare coined it, Anthropic calls it code_execution)
 - Fix: Code Mode — agent writes TypeScript, executes in sandbox
 - Before/after visual: raw JSON dump vs filtered summary
 - Pioneered by Cloudflare, validated by Anthropic (98.7% token reduction)
@@ -81,6 +84,7 @@ Cascading **build → break → fix** structure. Each fix naturally reveals the 
 ### Break → Fix: Safety → Content Defense (slides 21-28, ~6 min)
 **"But what's IN those responses?"**
 
+- Audience interaction: "Who was aware you could get prompt hijacking from tool responses, even with the latest models?"
 - Break: Indirect Prompt Injection — legitimate tools reading untrusted data (emails, CRM records, call transcripts)
 - Injection diagram: Gmail returns email with hidden instructions, agent follows them
 - Research: OWASP #1, ICLR 84% vulnerable, AgentDojo/NIST 81% novel attacks
