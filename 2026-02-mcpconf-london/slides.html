@@ -570,6 +570,29 @@
       <p class="small" style="margin-top: 20px;">Today: I'll build an agent, give it 1,000 tools, and show you what breaks.</p>
     </div>
 
+    <!-- Why 1,000 tools? -->
+    <div class="slide" data-title="Why 1,000 Tools?">
+      <h2>Why would you even want 1,000 tools?</h2>
+      <div class="box-row">
+        <div class="box" style="flex: 1; max-width: 320px; text-align: left;">
+          <h4>Models are getting better</h4>
+          <p>Context windows growing. Reasoning improving. Tool calling accuracy up. The bottleneck isn't the model anymore.</p>
+        </div>
+        <div class="box" style="flex: 1; max-width: 320px; text-align: left;">
+          <h4>Work spans many systems</h4>
+          <p>A single task can touch CRM, email, calendar, dev tools, HR, support. Real work isn't siloed to one app.</p>
+        </div>
+        <div class="box" style="flex: 1; max-width: 320px; text-align: left;">
+          <h4>MCP makes it possible</h4>
+          <p>Standard protocol, growing ecosystem. Connecting 50 systems used to take months. Now it's configuration.</p>
+        </div>
+      </div>
+      <p style="margin-top: 32px; font-size: 20px; color: var(--text-secondary);">
+        The question isn't <em>whether</em> agents will have hundreds of tools.<br>
+        It's <em>what breaks</em> when they do.
+      </p>
+    </div>
+
     <!-- ═══════════════════════════════════════════════════════════════════ -->
     <!-- PART 1: THE BUILD -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
@@ -742,20 +765,20 @@
           <div class="dashboard-title">📊 MCP DEMO DASHBOARD</div>
           <div class="dashboard-row">
             <span class="dashboard-label">Tools:</span>
-            <span class="dashboard-value error">891</span>
+            <span class="dashboard-value error">916</span>
           </div>
           <div class="dashboard-row">
             <span class="dashboard-label">Tokens:</span>
-            <span class="dashboard-value error">~134,250</span>
+            <span class="dashboard-value error">~137,550</span>
           </div>
           <div class="dashboard-row">
             <span class="dashboard-label">Accounts:</span>
-            <span class="dashboard-value">19</span>
+            <span class="dashboard-value">20</span>
           </div>
           <div class="dashboard-bar">
-            <div class="dashboard-bar-fill" style="width: 67%; background: var(--error);"></div>
+            <div class="dashboard-bar-fill" style="width: 69%; background: var(--error);"></div>
           </div>
-          <div style="color: var(--error); margin-top: 12px; font-size: 14px;">🚨 CRITICAL: 67% of context consumed before the first question</div>
+          <div style="color: var(--error); margin-top: 12px; font-size: 14px;">🚨 CRITICAL: 69% of context consumed before the first question</div>
         </div>
       </div>
       <div class="live-cue">SWITCH TO LIVE DEMO: Add remaining accounts, watch the count climb</div>
@@ -763,8 +786,8 @@
 
     <!-- Tool count -->
     <div class="slide" data-title="Tool Count">
-      <div class="big-number">891</div>
-      <p class="stat-label">tools from 19 providers + agent defaults</p>
+      <div class="big-number">916</div>
+      <p class="stat-label">tools from 20 providers + agent defaults</p>
       <p style="margin-top: 32px; max-width: 700px;">
         Agent defaults (web, files, code execution) plus each provider adding dozens to hundreds of MCP tools.<br>
         <span class="highlight">This is what a capable, general-purpose agent looks like.</span>
@@ -781,20 +804,20 @@
     </div>
 
     <!-- Problem 1: Context -->
-    <div class="slide" data-title="Problem 1">
-      <h3>Problem 1</h3>
+    <div class="slide" data-title="Context Explosion">
+      <h3>The problem</h3>
       <h2>Context Explosion</h2>
       <p style="max-width: 800px;">
         Two forces fill the context window:
       </p>
-      <div style="display: flex; gap: 32px; margin-top: 24px; justify-content: center; flex-wrap: wrap;">
-        <div style="text-align: left; max-width: 380px;">
-          <p style="font-size: 20px; margin-bottom: 8px;"><span class="warning-text">Upfront:</span> tool definitions</p>
-          <p class="small">891 tools &times; ~150 tokens = <span class="warning-text">134k tokens</span> before you ask anything.</p>
+      <div class="box-row">
+        <div class="box warning" style="flex: 1; max-width: 420px; text-align: left;">
+          <h4>Upfront: tool definitions</h4>
+          <p>916 tools &times; ~150 tokens = <span class="warning-text" style="font-weight: 600;">138k tokens</span> before you ask anything.</p>
         </div>
-        <div style="text-align: left; max-width: 380px;">
-          <p style="font-size: 20px; margin-bottom: 8px;"><span class="warning-text">Per turn:</span> raw tool responses</p>
-          <p class="small">Each API call returns 10&ndash;50k tokens of JSON. After 3 turns: <span class="warning-text">+90&ndash;150k tokens</span> and growing.</p>
+        <div class="box warning" style="flex: 1; max-width: 420px; text-align: left;">
+          <h4>Per turn: raw tool responses</h4>
+          <p>Each API call returns 10&ndash;50k tokens of JSON. After 3 turns: <span class="warning-text" style="font-weight: 600;">+90&ndash;150k tokens</span> and growing.</p>
         </div>
       </div>
     </div>
@@ -810,7 +833,7 @@
         <div class="terminal-body">
           <div class="terminal-line"><span class="terminal-prompt">❯ </span><span class="terminal-cmd">List my contacts</span></div>
           <div class="terminal-line">&nbsp;</div>
-          <div class="terminal-line"><span class="terminal-warning">⏳ Loading 891 tool definitions into context...</span></div>
+          <div class="terminal-line"><span class="terminal-warning">⏳ Loading 916 tool definitions into context...</span></div>
           <div class="terminal-line"><span class="terminal-output">🤖 Processing with Claude...</span></div>
           <div class="terminal-line">&nbsp;</div>
           <div class="terminal-line"><span class="terminal-output">⏱  Response time: </span><span class="terminal-warning">4,832ms</span></div>
@@ -839,120 +862,84 @@
       </div>
     </div>
 
-    <!-- Problem 2: Ambiguity -->
-    <div class="slide" data-title="Problem 2">
-      <h3>Problem 2</h3>
-      <h2>Ambiguity & Wrong Routing</h2>
-      <p style="max-width: 800px;">
-        Multiple providers have the same tool.<br>
-        Which one does the agent pick?
-      </p>
-    </div>
-
-    <div class="slide" data-title="Which One">
-      <h2>"List my contacts"</h2>
-      <div class="box-row">
-        <div class="box warning">
-          <img src="https://stackone-logos.com/api/hubspot/filled/svg" class="tool-logo" alt="HubSpot" style="width:28px;height:28px;margin-bottom:8px;">
-          <h4>HubSpot</h4>
-          <p>hubspot_list_contacts</p>
-        </div>
-        <div class="box warning">
-          <img src="https://stackone-logos.com/api/ashby/filled/svg" class="tool-logo" alt="Ashby" style="width:28px;height:28px;margin-bottom:8px;">
-          <h4>Ashby</h4>
-          <p>ashby_list_candidates</p>
-        </div>
-        <div class="box warning">
-          <img src="https://stackone-logos.com/api/zendesk-sell/filled/svg" class="tool-logo" alt="Zendesk" style="width:28px;height:28px;margin-bottom:8px;">
-          <h4>Zendesk</h4>
-          <p>zendesk_list_contacts</p>
-        </div>
-      </div>
-      <p style="margin-top: 24px;">
-        Which one does the agent pick? <span class="warning-text">It guesses.</span>
-      </p>
-      <div class="citation-box warning" style="margin-top: 24px;">
-        <p class="citation-quote">"LLMs chose the first tool in the list 9.51% more often than that index was actually correct."</p>
-        <p class="citation-source">— ODSC, <a href="https://odsc.medium.com/evaluating-agent-tool-selection-testing-if-first-really-is-the-worst-b83dad43f641">"Evaluating Agent Tool Selection"</a></p>
-      </div>
+    <div class="slide" data-title="Bigger Context Window">
+      <img src="assets/need-bigger-context-window.jpeg" alt="We're gonna need a bigger context window" style="max-height: 70vh; max-width: 80vw; border-radius: 12px;">
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <!-- THE FIX: CONTEXT + AMBIGUITY -->
+    <!-- THE FIX: DYNAMIC TOOL DISCOVERY -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
 
     <div class="slide section-divider" data-title="Let's Fix This">
       <h2>Let's fix this</h2>
-      <p class="subtitle">Context explosion + ambiguity</p>
+      <p class="subtitle">916 tools in context</p>
     </div>
 
-    <!-- Fix 1: Dynamic Tool Discovery -->
-    <div class="slide" data-title="Fix 1">
-      <h3>Fix 1</h3>
-      <h2>Dynamic Tool Discovery</h2>
-      <p style="max-width: 800px;">
-        Don't load 891 tool definitions upfront.<br>
-        Give the agent <span class="highlight">1-2 discovery tools</span> to find what it needs.<br>
-        <span style="color: var(--text-dim); font-size: 18px; margin-top: 8px; display: inline-block;">Fixes the upfront cost. Tool response bloat needs Code Mode (Fix 2).</span>
+    <!-- Fix: Tool Search / Discovery -->
+    <div class="slide" data-title="Tool Search">
+      <h3>The fix</h3>
+      <h2>Tool Search / Discovery</h2>
+      <p style="max-width: 800px; margin-bottom: 32px;">
+        Don't load 916 tool definitions upfront.<br>
+        Give the agent <span class="highlight">1-2 discovery tools</span> to find what it needs.
       </p>
+      <div class="terminal" style="max-width: 560px;">
+        <div class="terminal-header">
+          <div class="terminal-dot red"></div>
+          <div class="terminal-dot yellow"></div>
+          <div class="terminal-dot green"></div>
+          <span class="terminal-title">tools passed to Claude</span>
+        </div>
+        <div class="terminal-body">
+          <div class="terminal-line">tools: [</div>
+          <div class="terminal-line">  <span class="terminal-highlight">search_tools</span>,  <span class="terminal-output">// "list CRM contacts" → ranked matches</span></div>
+          <div class="terminal-line">  <span class="terminal-highlight">execute_tool</span>   <span class="terminal-output">// run any discovered action</span></div>
+          <div class="terminal-line">]</div>
+        </div>
+      </div>
+      <p class="small" style="margin-top: 16px;">916 tools → 2 meta-tools. <span class="highlight">276x</span> context reduction.</p>
     </div>
 
     <div class="slide" data-title="Discovery Diagram">
       <h2>How it works</h2>
-      <svg viewBox="0 0 800 300" class="diagram-wide" style="margin: 24px auto; display: block;">
-        <!-- Before: cluttered -->
-        <g transform="translate(0, 0)">
-          <text x="150" y="30" fill="#8a8a9a" font-size="16" text-anchor="middle">BEFORE: 891 tools in context</text>
-          <rect x="50" y="50" width="200" height="120" rx="8" fill="#1a1a24" stroke="#2a2a38"/>
-          <text x="150" y="80" fill="#f59e0b" font-size="14" text-anchor="middle">Agent Context</text>
-          <!-- Tiny tool boxes representing clutter -->
-          <rect x="60" y="95" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="90" y="95" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="120" y="95" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="150" y="95" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="180" y="95" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="210" y="95" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="60" y="115" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="90" y="115" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="120" y="115" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="150" y="115" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="180" y="115" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="210" y="115" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="60" y="135" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="90" y="135" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="120" y="135" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="150" y="135" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="180" y="135" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="210" y="135" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <text x="150" y="190" fill="#ef4444" font-size="14" text-anchor="middle">~134,000 tokens</text>
-        </g>
+      <div style="display: flex; align-items: center; gap: 48px; margin-top: 32px; justify-content: center;">
+        <!-- BEFORE -->
+        <div class="box error" style="width: 360px; text-align: center; padding: 28px 24px;">
+          <p style="color: var(--text-dim); font-size: 16px; margin-bottom: 16px;">BEFORE</p>
+          <h4 style="color: var(--error); font-size: 22px; margin-bottom: 20px;">916 tools in context</h4>
+          <div style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 20px;">
+            <span style="background: var(--surface-2); border-radius: 4px; padding: 4px 10px; font-size: 11px; color: var(--text-dim);">gmail_send</span>
+            <span style="background: var(--surface-2); border-radius: 4px; padding: 4px 10px; font-size: 11px; color: var(--text-dim);">jira_create</span>
+            <span style="background: var(--surface-2); border-radius: 4px; padding: 4px 10px; font-size: 11px; color: var(--text-dim);">slack_post</span>
+            <span style="background: var(--surface-2); border-radius: 4px; padding: 4px 10px; font-size: 11px; color: var(--text-dim);">gong_list</span>
+            <span style="background: var(--surface-2); border-radius: 4px; padding: 4px 10px; font-size: 11px; color: var(--text-dim);">hubspot_get</span>
+            <span style="background: var(--surface-2); border-radius: 4px; padding: 4px 10px; font-size: 11px; color: var(--text-dim);">trello_add</span>
+            <span style="background: var(--surface-2); border-radius: 4px; padding: 4px 10px; font-size: 11px; color: var(--text-dim);">notion_query</span>
+            <span style="background: var(--surface-2); border-radius: 4px; padding: 4px 10px; font-size: 11px; color: var(--text-dim);">zendesk_list</span>
+            <span style="background: var(--surface-2); border-radius: 4px; padding: 4px 10px; font-size: 11px; color: var(--text-dim);">ashby_search</span>
+            <span style="background: var(--surface-2); border-radius: 4px; padding: 4px 10px; font-size: 11px; color: var(--text-dim);">... +906</span>
+          </div>
+          <p style="color: var(--error); font-size: 28px; font-weight: 700;">~138k tokens</p>
+        </div>
         <!-- Arrow -->
-        <path d="M280 110 L320 110" stroke="#05C168" stroke-width="3" marker-end="url(#arrowhead)"/>
-        <defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#05C168"/></marker></defs>
-        <!-- After: clean -->
-        <g transform="translate(350, 0)">
-          <text x="200" y="30" fill="#8a8a9a" font-size="16" text-anchor="middle">AFTER: 1-2 discovery tools</text>
-          <rect x="100" y="50" width="200" height="120" rx="8" fill="#1a1a24" stroke="#05C168" stroke-width="2"/>
-          <text x="200" y="80" fill="#05C168" font-size="14" text-anchor="middle">Agent Context</text>
-          <!-- Just 1-2 tools -->
-          <rect x="130" y="100" width="140" height="25" rx="4" fill="#05C168" fill-opacity="0.2" stroke="#05C168"/>
-          <text x="200" y="118" fill="#05C168" font-size="12" text-anchor="middle">search_tools</text>
-          <rect x="130" y="135" width="140" height="25" rx="4" fill="#05C168" fill-opacity="0.2" stroke="#05C168"/>
-          <text x="200" y="153" fill="#05C168" font-size="12" text-anchor="middle">execute_tool</text>
-          <text x="200" y="190" fill="#05C168" font-size="14" text-anchor="middle">~500 tokens</text>
-        </g>
-        <!-- Tool registry -->
-        <g transform="translate(350, 210)">
-          <rect x="100" y="0" width="200" height="50" rx="8" fill="#111118" stroke="#2a2a38"/>
-          <text x="200" y="30" fill="#8a8a9a" font-size="12" text-anchor="middle">Tool Registry (queried on demand)</text>
-        </g>
-        <path d="M550 170 L550 205" stroke="#05C168" stroke-width="2" stroke-dasharray="4"/>
-      </svg>
-      <p class="small">Context: 134k tokens → 500 tokens. 268x reduction.</p>
+        <span style="font-size: 40px; color: var(--primary);">→</span>
+        <!-- AFTER -->
+        <div class="box" style="width: 360px; text-align: center; padding: 28px 24px;">
+          <p style="color: var(--text-dim); font-size: 16px; margin-bottom: 16px;">AFTER</p>
+          <h4 style="font-size: 22px; margin-bottom: 20px;">2 discovery tools</h4>
+          <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+            <span style="background: rgba(5,193,104,0.1); border: 1px solid var(--primary); border-radius: 6px; padding: 10px 16px; font-size: 16px; font-family: 'SF Mono', monospace; color: var(--primary-light);">search_tools</span>
+            <span style="background: rgba(5,193,104,0.1); border: 1px solid var(--primary); border-radius: 6px; padding: 10px 16px; font-size: 16px; font-family: 'SF Mono', monospace; color: var(--primary-light);">execute_tool</span>
+          </div>
+          <p style="color: var(--primary); font-size: 28px; font-weight: 700;">~500 tokens</p>
+          <p style="color: var(--text-dim); font-size: 13px; margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px;">Tool registry queried on demand</p>
+        </div>
+      </div>
+      <p style="margin-top: 28px; font-size: 24px;"><span class="highlight" style="font-weight: 700;">276x</span> context reduction</p>
     </div>
 
     <div class="slide" data-title="Discovery Code">
-      <h2>From 891 tools to 1-2</h2>
+      <h2>From 916 tools to 1-2</h2>
       <div class="terminal">
         <div class="terminal-header">
           <div class="terminal-dot red"></div>
@@ -960,7 +947,7 @@
           <div class="terminal-dot green"></div>
         </div>
         <div class="terminal-body">
-          <div class="terminal-line"><span class="terminal-output">// Instead of 891 tool definitions:</span></div>
+          <div class="terminal-line"><span class="terminal-output">// Instead of 916 tool definitions:</span></div>
           <div class="terminal-line">tools: [</div>
           <div class="terminal-line">  <span class="terminal-highlight">search_tools</span>,  <span class="terminal-output">// Search by intent</span></div>
           <div class="terminal-line">  <span class="terminal-highlight">execute_tool</span>     <span class="terminal-output">// Run any discovered action</span></div>
@@ -1015,7 +1002,7 @@
 
     <!-- Fix 2: Code Mode -->
     <div class="slide" data-title="Code Mode">
-      <h3>Fix 2</h3>
+      <h3>But we're not done</h3>
       <h2>Code Mode (Sandboxed Execution)</h2>
       <p style="max-width: 800px;">
         Discovery fixes the upfront cost, but every tool call still dumps<br>
@@ -1129,14 +1116,14 @@
     <!-- THE BIGGER PROBLEM: SAFETY -->
     <!-- ═══════════════════════════════════════════════════════════════════ -->
 
-    <div class="slide section-divider" data-title="Plot Twist">
-      <h2>But there's a bigger problem...</h2>
-      <p class="subtitle">What happens when your tools read untrusted data?</p>
+    <div class="slide section-divider error" data-title="Plot Twist">
+      <h2>There's another problem to think about</h2>
+      <p class="subtitle">And it's the one your security team will care about most.</p>
     </div>
 
     <!-- Problem 3: Safety -->
-    <div class="slide" data-title="Problem 3">
-      <h3>Problem 3</h3>
+    <div class="slide" data-title="Prompt Injection">
+      <h3>The problem</h3>
       <h2 class="error-text">Indirect Prompt Injection</h2>
       <p style="max-width: 800px;">
         The danger isn't just malicious tools.<br>
@@ -1282,8 +1269,8 @@
     </div>
 
     <!-- Fix 3: Safety Layer -->
-    <div class="slide" data-title="Fix 3">
-      <h3>Fix 3</h3>
+    <div class="slide" data-title="Content Sanitization">
+      <h3>The fix</h3>
       <h2>Content Sanitization</h2>
       <p style="max-width: 800px;">
         Scan tool responses before they reach the agent.<br>
@@ -1362,23 +1349,20 @@
     <div class="slide" data-title="Recap">
       <h2>Problem → Fix</h2>
       <div class="box-row">
-        <div class="box">
-          <span class="box-emoji">💥</span>
-          <h4>Context Explosion</h4>
-          <p style="color: var(--text-dim);">891 tools → 2 meta-tools</p>
-          <p>→ <span class="highlight">Dynamic Discovery</span></p>
+        <div class="box" style="border-color: #f59e0b;">
+          <h4 style="color: #f59e0b;">Upfront Context Overload</h4>
+          <p style="color: var(--text-dim);">916 tool definitions fill context</p>
+          <p>→ <span style="color: #22c55e; font-weight: bold;">Tool Search / Discovery</span></p>
         </div>
-        <div class="box">
-          <span class="box-emoji">🎯</span>
-          <h4>Ambiguity</h4>
-          <p style="color: var(--text-dim);">Wrong tool, wrong account</p>
-          <p>→ <span class="highlight">Code Mode</span></p>
+        <div class="box" style="border-color: #f59e0b;">
+          <h4 style="color: #f59e0b;">Response Bloat</h4>
+          <p style="color: var(--text-dim);">Raw API data floods context</p>
+          <p>→ <span style="color: #22c55e; font-weight: bold;">Code Mode</span></p>
         </div>
-        <div class="box">
-          <span class="box-emoji">🚨</span>
-          <h4>Prompt Injection</h4>
+        <div class="box" style="border-color: #f59e0b;">
+          <h4 style="color: #f59e0b;">Prompt Injection</h4>
           <p style="color: var(--text-dim);">Untrusted data in tool results</p>
-          <p>→ <span class="highlight">Content Sanitization</span></p>
+          <p>→ <span style="color: #22c55e; font-weight: bold;">Content Sanitization</span></p>
         </div>
       </div>
       <p style="margin-top: 32px; font-size: 22px; color: var(--text-secondary);">
@@ -1386,8 +1370,6 @@
       </p>
       <div style="display: flex; gap: 24px; margin-top: 12px; flex-wrap: wrap; justify-content: center;">
         <a href="https://www.anthropic.com/research/building-effective-agents" style="color: var(--primary-light); font-size: 18px; text-decoration: none; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 16px;">🤖 Sub-agents <span style="color: var(--text-secondary); font-size: 14px;">— scoped permissions</span></a>
-        <a href="https://arxiv.org/abs/2601.08012" style="color: var(--primary-light); font-size: 18px; text-decoration: none; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 16px;">✅ Formal verification <span style="color: var(--text-secondary); font-size: 14px;">— provable safety</span></a>
-        <a href="https://blog.trailofbits.com/2025/07/23/mcp-security-tool-poisoning-rug-pulls-and-why-you-need-a-gateway/" style="color: var(--primary-light); font-size: 18px; text-decoration: none; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 16px;">🚪 MCP Gateways <span style="color: var(--text-secondary); font-size: 14px;">— centralized governance</span></a>
         <a href="https://arxiv.org/abs/2512.24601" style="color: var(--primary-light); font-size: 18px; text-decoration: none; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 16px;">♾️ RLM <span style="color: var(--text-secondary); font-size: 14px;">— unbounded context</span></a>
       </div>
     </div>
@@ -1411,9 +1393,9 @@
       <p style="margin-bottom: 16px; color: var(--text-secondary); font-size: 22px;">What you saw today</p>
       <div style="display: flex; align-items: flex-start; gap: 48px; justify-content: center; flex-wrap: wrap;">
         <ul style="text-align: left;">
-          <li>Every tool call went through StackOne</li>
+          <li>Every MCP tool call went through StackOne</li>
           <li>200+ connectors, 11,000+ actions, all via MCP</li>
-          <li>Dynamic discovery, code mode, content sanitization</li>
+          <li>Tool search/discovery, code mode, content sanitization</li>
         </ul>
         <!-- Real QR Code for https://www.stackone.com/request-free-access -->
         <div style="display: flex; flex-direction: column; align-items: center;">
@@ -1429,7 +1411,6 @@
       <div style="display: flex; gap: 32px; flex-wrap: wrap; justify-content: center; margin-top: 24px;">
         <p class="small"><a href="https://stackone.com/blog" target="_blank" style="color: inherit;">📄 stackone.com/blog</a></p>
         <p class="small"><a href="https://talks.stackone.space/2026-02-mcpconf-london" target="_blank" style="color: inherit;">🎬 talks.stackone.space/2026-02-mcpconf-london</a></p>
-        <p class="small"><a href="https://x.com/glebedel" target="_blank" style="color: inherit;">𝕏 x.com/glebedel</a></p>
       </div>
       <div style="display: flex; align-items: center; gap: 16px; margin-top: 24px;">
         <img src="assets/guillaume-headshot.jpg" alt="Guillaume Lebedel" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(5,193,104,0.5);">

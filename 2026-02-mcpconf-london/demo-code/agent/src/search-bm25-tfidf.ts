@@ -283,12 +283,25 @@ function clamp01(x: number): number {
 	return x < 0 ? 0 : x > 1 ? 1 : x;
 }
 
+export type SearchDebug = {
+	bm25Top: { name: string; score: number }[];
+	tfidfTop: { name: string; score: number }[];
+	fusionTop: { name: string; bm25: number; tfidf: number; hybrid: number }[];
+	totalCandidates: number;
+	elapsed: string;
+};
+
 export async function handleSearch(input: {
 	query: string;
 	limit?: number;
-}): Promise<{ tools: { name: string; provider: string; description: string; parameters: any; score: number }[] }> {
-	if (!oramaDb || !tfidfIdx) return { tools: [] };
+}): Promise<{
+	tools: { name: string; provider: string; description: string; parameters: any; score: number }[];
+	debug: SearchDebug;
+}> {
+	const emptyDebug: SearchDebug = { bm25Top: [], tfidfTop: [], fusionTop: [], totalCandidates: 0, elapsed: "0ms" };
+	if (!oramaDb || !tfidfIdx) return { tools: [], debug: emptyDebug };
 
+	const t0 = performance.now();
 	const limit = input.limit || 5;
 	const minScore = 0.3;
 
@@ -333,6 +346,40 @@ export async function handleSearch(input: {
 
 	fused.sort((a, b) => b.score - a.score);
 
+	const elapsed = `${(performance.now() - t0).toFixed(1)}ms`;
+
+	// Build debug info for demo logging
+	const toolName = (id: string) => indexedTools.get(id)?.name || id.split("::").pop() || id;
+	const round2 = (n: number) => Math.round(n * 100) / 100;
+
+	const bm25Top = bm25Results.hits.slice(0, 5).map((h) => ({
+		name: (h.document as { name: string }).name,
+		score: round2(bm25Max > 0 ? h.score / bm25Max : 0),
+	}));
+
+	const tfidfTop = tfidfResults.slice(0, 5).map((r) => ({
+		name: toolName(r.id),
+		score: round2(r.score),
+	}));
+
+	const fusionTop = fused.slice(0, limit).map((r) => {
+		const scores = scoreMap.get(r.id)!;
+		return {
+			name: toolName(r.id),
+			bm25: round2(scores.bm25),
+			tfidf: round2(scores.tfidf),
+			hybrid: round2(r.score),
+		};
+	});
+
+	const debug: SearchDebug = {
+		bm25Top,
+		tfidfTop,
+		fusionTop,
+		totalCandidates: scoreMap.size,
+		elapsed,
+	};
+
 	return {
 		tools: fused.slice(0, limit).map((r) => {
 			const tool = indexedTools.get(r.id);
@@ -344,6 +391,7 @@ export async function handleSearch(input: {
 				score: Math.round(r.score * 100) / 100,
 			};
 		}),
+		debug,
 	};
 }
 

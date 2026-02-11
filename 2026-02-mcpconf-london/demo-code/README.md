@@ -32,8 +32,8 @@ npm start
 | `/help` | Show command help |
 | `/quit` | Exit |
 
-**Available providers (18 total, ~880 MCP tools):**
-Gmail (42), Trello (109), Gong (16), GitHub (74), HubSpot (65), Ashby (108), Zendesk (45), Honeycomb (28), Range (22), Browserbase (18), Jira (158), Humaans (51), Datadog (26), Google Docs (3), Google Drive (47), Google Calendar (37), Fireflies (4), Notion (27)
+**Available providers (20 total, ~914 MCP tools):**
+Gmail (42), Trello (109), Gong (16), GitHub (74), HubSpot (65), Ashby (108), Zendesk (45), Range (22), Browserbase (18), Jira (158), Humaans (51), Datadog (26), Google Docs (3), Google Drive (47), Google Calendar (37), Fireflies (4), Notion (27), Google Sheets (?), Slack (32), Chrome DevTools (26, local MCP)
 
 **Four modes:**
 - **MCP mode** (default): All tools loaded into Claude's context. Shows the scaling problem.
@@ -43,7 +43,7 @@ Gmail (42), Trello (109), Gong (16), GitHub (74), HubSpot (65), Ashby (108), Zen
 
 ### How search mode works
 
-Search mode replaces 845 tool schemas with 2 meta-tools. When Claude needs a tool, it calls `meta_search_tools` with a natural language query (e.g. "list emails"). A client-side index ranks all tools and returns the top matches with their schemas. Claude then calls `meta_execute_tool` to invoke the one it wants.
+Search mode replaces 914 tool schemas with 2 meta-tools. When Claude needs a tool, it calls `meta_search_tools` with a natural language query (e.g. "list emails"). A client-side index ranks all tools and returns the top matches with their schemas. Claude then calls `meta_execute_tool` to invoke the one it wants.
 
 The ranking uses two algorithms in combination:
 
@@ -80,7 +80,7 @@ npm run run-attack
 | Part | Component | What happens |
 |------|-----------|-------------|
 | Part 1: Build | agent | Start small (3 providers), first query works great |
-| Part 2: Break | agent | Scale to 19 providers (~891 tools), context explosion, ambiguity |
+| Part 2: Break | agent | Scale to 20 providers (~916 tools), context explosion, ambiguity |
 | Part 3: Fix | agent + slides | Dynamic discovery, code mode, content sanitization |
 | Security | agent/gmail-agent | Prompt injection via email, defense blocks it |
 
