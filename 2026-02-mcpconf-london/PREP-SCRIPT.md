@@ -21,7 +21,7 @@
 
 ### 2. Clean up browser
 - [ ] Close ALL Chrome tabs except the ones you need
-- [ ] Keep open: slides tab, demo dashboard (if using)
+- [ ] Keep open: slides tab
 - [ ] Disable Chrome notifications: Settings > Privacy > Notifications > off
 - [ ] Open slides: `https://talks.stackone.space/2026-02-mcpconf-london/`
 
@@ -567,8 +567,6 @@ Gmail (42), Trello (109), Gong (16), GitHub (74), HubSpot (65), Ashby (108), Zen
 │   │   ├── src/index.ts           # Agent source code (MCP mode + code mode)
 │   │   ├── src/sandbox.ts         # Persistent sandbox (from poc-execute)
 │   │   └── package.json
-│   ├── dashboard/                 # Web dashboard (optional)
-│   ├── rogue-server/              # Rogue MCP server demo
 │   └── stackone-agent-redteaming/ # Security/injection demo
 │       └── guard/
 │           ├── prompt-defense/    # Defense npm package

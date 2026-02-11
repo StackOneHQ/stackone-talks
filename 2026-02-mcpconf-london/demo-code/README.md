@@ -6,7 +6,7 @@ Demo components for the talk "Making (and Breaking) Agents by Adding 1,000 MCP T
 
 ### 1. Demo Agent (`agent/`)
 
-Interactive terminal agent that demonstrates MCP tool scaling problems.
+Interactive terminal agent that demonstrates MCP tool scaling problems and solutions.
 
 ```bash
 cd agent
@@ -17,125 +17,56 @@ npm start
 ```
 
 **Commands:**
-- `/add <account>` - Add a StackOne account (adds tools)
-- `/accounts` - List available accounts
-- `/demo` - Run the full demo sequence
-- `/reset` - Reset to clean state
-- `/help` - Show help
 
-**Demo sequence shows:**
-1. Phase 1: Personal assistant (Gmail, Slack, Trello) - ~240 tools
-2. Phase 2: Enterprise systems (Salesforce, Workday) - ~800 tools
-3. Phase 3: Scale (Oracle Fusion, SAP, ServiceNow) - 2,000+ tools
+| Command | What it does |
+|---------|-------------|
+| `/add-defaults` | Load agent built-in tools (web search, file ops, bash, etc.) |
+| `/add <provider>` | Connect a StackOne account |
+| `/accounts` | List all available accounts |
+| `/connected` | Show connected accounts |
+| `/tools` | List all loaded tools by provider |
+| `/context` | Show real token cost via Anthropic's count_tokens API |
+| `/code` | Toggle code mode (1 tool sandbox) / MCP mode (all tools) |
+| `/demo` | Run the full demo sequence automatically |
+| `/reset` | Disconnect all accounts + stop sandbox |
+| `/help` | Show command help |
+| `/quit` | Exit |
 
-### 2. Rogue MCP Server (`rogue-server/`)
+**Available providers (18 total, ~880 MCP tools):**
+Gmail (42), Trello (109), Gong (16), GitHub (74), HubSpot (65), Ashby (108), Zendesk (45), Honeycomb (28), Range (22), Browserbase (18), Jira (158), Humaans (51), Datadog (26), Google Docs (3), Google Drive (47), Google Calendar (37), Fireflies (4), Notion (27)
 
-Educational demo showing prompt injection via MCP tool descriptions.
+**Two modes:**
+- **MCP mode** (default): All tools loaded into Claude's context. Shows the scaling problem.
+- **Code mode** (`/code`): Single `execute_code` tool. Claude writes TypeScript that runs in a sandbox with pre-configured MCP tool wrappers.
 
-```bash
-cd rogue-server
-npm install
-npm start
-```
+### 2. Security Demo (`stackone-agent-redteaming/`)
 
-Starts at `http://localhost:3002/mcp`
-
-**What it demonstrates:**
-- Tool descriptions can contain hidden instructions
-- Three injection techniques: subtle, aggressive, encoded
-- Watch the console for 🚨 alerts when injections trigger
-
-**Tools exposed:**
-- `sync_events` - Contains subtle injection in description
-- `list_events` - Contains aggressive injection
-- `check_availability` - Contains encoded injection
-- `export_user_data` - Target exfiltration tool
-- `send_calendar_backup` - Target backup tool
-- `fetch_all_contacts` - Target contact harvesting tool
-
-### 3. Measurement Dashboard (`dashboard/`)
-
-Visual overlay showing tool count and context usage.
+Prompt injection attack + defense demo using a Gmail agent. Shows an email with hidden instructions tricking an agent, then `@stackone/prompt-defense` blocking it.
 
 ```bash
-# Just open in browser
-open dashboard/index.html
-```
-
-**Features:**
-- Real-time tool count with animated updates
-- Token estimate (150 tokens/tool definition)
-- Connected providers list
-- Warning thresholds at 500 and 1,000 tools
-- "Run Demo" button for automated sequence
-
-**Integration:**
-The dashboard listens for `postMessage` events:
-```js
-window.postMessage({ type: "add_provider", name: "Salesforce" });
-window.postMessage({ type: "tool_call", provider: "Workday", action: "list_employees" });
-window.postMessage({ type: "reset" });
-```
-
-### 4. Security Demo - Prompt Injection Attack + Defense (`stackone-agent-redteaming/`)
-
-Live demo showing a prompt injection attack via email and how `@stackone/prompt-defense` detects and blocks it.
-
-**Setup:**
-```bash
-# 1. Build the defense package
+# Build the defense package
 cd stackone-agent-redteaming/guard/prompt-defense
 npm install && npm run build
 
-# 2. Install the gmail agent
+# Install and run the gmail agent
 cd ../gmail-agent
 npm install
-
-# 3. Configure .env (already done - uses same API keys as agent/)
+npm run run-attack
 ```
 
-**Demo flow:**
-
-1. **Send the attack email manually** to the target Gmail account.
-   Subject: `Weekly Report Summary - Action Required`
-   The email looks benign but has a hidden `<div style="display:none">` with fake system admin instructions that trick the agent into replying with inbox summaries.
-
-2. **Run without defense** (agent gets tricked):
-   ```bash
-   cd stackone-agent-redteaming/guard/gmail-agent
-   npm run run-attack -- --no-defend-only
-   ```
-
-3. **Run with defense** (attack blocked):
-   ```bash
-   npm run run-attack -- --defend-only
-   ```
-
-**Other commands:**
-- `npm run test-payloads` - Test all 7 attack payloads against the classifier
-- `npm run run-attack` - Run both undefended and defended tests back-to-back
-
-**How defense works:**
-- Tier 1: Fast regex pattern matching catches known injection patterns
-- Tier 2: MLP neural classifier detects novel prompt injection attempts
-- Defense wraps StackOne tool results, scanning email content before it reaches the LLM
+**What it demonstrates:**
+- An email with a hidden `<div style="display:none">` containing fake system instructions
+- Undefended agent follows the injection (forwards inbox data)
+- Defense layer (regex + MLP classifier) blocks the attack before it reaches the agent
 
 ## Talk Structure
 
-| Part | Demo Component | What Breaks |
-|------|----------------|-------------|
-| Part 1: Build | agent + dashboard | Nothing (yet) |
-| Part 2: Break | agent + dashboard + rogue-server | Context explosion, ambiguity, safety |
-| Part 3: Fix | Show StackOne solution | Meta tools, unified layer |
-| Part 4: Security | stackone-agent-redteaming | Prompt injection in emails → defense blocks it |
-
-## Pre-recorded Fallbacks
-
-If live demo fails, use pre-recorded videos from `../assets/recordings/`:
-- `part1-build.mp4` - Personal assistant working
-- `part2-break.mp4` - Context explosion, wrong routing
-- `part2-safety.mp4` - Rogue server attack
-- `part3-fix.mp4` - StackOne meta tools solution
+| Part | Component | What happens |
+|------|-----------|-------------|
+| Part 1: Build | agent | Start small (3 providers), first query works great |
+| Part 2: Break | agent | Scale to 18 providers (~895 tools), context explosion, ambiguity |
+| Part 3: Fix | agent + slides | Dynamic discovery, code mode, content sanitization |
+| Security | stackone-agent-redteaming | Prompt injection via email, defense blocks it |
 
 ## Environment Variables
 
@@ -143,12 +74,11 @@ If live demo fails, use pre-recorded videos from `../assets/recordings/`:
 # agent/.env
 ANTHROPIC_API_KEY=your-anthropic-key
 STACKONE_API_KEY=your-stackone-key
-STACKONE_MCP_URL=https://mcp.stackone.com
 ```
 
 ## Notes
 
-- Terminal font should be 18pt+ for large venue visibility
-- Keep dashboard on secondary monitor/window
+- Terminal font should be 18pt+ for venue visibility
 - Test WiFi before talk (bring mobile hotspot backup)
-- All demo accounts should be pre-connected in StackOne
+- All demo accounts are pre-connected in StackOne
+- If live demo fails, slides have static terminal mockups of every step
