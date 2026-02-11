@@ -742,7 +742,7 @@
           <div class="dashboard-title">📊 MCP DEMO DASHBOARD</div>
           <div class="dashboard-row">
             <span class="dashboard-label">Tools:</span>
-            <span class="dashboard-value error">895</span>
+            <span class="dashboard-value error">891</span>
           </div>
           <div class="dashboard-row">
             <span class="dashboard-label">Tokens:</span>
@@ -755,7 +755,7 @@
           <div class="dashboard-bar">
             <div class="dashboard-bar-fill" style="width: 67%; background: var(--error);"></div>
           </div>
-          <div style="color: var(--error); margin-top: 12px; font-size: 14px;">🚨 CRITICAL: 67% of context consumed by tool definitions alone</div>
+          <div style="color: var(--error); margin-top: 12px; font-size: 14px;">🚨 CRITICAL: 67% of context consumed before the first question</div>
         </div>
       </div>
       <div class="live-cue">SWITCH TO LIVE DEMO: Add remaining accounts, watch the count climb</div>
@@ -763,8 +763,8 @@
 
     <!-- Tool count -->
     <div class="slide" data-title="Tool Count">
-      <div class="big-number">895</div>
-      <p class="stat-label">tools from 18 providers + agent defaults</p>
+      <div class="big-number">891</div>
+      <p class="stat-label">tools from 19 providers + agent defaults</p>
       <p style="margin-top: 32px; max-width: 700px;">
         Agent defaults (web, files, code execution) plus each provider adding dozens to hundreds of MCP tools.<br>
         <span class="highlight">This is what a capable, general-purpose agent looks like.</span>
@@ -785,9 +785,18 @@
       <h3>Problem 1</h3>
       <h2>Context Explosion</h2>
       <p style="max-width: 800px;">
-        Every tool definition goes into the context window.<br>
-        895 tools × ~150 tokens each = <span class="warning-text">134,000+ tokens</span> just for tool descriptions.
+        Two forces fill the context window:
       </p>
+      <div style="display: flex; gap: 32px; margin-top: 24px; justify-content: center; flex-wrap: wrap;">
+        <div style="text-align: left; max-width: 380px;">
+          <p style="font-size: 20px; margin-bottom: 8px;"><span class="warning-text">Upfront:</span> tool definitions</p>
+          <p class="small">891 tools &times; ~150 tokens = <span class="warning-text">134k tokens</span> before you ask anything.</p>
+        </div>
+        <div style="text-align: left; max-width: 380px;">
+          <p style="font-size: 20px; margin-bottom: 8px;"><span class="warning-text">Per turn:</span> raw tool responses</p>
+          <p class="small">Each API call returns 10&ndash;50k tokens of JSON. After 3 turns: <span class="warning-text">+90&ndash;150k tokens</span> and growing.</p>
+        </div>
+      </div>
     </div>
 
     <div class="slide" data-title="Context Demo">
@@ -801,7 +810,7 @@
         <div class="terminal-body">
           <div class="terminal-line"><span class="terminal-prompt">❯ </span><span class="terminal-cmd">List my contacts</span></div>
           <div class="terminal-line">&nbsp;</div>
-          <div class="terminal-line"><span class="terminal-warning">⏳ Loading 895 tool definitions into context...</span></div>
+          <div class="terminal-line"><span class="terminal-warning">⏳ Loading 891 tool definitions into context...</span></div>
           <div class="terminal-line"><span class="terminal-output">🤖 Processing with Claude...</span></div>
           <div class="terminal-line">&nbsp;</div>
           <div class="terminal-line"><span class="terminal-output">⏱  Response time: </span><span class="terminal-warning">4,832ms</span></div>
@@ -868,13 +877,274 @@
       </div>
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- THE FIX: CONTEXT + AMBIGUITY -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+
+    <div class="slide section-divider" data-title="Let's Fix This">
+      <h2>Let's fix this</h2>
+      <p class="subtitle">Context explosion + ambiguity</p>
+    </div>
+
+    <!-- Fix 1: Dynamic Tool Discovery -->
+    <div class="slide" data-title="Fix 1">
+      <h3>Fix 1</h3>
+      <h2>Dynamic Tool Discovery</h2>
+      <p style="max-width: 800px;">
+        Don't load 891 tool definitions upfront.<br>
+        Give the agent <span class="highlight">1-2 discovery tools</span> to find what it needs.<br>
+        <span style="color: var(--text-dim); font-size: 18px; margin-top: 8px; display: inline-block;">Fixes the upfront cost. Tool response bloat needs Code Mode (Fix 2).</span>
+      </p>
+    </div>
+
+    <div class="slide" data-title="Discovery Diagram">
+      <h2>How it works</h2>
+      <svg viewBox="0 0 800 300" class="diagram-wide" style="margin: 24px auto; display: block;">
+        <!-- Before: cluttered -->
+        <g transform="translate(0, 0)">
+          <text x="150" y="30" fill="#8a8a9a" font-size="16" text-anchor="middle">BEFORE: 891 tools in context</text>
+          <rect x="50" y="50" width="200" height="120" rx="8" fill="#1a1a24" stroke="#2a2a38"/>
+          <text x="150" y="80" fill="#f59e0b" font-size="14" text-anchor="middle">Agent Context</text>
+          <!-- Tiny tool boxes representing clutter -->
+          <rect x="60" y="95" width="25" height="15" rx="2" fill="#2a2a38"/>
+          <rect x="90" y="95" width="25" height="15" rx="2" fill="#2a2a38"/>
+          <rect x="120" y="95" width="25" height="15" rx="2" fill="#2a2a38"/>
+          <rect x="150" y="95" width="25" height="15" rx="2" fill="#2a2a38"/>
+          <rect x="180" y="95" width="25" height="15" rx="2" fill="#2a2a38"/>
+          <rect x="210" y="95" width="25" height="15" rx="2" fill="#2a2a38"/>
+          <rect x="60" y="115" width="25" height="15" rx="2" fill="#2a2a38"/>
+          <rect x="90" y="115" width="25" height="15" rx="2" fill="#2a2a38"/>
+          <rect x="120" y="115" width="25" height="15" rx="2" fill="#2a2a38"/>
+          <rect x="150" y="115" width="25" height="15" rx="2" fill="#2a2a38"/>
+          <rect x="180" y="115" width="25" height="15" rx="2" fill="#2a2a38"/>
+          <rect x="210" y="115" width="25" height="15" rx="2" fill="#2a2a38"/>
+          <rect x="60" y="135" width="25" height="15" rx="2" fill="#2a2a38"/>
+          <rect x="90" y="135" width="25" height="15" rx="2" fill="#2a2a38"/>
+          <rect x="120" y="135" width="25" height="15" rx="2" fill="#2a2a38"/>
+          <rect x="150" y="135" width="25" height="15" rx="2" fill="#2a2a38"/>
+          <rect x="180" y="135" width="25" height="15" rx="2" fill="#2a2a38"/>
+          <rect x="210" y="135" width="25" height="15" rx="2" fill="#2a2a38"/>
+          <text x="150" y="190" fill="#ef4444" font-size="14" text-anchor="middle">~134,000 tokens</text>
+        </g>
+        <!-- Arrow -->
+        <path d="M280 110 L320 110" stroke="#05C168" stroke-width="3" marker-end="url(#arrowhead)"/>
+        <defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#05C168"/></marker></defs>
+        <!-- After: clean -->
+        <g transform="translate(350, 0)">
+          <text x="200" y="30" fill="#8a8a9a" font-size="16" text-anchor="middle">AFTER: 1-2 discovery tools</text>
+          <rect x="100" y="50" width="200" height="120" rx="8" fill="#1a1a24" stroke="#05C168" stroke-width="2"/>
+          <text x="200" y="80" fill="#05C168" font-size="14" text-anchor="middle">Agent Context</text>
+          <!-- Just 1-2 tools -->
+          <rect x="130" y="100" width="140" height="25" rx="4" fill="#05C168" fill-opacity="0.2" stroke="#05C168"/>
+          <text x="200" y="118" fill="#05C168" font-size="12" text-anchor="middle">search_tools</text>
+          <rect x="130" y="135" width="140" height="25" rx="4" fill="#05C168" fill-opacity="0.2" stroke="#05C168"/>
+          <text x="200" y="153" fill="#05C168" font-size="12" text-anchor="middle">execute_tool</text>
+          <text x="200" y="190" fill="#05C168" font-size="14" text-anchor="middle">~500 tokens</text>
+        </g>
+        <!-- Tool registry -->
+        <g transform="translate(350, 210)">
+          <rect x="100" y="0" width="200" height="50" rx="8" fill="#111118" stroke="#2a2a38"/>
+          <text x="200" y="30" fill="#8a8a9a" font-size="12" text-anchor="middle">Tool Registry (queried on demand)</text>
+        </g>
+        <path d="M550 170 L550 205" stroke="#05C168" stroke-width="2" stroke-dasharray="4"/>
+      </svg>
+      <p class="small">Context: 134k tokens → 500 tokens. 268x reduction.</p>
+    </div>
+
+    <div class="slide" data-title="Discovery Code">
+      <h2>From 891 tools to 1-2</h2>
+      <div class="terminal">
+        <div class="terminal-header">
+          <div class="terminal-dot red"></div>
+          <div class="terminal-dot yellow"></div>
+          <div class="terminal-dot green"></div>
+        </div>
+        <div class="terminal-body">
+          <div class="terminal-line"><span class="terminal-output">// Instead of 891 tool definitions:</span></div>
+          <div class="terminal-line">tools: [</div>
+          <div class="terminal-line">  <span class="terminal-highlight">search_tools</span>,  <span class="terminal-output">// Search by intent</span></div>
+          <div class="terminal-line">  <span class="terminal-highlight">execute_tool</span>     <span class="terminal-output">// Run any discovered action</span></div>
+          <div class="terminal-line">]</div>
+          <div class="terminal-line">&nbsp;</div>
+          <div class="terminal-line"><span class="terminal-output">// Agent: "Find tools for listing CRM contacts"</span></div>
+          <div class="terminal-line"><span class="terminal-output">// Returns: hubspot_list_contacts, zendesk_list_contacts</span></div>
+          <div class="terminal-line"><span class="terminal-output">// Agent picks one, executes with full schema</span></div>
+        </div>
+      </div>
+      <p class="small" style="margin-top: 24px;">Agent discovers what it needs, when it needs it.</p>
+    </div>
+
+    <div class="slide" data-title="Search Strategies">
+      <h2>Ranking strategies</h2>
+      <p class="small" style="margin-bottom: 24px; color: var(--text-dim);">How do you match "create a jira ticket" to the right tool out of 845?</p>
+      <table style="text-align: left; border-collapse: collapse; max-width: 960px; width: 100%;">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--border);">
+            <th style="padding: 12px 16px; color: var(--text-dim); font-size: 18px; font-weight: 500;">Strategy</th>
+            <th style="padding: 12px 16px; color: var(--text-dim); font-size: 18px; font-weight: 500;">Accuracy</th>
+            <th style="padding: 12px 16px; color: var(--text-dim); font-size: 18px; font-weight: 500;">Latency</th>
+            <th style="padding: 12px 16px; color: var(--text-dim); font-size: 18px; font-weight: 500;">Tradeoff</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 14px 16px; font-size: 20px;">BM25 <span style="color: var(--text-dim); font-size: 16px;">(Orama)</span></td>
+            <td style="padding: 14px 16px; font-size: 20px; color: var(--warning);">83%</td>
+            <td style="padding: 14px 16px; font-size: 20px; color: var(--primary);">&lt;1ms</td>
+            <td style="padding: 14px 16px; font-size: 18px; color: var(--text-dim);">Easy setup, but "create" matches everything</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 14px 16px; font-size: 20px;"><span class="highlight">BM25 + TF-IDF</span></td>
+            <td style="padding: 14px 16px; font-size: 20px; color: var(--primary);">98%</td>
+            <td style="padding: 14px 16px; font-size: 20px; color: var(--primary);">&lt;1ms</td>
+            <td style="padding: 14px 16px; font-size: 18px; color: var(--text-dim);">TF-IDF boosts rare terms (provider names)</td>
+          </tr>
+          <tr>
+            <td style="padding: 14px 16px; font-size: 20px;">Semantic <span style="color: var(--text-dim); font-size: 16px;">(embeddings)</span></td>
+            <td style="padding: 14px 16px; font-size: 20px; color: var(--primary);">~99%</td>
+            <td style="padding: 14px 16px; font-size: 20px; color: var(--warning);">50-200ms</td>
+            <td style="padding: 14px 16px; font-size: 18px; color: var(--text-dim);">Best accuracy, but needs model + API calls</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="small" style="margin-top: 24px;">
+        Hybrid gets 98% accuracy with zero API calls.<br>
+        <span style="color: var(--text-dim);">Formula: <code style="font-size: 16px;">score = 0.2 × BM25 + 0.8 × TF-IDF</code></span>
+      </p>
+    </div>
+
+    <!-- Fix 2: Code Mode -->
+    <div class="slide" data-title="Code Mode">
+      <h3>Fix 2</h3>
+      <h2>Code Mode (Sandboxed Execution)</h2>
+      <p style="max-width: 800px;">
+        Discovery fixes the upfront cost, but every tool call still dumps<br>
+        <span class="warning-text">raw API responses</span> into the conversation history.
+      </p>
+      <p style="max-width: 800px; margin-top: 16px;">
+        Code Mode fixes this: the agent <span class="highlight">writes and executes code</span> in a sandbox.<br>
+        Raw data stays in the sandbox. Only a filtered summary reaches the LLM.
+      </p>
+      <p class="small" style="margin-top: 16px; max-width: 800px; color: var(--text-dim);">
+        Inspired by Anthropic's <span style="color: var(--primary-light);">Code Execution with MCP</span> research:<br>
+        "Reduce token usage from ~150k to ~2k tokens &mdash; a 98.7% saving."
+      </p>
+    </div>
+
+    <div class="slide" data-title="Code Mode Diagram">
+      <h2>How Code Mode works</h2>
+      <svg viewBox="0 0 800 280" class="diagram-wide" style="margin: 24px auto; display: block;">
+        <!-- Agent -->
+        <g transform="translate(30, 80)">
+          <rect x="0" y="0" width="110" height="80" rx="8" fill="#1a1a24" stroke="#05C168" stroke-width="2"/>
+          <text x="55" y="32" fill="#05C168" font-size="13" text-anchor="middle">Agent</text>
+          <text x="55" y="52" fill="#8a8a9a" font-size="10" text-anchor="middle">2 tools only:</text>
+          <text x="55" y="66" fill="#8a8a9a" font-size="9" text-anchor="middle">search + execute</text>
+        </g>
+        <!-- Arrow: search -->
+        <path d="M150 100 L210 100" stroke="#05C168" stroke-width="2" marker-end="url(#arrowhead)"/>
+        <text x="180" y="90" fill="#8a8a9a" font-size="9" text-anchor="middle">search</text>
+        <!-- Search results -->
+        <g transform="translate(220, 60)">
+          <rect x="0" y="0" width="150" height="120" rx="8" fill="#0d0d14" stroke="#05C168" stroke-width="2"/>
+          <text x="75" y="22" fill="#05C168" font-size="11" text-anchor="middle">search_tools</text>
+          <text x="10" y="42" fill="#8a8a9a" font-size="9" font-family="monospace">jira_list_issues</text>
+          <text x="10" y="56" fill="#8a8a9a" font-size="9" font-family="monospace">github_list_pull_requests</text>
+          <text x="10" y="70" fill="#8a8a9a" font-size="9" font-family="monospace">gmail_send_message</text>
+          <text x="10" y="90" fill="#f59e0b" font-size="9" font-family="monospace">+ params, schemas</text>
+          <text x="10" y="104" fill="#f59e0b" font-size="9" font-family="monospace">+ example request/response</text>
+        </g>
+        <!-- Arrow: generates code -->
+        <path d="M150 140 L210 180" stroke="#05C168" stroke-width="2" marker-end="url(#arrowhead)"/>
+        <text x="165" y="170" fill="#8a8a9a" font-size="9" text-anchor="middle">writes</text>
+        <!-- Code block -->
+        <g transform="translate(220, 200)">
+          <rect x="0" y="0" width="150" height="60" rx="8" fill="#0d0d14" stroke="#05C168" stroke-width="1"/>
+          <text x="10" y="20" fill="#8a8a9a" font-size="9" font-family="monospace">const bugs = await</text>
+          <text x="10" y="34" fill="#8a8a9a" font-size="9" font-family="monospace">  jira_list_issues(</text>
+          <text x="10" y="48" fill="#8a8a9a" font-size="9" font-family="monospace">  {type: "bug"});</text>
+        </g>
+        <!-- Arrow: execute -->
+        <path d="M380 230 L460 230" stroke="#05C168" stroke-width="2" marker-end="url(#arrowhead)"/>
+        <path d="M380 120 L460 120" stroke="#05C168" stroke-width="2" stroke-dasharray="4" opacity="0.3"/>
+        <text x="420" y="220" fill="#8a8a9a" font-size="9" text-anchor="middle">execute</text>
+        <!-- Sandbox -->
+        <g transform="translate(470, 40)">
+          <rect x="0" y="0" width="280" height="220" rx="8" fill="#111118" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4"/>
+          <text x="140" y="25" fill="#f59e0b" font-size="12" text-anchor="middle">Sandbox (tsx)</text>
+          <!-- MCP client -->
+          <rect x="20" y="45" width="110" height="50" rx="6" fill="#1a1a24" stroke="#05C168"/>
+          <text x="75" y="65" fill="#05C168" font-size="10" text-anchor="middle">MCP client</text>
+          <text x="75" y="80" fill="#8a8a9a" font-size="8" text-anchor="middle">auto-auth, tracing</text>
+          <!-- Provider APIs -->
+          <rect x="150" y="45" width="110" height="50" rx="6" fill="#1a1a24" stroke="#05C168"/>
+          <text x="205" y="65" fill="#05C168" font-size="10" text-anchor="middle">Jira, GitHub, Gmail</text>
+          <text x="205" y="80" fill="#8a8a9a" font-size="8" text-anchor="middle">real API calls</text>
+          <!-- Arrow between -->
+          <path d="M135 70 L145 70" stroke="#05C168" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+          <!-- Call trace -->
+          <rect x="20" y="110" width="240" height="50" rx="6" fill="#0d0d14" stroke="#2a2a38"/>
+          <text x="30" y="128" fill="#8a8a9a" font-size="8" font-family="monospace">jira_list_issues            200  187ms</text>
+          <text x="30" y="142" fill="#8a8a9a" font-size="8" font-family="monospace">result: { data: [...], next_page }</text>
+          <!-- Restrictions -->
+          <text x="140" y="185" fill="#ef4444" font-size="9" text-anchor="middle">Timeout enforced &middot; No fs access &middot; Env-only auth</text>
+          <text x="140" y="200" fill="#05C168" font-size="9" text-anchor="middle">Data filtered before reaching the LLM</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="slide" data-title="Code Mode Example">
+      <h2>Code Mode in practice</h2>
+      <div class="terminal">
+        <div class="terminal-header">
+          <div class="terminal-dot red"></div>
+          <div class="terminal-dot yellow"></div>
+          <div class="terminal-dot green"></div>
+        </div>
+        <div class="terminal-body">
+          <div class="terminal-line"><span class="terminal-prompt">❯ </span><span class="terminal-cmd">Find open bugs in Jira with no linked PR in GitHub, and email me the list</span></div>
+          <div class="terminal-line">&nbsp;</div>
+          <div class="terminal-line"><span class="terminal-output">Agent: searching for relevant actions...</span></div>
+          <div class="terminal-line"><span class="terminal-success">  Found: jira_list_issues, github_list_pull_requests, gmail_send_message</span></div>
+          <div class="terminal-line">&nbsp;</div>
+          <div class="terminal-line"><span class="terminal-output">Agent: generating code...</span></div>
+          <div class="terminal-line"><span class="terminal-highlight">const bugs = await jira_list_issues({ type: "Bug", status: "Open" });</span></div>
+          <div class="terminal-line"><span class="terminal-highlight">const prs = await github_list_pull_requests({ state: "open" });</span></div>
+          <div class="terminal-line"><span class="terminal-highlight">const prKeys = prs.data.map(p =&gt; p.title.match(/[A-Z]+-\d+/)).flat();</span></div>
+          <div class="terminal-line"><span class="terminal-highlight">const unlinked = bugs.data.filter(b =&gt; !prKeys.includes(b.key));</span></div>
+          <div class="terminal-line"><span class="terminal-highlight">await gmail_send_message({ to: "me", subject: "Bugs without PRs",</span></div>
+          <div class="terminal-line"><span class="terminal-highlight">  body: unlinked.map(b =&gt; `${b.key}: ${b.title}`).join("\n") });</span></div>
+          <div class="terminal-line">&nbsp;</div>
+          <div class="terminal-line"><span class="terminal-warning">Executing in sandbox...</span></div>
+          <div class="terminal-line"><span class="terminal-output">  jira_list_issues                   200  187ms  (83 results)</span></div>
+          <div class="terminal-line"><span class="terminal-output">  github_list_pull_requests           200  134ms  (41 results)</span></div>
+          <div class="terminal-line"><span class="terminal-output">  gmail_send_message                 200   92ms</span></div>
+          <div class="terminal-line"><span class="terminal-success">Result: "Sent list of 9 unlinked bugs to your inbox"</span></div>
+        </div>
+      </div>
+      <p class="small" style="margin-top: 16px;">3 providers, 124 records fetched, ~55k tokens of raw JSON &mdash; but only a 9-line summary reached the LLM context.</p>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- THE BIGGER PROBLEM: SAFETY -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+
+    <div class="slide section-divider" data-title="Plot Twist">
+      <h2>But there's a bigger problem...</h2>
+      <p class="subtitle">What happens when your tools read untrusted data?</p>
+    </div>
+
     <!-- Problem 3: Safety -->
     <div class="slide" data-title="Problem 3">
       <h3>Problem 3</h3>
       <h2 class="error-text">Indirect Prompt Injection</h2>
       <p style="max-width: 800px;">
-        The danger isn't malicious tools.<br>
-        It's <span class="error-text">legitimate tools reading malicious content</span>.
+        The danger isn't just malicious tools.<br>
+        It's <span class="error-text">legitimate tools reading untrusted data</span>.
+      </p>
+      <p class="small" style="margin-top: 20px; color: var(--text-dim); max-width: 700px;">
+        Emails, CRM records enriched from scraped data, web search results, call transcripts...<br>
+        Any system that accepts external input is an attack surface.
       </p>
     </div>
 
@@ -1011,231 +1281,6 @@
       </div>
     </div>
 
-    <div class="slide" data-title="Recap Problems">
-      <h2>Three problems at scale</h2>
-      <div class="box-row">
-        <div class="box warning">
-          <span class="box-emoji">💥</span>
-          <h4>Context Explosion</h4>
-          <p>Too many tool definitions</p>
-        </div>
-        <div class="box warning">
-          <span class="box-emoji">🎯</span>
-          <h4>Ambiguity</h4>
-          <p>Wrong tool, wrong account</p>
-        </div>
-        <div class="box error">
-          <span class="box-emoji">🚨</span>
-          <h4>Safety</h4>
-          <p>Prompt injection surface</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- ═══════════════════════════════════════════════════════════════════ -->
-    <!-- PART 3: THE FIX -->
-    <!-- ═══════════════════════════════════════════════════════════════════ -->
-
-    <div class="slide section-divider" data-title="Part 3">
-      <h2>Part 3: The Fix</h2>
-      <p class="subtitle">Solutions you can apply today</p>
-    </div>
-
-    <!-- Fix 1: Dynamic Tool Discovery -->
-    <div class="slide" data-title="Fix 1">
-      <h3>Fix 1</h3>
-      <h2>Dynamic Tool Discovery</h2>
-      <p style="max-width: 800px;">
-        Don't load 895 tool definitions upfront.<br>
-        Give the agent <span class="highlight">1-2 discovery tools</span> to find what it needs.
-      </p>
-    </div>
-
-    <div class="slide" data-title="Discovery Diagram">
-      <h2>How it works</h2>
-      <svg viewBox="0 0 800 300" class="diagram-wide" style="margin: 24px auto; display: block;">
-        <!-- Before: cluttered -->
-        <g transform="translate(0, 0)">
-          <text x="150" y="30" fill="#8a8a9a" font-size="16" text-anchor="middle">BEFORE: 895 tools in context</text>
-          <rect x="50" y="50" width="200" height="120" rx="8" fill="#1a1a24" stroke="#2a2a38"/>
-          <text x="150" y="80" fill="#f59e0b" font-size="14" text-anchor="middle">Agent Context</text>
-          <!-- Tiny tool boxes representing clutter -->
-          <rect x="60" y="95" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="90" y="95" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="120" y="95" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="150" y="95" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="180" y="95" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="210" y="95" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="60" y="115" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="90" y="115" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="120" y="115" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="150" y="115" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="180" y="115" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="210" y="115" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="60" y="135" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="90" y="135" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="120" y="135" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="150" y="135" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="180" y="135" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <rect x="210" y="135" width="25" height="15" rx="2" fill="#2a2a38"/>
-          <text x="150" y="190" fill="#ef4444" font-size="14" text-anchor="middle">~134,000 tokens</text>
-        </g>
-        <!-- Arrow -->
-        <path d="M280 110 L320 110" stroke="#05C168" stroke-width="3" marker-end="url(#arrowhead)"/>
-        <defs><marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#05C168"/></marker></defs>
-        <!-- After: clean -->
-        <g transform="translate(350, 0)">
-          <text x="200" y="30" fill="#8a8a9a" font-size="16" text-anchor="middle">AFTER: 1-2 discovery tools</text>
-          <rect x="100" y="50" width="200" height="120" rx="8" fill="#1a1a24" stroke="#05C168" stroke-width="2"/>
-          <text x="200" y="80" fill="#05C168" font-size="14" text-anchor="middle">Agent Context</text>
-          <!-- Just 1-2 tools -->
-          <rect x="130" y="100" width="140" height="25" rx="4" fill="#05C168" fill-opacity="0.2" stroke="#05C168"/>
-          <text x="200" y="118" fill="#05C168" font-size="12" text-anchor="middle">discover_actions</text>
-          <rect x="130" y="135" width="140" height="25" rx="4" fill="#05C168" fill-opacity="0.2" stroke="#05C168"/>
-          <text x="200" y="153" fill="#05C168" font-size="12" text-anchor="middle">execute_action</text>
-          <text x="200" y="190" fill="#05C168" font-size="14" text-anchor="middle">~500 tokens</text>
-        </g>
-        <!-- Tool registry -->
-        <g transform="translate(350, 210)">
-          <rect x="100" y="0" width="200" height="50" rx="8" fill="#111118" stroke="#2a2a38"/>
-          <text x="200" y="30" fill="#8a8a9a" font-size="12" text-anchor="middle">Tool Registry (queried on demand)</text>
-        </g>
-        <path d="M550 170 L550 205" stroke="#05C168" stroke-width="2" stroke-dasharray="4"/>
-      </svg>
-      <p class="small">Context: 134k tokens → 500 tokens. 268x reduction.</p>
-    </div>
-
-    <div class="slide" data-title="Discovery Code">
-      <h2>From 895 tools to 1-2</h2>
-      <div class="terminal">
-        <div class="terminal-header">
-          <div class="terminal-dot red"></div>
-          <div class="terminal-dot yellow"></div>
-          <div class="terminal-dot green"></div>
-        </div>
-        <div class="terminal-body">
-          <div class="terminal-line"><span class="terminal-output">// Instead of 895 tool definitions:</span></div>
-          <div class="terminal-line">tools: [</div>
-          <div class="terminal-line">  <span class="terminal-highlight">discover_actions</span>,  <span class="terminal-output">// Search by intent</span></div>
-          <div class="terminal-line">  <span class="terminal-highlight">execute_action</span>     <span class="terminal-output">// Run any discovered action</span></div>
-          <div class="terminal-line">]</div>
-          <div class="terminal-line">&nbsp;</div>
-          <div class="terminal-line"><span class="terminal-output">// Agent: "Find tools for listing CRM contacts"</span></div>
-          <div class="terminal-line"><span class="terminal-output">// Returns: hubspot_list_contacts, zendesk_list_contacts</span></div>
-          <div class="terminal-line"><span class="terminal-output">// Agent picks one, executes with full schema</span></div>
-        </div>
-      </div>
-      <p class="small" style="margin-top: 24px;">Agent discovers what it needs, when it needs it.</p>
-    </div>
-
-    <!-- Fix 2: Code Mode -->
-    <div class="slide" data-title="Code Mode">
-      <h3>Fix 2</h3>
-      <h2>Code Mode (Sandboxed Execution)</h2>
-      <p style="max-width: 800px;">
-        Instead of calling pre-defined tools, the agent<br>
-        <span class="highlight">writes and executes code</span> against an API client.
-      </p>
-      <p class="small" style="margin-top: 16px; max-width: 800px; color: var(--text-dim);">
-        Inspired by Anthropic's <span style="color: var(--primary-light);">Code Execution with MCP</span> research:<br>
-        "Reduce token usage from ~150k to ~2k tokens &mdash; a 98.7% saving."
-      </p>
-    </div>
-
-    <div class="slide" data-title="Code Mode Diagram">
-      <h2>How Code Mode works</h2>
-      <svg viewBox="0 0 800 280" class="diagram-wide" style="margin: 24px auto; display: block;">
-        <!-- Agent -->
-        <g transform="translate(30, 80)">
-          <rect x="0" y="0" width="110" height="80" rx="8" fill="#1a1a24" stroke="#05C168" stroke-width="2"/>
-          <text x="55" y="32" fill="#05C168" font-size="13" text-anchor="middle">Agent</text>
-          <text x="55" y="52" fill="#8a8a9a" font-size="10" text-anchor="middle">2 tools only:</text>
-          <text x="55" y="66" fill="#8a8a9a" font-size="9" text-anchor="middle">search + execute</text>
-        </g>
-        <!-- Arrow: search -->
-        <path d="M150 100 L210 100" stroke="#05C168" stroke-width="2" marker-end="url(#arrowhead)"/>
-        <text x="180" y="90" fill="#8a8a9a" font-size="9" text-anchor="middle">search</text>
-        <!-- Search results -->
-        <g transform="translate(220, 60)">
-          <rect x="0" y="0" width="150" height="120" rx="8" fill="#0d0d14" stroke="#05C168" stroke-width="2"/>
-          <text x="75" y="22" fill="#05C168" font-size="11" text-anchor="middle">search_actions</text>
-          <text x="10" y="42" fill="#8a8a9a" font-size="9" font-family="monospace">jira_list_issues</text>
-          <text x="10" y="56" fill="#8a8a9a" font-size="9" font-family="monospace">github_list_pull_requests</text>
-          <text x="10" y="70" fill="#8a8a9a" font-size="9" font-family="monospace">gmail_send_message</text>
-          <text x="10" y="90" fill="#f59e0b" font-size="9" font-family="monospace">+ params, schemas</text>
-          <text x="10" y="104" fill="#f59e0b" font-size="9" font-family="monospace">+ example request/response</text>
-        </g>
-        <!-- Arrow: generates code -->
-        <path d="M150 140 L210 180" stroke="#05C168" stroke-width="2" marker-end="url(#arrowhead)"/>
-        <text x="165" y="170" fill="#8a8a9a" font-size="9" text-anchor="middle">writes</text>
-        <!-- Code block -->
-        <g transform="translate(220, 200)">
-          <rect x="0" y="0" width="150" height="60" rx="8" fill="#0d0d14" stroke="#05C168" stroke-width="1"/>
-          <text x="10" y="20" fill="#8a8a9a" font-size="9" font-family="monospace">const bugs = await</text>
-          <text x="10" y="34" fill="#8a8a9a" font-size="9" font-family="monospace">  jira_list_issues(</text>
-          <text x="10" y="48" fill="#8a8a9a" font-size="9" font-family="monospace">  {type: "bug"});</text>
-        </g>
-        <!-- Arrow: execute -->
-        <path d="M380 230 L460 230" stroke="#05C168" stroke-width="2" marker-end="url(#arrowhead)"/>
-        <path d="M380 120 L460 120" stroke="#05C168" stroke-width="2" stroke-dasharray="4" opacity="0.3"/>
-        <text x="420" y="220" fill="#8a8a9a" font-size="9" text-anchor="middle">execute</text>
-        <!-- Sandbox -->
-        <g transform="translate(470, 40)">
-          <rect x="0" y="0" width="280" height="220" rx="8" fill="#111118" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4"/>
-          <text x="140" y="25" fill="#f59e0b" font-size="12" text-anchor="middle">Sandbox (tsx)</text>
-          <!-- MCP client -->
-          <rect x="20" y="45" width="110" height="50" rx="6" fill="#1a1a24" stroke="#05C168"/>
-          <text x="75" y="65" fill="#05C168" font-size="10" text-anchor="middle">MCP client</text>
-          <text x="75" y="80" fill="#8a8a9a" font-size="8" text-anchor="middle">auto-auth, tracing</text>
-          <!-- Provider APIs -->
-          <rect x="150" y="45" width="110" height="50" rx="6" fill="#1a1a24" stroke="#05C168"/>
-          <text x="205" y="65" fill="#05C168" font-size="10" text-anchor="middle">Jira, GitHub, Gmail</text>
-          <text x="205" y="80" fill="#8a8a9a" font-size="8" text-anchor="middle">real API calls</text>
-          <!-- Arrow between -->
-          <path d="M135 70 L145 70" stroke="#05C168" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-          <!-- Call trace -->
-          <rect x="20" y="110" width="240" height="50" rx="6" fill="#0d0d14" stroke="#2a2a38"/>
-          <text x="30" y="128" fill="#8a8a9a" font-size="8" font-family="monospace">jira_list_issues            200  187ms</text>
-          <text x="30" y="142" fill="#8a8a9a" font-size="8" font-family="monospace">result: { data: [...], next_page }</text>
-          <!-- Restrictions -->
-          <text x="140" y="185" fill="#ef4444" font-size="9" text-anchor="middle">Timeout enforced &middot; No fs access &middot; Env-only auth</text>
-          <text x="140" y="200" fill="#05C168" font-size="9" text-anchor="middle">Data filtered before reaching the LLM</text>
-        </g>
-      </svg>
-    </div>
-
-    <div class="slide" data-title="Code Mode Example">
-      <h2>Code Mode in practice</h2>
-      <div class="terminal">
-        <div class="terminal-header">
-          <div class="terminal-dot red"></div>
-          <div class="terminal-dot yellow"></div>
-          <div class="terminal-dot green"></div>
-        </div>
-        <div class="terminal-body">
-          <div class="terminal-line"><span class="terminal-prompt">❯ </span><span class="terminal-cmd">Find open bugs in Jira with no linked PR in GitHub, and email me the list</span></div>
-          <div class="terminal-line">&nbsp;</div>
-          <div class="terminal-line"><span class="terminal-output">Agent: searching for relevant actions...</span></div>
-          <div class="terminal-line"><span class="terminal-success">  Found: jira_list_issues, github_list_pull_requests, gmail_send_message</span></div>
-          <div class="terminal-line">&nbsp;</div>
-          <div class="terminal-line"><span class="terminal-output">Agent: generating code...</span></div>
-          <div class="terminal-line"><span class="terminal-highlight">const bugs = await jira_list_issues({ type: "Bug", status: "Open" });</span></div>
-          <div class="terminal-line"><span class="terminal-highlight">const prs = await github_list_pull_requests({ state: "open" });</span></div>
-          <div class="terminal-line"><span class="terminal-highlight">const prKeys = prs.data.map(p =&gt; p.title.match(/[A-Z]+-\d+/)).flat();</span></div>
-          <div class="terminal-line"><span class="terminal-highlight">const unlinked = bugs.data.filter(b =&gt; !prKeys.includes(b.key));</span></div>
-          <div class="terminal-line"><span class="terminal-highlight">await gmail_send_message({ to: "me", subject: "Bugs without PRs",</span></div>
-          <div class="terminal-line"><span class="terminal-highlight">  body: unlinked.map(b =&gt; `${b.key}: ${b.title}`).join("\n") });</span></div>
-          <div class="terminal-line">&nbsp;</div>
-          <div class="terminal-line"><span class="terminal-warning">Executing in sandbox...</span></div>
-          <div class="terminal-line"><span class="terminal-output">  jira_list_issues                   200  187ms  (83 results)</span></div>
-          <div class="terminal-line"><span class="terminal-output">  github_list_pull_requests           200  134ms  (41 results)</span></div>
-          <div class="terminal-line"><span class="terminal-output">  gmail_send_message                 200   92ms</span></div>
-          <div class="terminal-line"><span class="terminal-success">Result: "Sent list of 9 unlinked bugs to your inbox"</span></div>
-        </div>
-      </div>
-      <p class="small" style="margin-top: 16px;">3 providers, 124 records fetched &mdash; but only a 9-line summary reached the LLM context.</p>
-    </div>
-
     <!-- Fix 3: Safety Layer -->
     <div class="slide" data-title="Fix 3">
       <h3>Fix 3</h3>
@@ -1314,23 +1359,26 @@
       <div class="live-cue">SWITCH TO LIVE DEMO: Same attack, with defense</div>
     </div>
 
-    <div class="slide" data-title="Recap Fixes">
-      <h2>The fixes</h2>
+    <div class="slide" data-title="Recap">
+      <h2>Problem → Fix</h2>
       <div class="box-row">
         <div class="box">
-          <span class="box-emoji">🔍</span>
-          <h4>Dynamic Discovery</h4>
-          <p>Search, don't load</p>
+          <span class="box-emoji">💥</span>
+          <h4>Context Explosion</h4>
+          <p style="color: var(--text-dim);">891 tools → 2 meta-tools</p>
+          <p>→ <span class="highlight">Dynamic Discovery</span></p>
         </div>
         <div class="box">
-          <span class="box-emoji">💻</span>
-          <h4>Code Mode</h4>
-          <p>Sandboxed execution</p>
+          <span class="box-emoji">🎯</span>
+          <h4>Ambiguity</h4>
+          <p style="color: var(--text-dim);">Wrong tool, wrong account</p>
+          <p>→ <span class="highlight">Code Mode</span></p>
         </div>
         <div class="box">
-          <span class="box-emoji">🛡️</span>
-          <h4>Content Sanitization</h4>
-          <p>Filter malicious responses</p>
+          <span class="box-emoji">🚨</span>
+          <h4>Prompt Injection</h4>
+          <p style="color: var(--text-dim);">Untrusted data in tool results</p>
+          <p>→ <span class="highlight">Content Sanitization</span></p>
         </div>
       </div>
       <p style="margin-top: 32px; font-size: 22px; color: var(--text-secondary);">

@@ -1,4 +1,4 @@
 .env
-accounts.json
+providers.json
 node_modules/
 dist/

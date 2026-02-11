@@ -80,7 +80,7 @@ npm run run-attack
 | Part | Component | What happens |
 |------|-----------|-------------|
 | Part 1: Build | agent | Start small (3 providers), first query works great |
-| Part 2: Break | agent | Scale to 18 providers (~895 tools), context explosion, ambiguity |
+| Part 2: Break | agent | Scale to 19 providers (~891 tools), context explosion, ambiguity |
 | Part 3: Fix | agent + slides | Dynamic discovery, code mode, content sanitization |
 | Security | agent/gmail-agent | Prompt injection via email, defense blocks it |
 

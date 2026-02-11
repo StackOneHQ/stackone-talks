@@ -80,20 +80,21 @@
 
 > Goal: Show solutions to each problem. Concepts first, StackOne as the implementation. The audience learns patterns they can apply — and sees that StackOne already has them built.
 
-### Fix 1: Tool discovery / search (fixes context explosion + ambiguity)
+### Fix 1: Tool discovery / search (fixes upfront context cost + ambiguity)
 - "When you have 1,000 tools, you don't load all of them into context. You search."
 - Introduce the concept: **meta tools**. Instead of listing every tool definition, the agent gets 2-3 meta tools: `search_tools`, `execute_tool`
 - Demo: agent has ~1,000 tools available but only 2-3 tool definitions in context
 - "Find me tools for managing employee time off" → returns 3 relevant tools out of 1,000+
 - Agent calls the right Workday endpoint, right account, right action
-- "The agent went from 1,000 tool definitions in its context window to 3. That's the real fix for context explosion."
+- "The agent went from 1,000 tool definitions in its context window to 3. That's the fix for upfront context explosion."
 - Also fixes ambiguity: search is intent-based, so it returns the right provider and account — no more guessing between 5 versions of "list_contacts"
 - "We built this as meta tools in our AI SDK. The concept applies to any agent framework — don't load tools, discover them."
+- "But discovery only fixes the upfront cost. Every tool call still dumps raw API responses into the conversation history — that's the per-turn cost that compounds."
 
-### Fix 2: Code mode / execute function (potentially)
-- "What if the agent doesn't even need tool definitions at all?"
-- Introduce the concept: instead of calling pre-defined tools, the agent writes and executes code against an API
-- The `execute` function takes a natural language description of what to do and runs it
+### Fix 2: Code mode / sandboxed execution (fixes per-turn response bloat)
+- "Discovery fixed the upfront cost. But each tool call returns 10-50k tokens of raw JSON into the message history. After a few turns, that dwarfs the tool definitions."
+- Introduce the concept: instead of calling pre-defined tools, the agent writes and executes code in a sandbox
+- Raw API data stays in the sandbox. Only a filtered summary reaches the LLM.
 - Demo: agent handles a request that doesn't map to any pre-defined tool — it writes the code on the fly
 - "This is the difference between a menu and a kitchen. Pre-defined tools are the menu. Code mode is having a chef."
 - Bridges the gap for long-tail actions that aren't covered by standard tool definitions
