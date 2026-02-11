@@ -67,6 +67,8 @@ rl.on('line', async (line) => {
 
     try {
       // Always wrap in async — allows `return` and `await` in all code
+      // This is a naive sandbox, we don't need to be too paranoid about security.
+      // biome-ignore lint/security/noGlobalEval: <explanation>
       const result = await (0, eval)(`(async () => { ${code} })()`);
       const latencyMs = Date.now() - startTime;
 
