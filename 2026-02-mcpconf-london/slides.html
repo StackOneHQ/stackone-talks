@@ -428,6 +428,10 @@
       .box h4 { font-size: 16px; }
       .box p { font-size: 13px; }
 
+      .compare-row { gap: 16px !important; }
+      .compare-row > .box { max-width: 100% !important; }
+      .compare-row > span { transform: rotate(90deg); font-size: 28px !important; }
+
       .citation-box { padding: 16px 20px; }
       .citation-quote { font-size: 16px; }
       .citation-source { font-size: 13px; }
@@ -902,9 +906,9 @@
 
     <div class="slide" data-title="Discovery Diagram">
       <h2>How it works</h2>
-      <div style="display: flex; align-items: center; gap: 48px; margin-top: 32px; justify-content: center;">
+      <div class="compare-row" style="display: flex; align-items: center; gap: 48px; margin-top: 32px; justify-content: center; flex-wrap: wrap;">
         <!-- BEFORE -->
-        <div class="box error" style="width: 360px; text-align: center; padding: 28px 24px;">
+        <div class="box error" style="max-width: 360px; width: 100%; text-align: center; padding: 28px 24px;">
           <p style="color: var(--text-dim); font-size: 16px; margin-bottom: 16px;">BEFORE</p>
           <h4 style="color: var(--error); font-size: 22px; margin-bottom: 20px;">916 tools in context</h4>
           <div style="display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-bottom: 20px;">
@@ -924,7 +928,7 @@
         <!-- Arrow -->
         <span style="font-size: 40px; color: var(--primary);">→</span>
         <!-- AFTER -->
-        <div class="box" style="width: 360px; text-align: center; padding: 28px 24px;">
+        <div class="box" style="max-width: 360px; width: 100%; text-align: center; padding: 28px 24px;">
           <p style="color: var(--text-dim); font-size: 16px; margin-bottom: 16px;">AFTER</p>
           <h4 style="font-size: 22px; margin-bottom: 20px;">2 discovery tools</h4>
           <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
