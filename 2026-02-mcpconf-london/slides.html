@@ -520,13 +520,13 @@
       <p class="subtitle" style="color: #c0c0d0;">What happens when you actually try to use MCP at scale</p>
       <div class="logo-row large" style="margin-top: 32px; opacity: 0.6;">
         <img src="https://stackone-logos.com/api/gmail/filled/svg" alt="Gmail" title="Gmail">
-        <img src="https://stackone-logos.com/api/slack/filled/svg" alt="Slack" title="Slack">
         <img src="https://stackone-logos.com/api/hubspot/filled/svg" alt="HubSpot" title="HubSpot">
         <img src="https://stackone-logos.com/api/github/filled/svg" alt="GitHub" title="GitHub">
-        <img src="https://stackone-logos.com/api/salesforce/filled/svg" alt="Salesforce" title="Salesforce">
         <img src="https://stackone-logos.com/api/jira/filled/svg" alt="Jira" title="Jira">
+        <img src="https://stackone-logos.com/api/ashby/filled/svg" alt="Ashby" title="Ashby">
         <img src="https://stackone-logos.com/api/notion/filled/svg" alt="Notion" title="Notion">
-        <img src="https://stackone-logos.com/api/intercom/filled/svg" alt="Intercom" title="Intercom">
+        <img src="https://stackone-logos.com/api/zendesk-sell/filled/svg" alt="Zendesk" title="Zendesk">
+        <img src="https://stackone-logos.com/api/google-sheets/filled/svg" alt="Google Sheets" title="Google Sheets">
       </div>
       <div style="display: flex; align-items: center; gap: 16px; margin-top: 32px;">
         <img src="assets/guillaume-headshot.jpg" alt="Guillaume Lebedel" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(5,193,104,0.5);">
@@ -556,16 +556,16 @@
         <li>We've learned what breaks when you scale this up</li>
       </ul>
       <div class="logo-row" style="margin-top: 20px;">
-        <img src="https://stackone-logos.com/api/salesforce/filled/svg" alt="Salesforce" title="Salesforce">
+        <img src="https://stackone-logos.com/api/gmail/filled/svg" alt="Gmail" title="Gmail">
         <img src="https://stackone-logos.com/api/hubspot/filled/svg" alt="HubSpot" title="HubSpot">
-        <img src="https://stackone-logos.com/api/workday/filled/svg" alt="Workday" title="Workday">
+        <img src="https://stackone-logos.com/api/trello/filled/svg" alt="Trello" title="Trello">
         <img src="https://stackone-logos.com/api/ashby/filled/svg" alt="Ashby" title="Ashby">
-        <img src="https://stackone-logos.com/api/slack/filled/svg" alt="Slack" title="Slack">
         <img src="https://stackone-logos.com/api/jira/filled/svg" alt="Jira" title="Jira">
         <img src="https://stackone-logos.com/api/github/filled/svg" alt="GitHub" title="GitHub">
         <img src="https://stackone-logos.com/api/notion/filled/svg" alt="Notion" title="Notion">
-        <img src="https://stackone-logos.com/api/intercom/filled/svg" alt="Zendesk" title="Zendesk">
-        <img src="https://stackone-logos.com/api/bamboohr/filled/svg" alt="BambooHR" title="BambooHR">
+        <img src="https://stackone-logos.com/api/zendesk-sell/filled/svg" alt="Zendesk" title="Zendesk">
+        <img src="https://stackone-logos.com/api/datadog/filled/svg" alt="Datadog" title="Datadog">
+        <img src="https://stackone-logos.com/api/google-sheets/filled/svg" alt="Google Sheets" title="Google Sheets">
       </div>
       <p class="small" style="margin-top: 20px;">Today: I'll build an agent, give it 1,000 tools, and show you what breaks.</p>
     </div>
@@ -659,9 +659,6 @@
             <div class="terminal-dot green"></div>
           </div>
           <div class="terminal-body">
-            <div class="terminal-line"><span class="terminal-prompt">❯ </span><span class="terminal-cmd">/add-defaults</span></div>
-            <div class="terminal-line"><span class="terminal-success">  ✓ Agent defaults</span><span class="terminal-output"> (+15 tools: web_search, bash, file ops...)</span></div>
-            <div class="terminal-line">&nbsp;</div>
             <div class="terminal-line"><span class="terminal-prompt">❯ </span><span class="terminal-cmd">/add Gmail</span></div>
             <div class="terminal-line"><span class="terminal-success">  ✓ </span><img src="https://stackone-logos.com/api/gmail/filled/svg" class="tool-logo" alt="Gmail"><span class="terminal-success">Gmail</span><span class="terminal-output"> (+42 tools)</span></div>
             <div class="terminal-line"><span class="terminal-prompt">❯ </span><span class="terminal-cmd">/add Trello</span></div>
@@ -674,23 +671,23 @@
           <div class="dashboard-title">📊 MCP DEMO DASHBOARD</div>
           <div class="dashboard-row">
             <span class="dashboard-label">Tools:</span>
-            <span class="dashboard-value">182</span>
+            <span class="dashboard-value">167</span>
           </div>
           <div class="dashboard-row">
             <span class="dashboard-label">Tokens:</span>
-            <span class="dashboard-value">~27,300</span>
+            <span class="dashboard-value">~25,000</span>
           </div>
           <div class="dashboard-row">
             <span class="dashboard-label">Accounts:</span>
-            <span class="dashboard-value">4</span>
+            <span class="dashboard-value">3</span>
           </div>
           <div class="dashboard-bar">
             <div class="dashboard-bar-fill" style="width: 10%; background: var(--success);"></div>
           </div>
-          <div class="dashboard-providers">Defaults(15), Gmail(42), Trello(109), Gong(16)</div>
+          <div class="dashboard-providers">Gmail(42), Trello(109), Gong(16)</div>
         </div>
       </div>
-      <div class="live-cue">SWITCH TO LIVE DEMO: /add-defaults, /add Gmail, Trello, Gong</div>
+      <div class="live-cue">SWITCH TO LIVE DEMO: /add Gmail, Trello, Gong</div>
     </div>
 
     <!-- First query -->
@@ -737,7 +734,7 @@
             <div class="terminal-line"><span class="terminal-prompt">❯ </span><span class="terminal-cmd">/add Jira</span></div>
             <div class="terminal-line"><span class="terminal-success">  ✓ </span><img src="https://stackone-logos.com/api/jira/filled/svg" class="tool-logo" alt="Jira"><span class="terminal-success">Jira</span><span class="terminal-output"> (+158 tools)</span></div>
             <div class="terminal-line"><span class="terminal-prompt">❯ </span><span class="terminal-cmd">/add Zendesk</span></div>
-            <div class="terminal-line"><span class="terminal-success">  ✓ </span><img src="https://stackone-logos.com/api/intercom/filled/svg" class="tool-logo" alt="Zendesk"><span class="terminal-success">Zendesk</span><span class="terminal-output"> (+45 tools)</span></div>
+            <div class="terminal-line"><span class="terminal-success">  ✓ </span><img src="https://stackone-logos.com/api/zendesk-sell/filled/svg" class="tool-logo" alt="Zendesk"><span class="terminal-success">Zendesk</span><span class="terminal-output"> (+45 tools)</span></div>
             <div class="terminal-line"><span class="terminal-output" style="color: var(--text-dim);">  ... + Notion, Datadog, Google Drive, and more</span></div>
           </div>
         </div>
@@ -857,7 +854,7 @@
           <p>ashby_list_candidates</p>
         </div>
         <div class="box warning">
-          <img src="https://stackone-logos.com/api/intercom/filled/svg" class="tool-logo" alt="Zendesk" style="width:28px;height:28px;margin-bottom:8px;">
+          <img src="https://stackone-logos.com/api/zendesk-sell/filled/svg" class="tool-logo" alt="Zendesk" style="width:28px;height:28px;margin-bottom:8px;">
           <h4>Zendesk</h4>
           <p>zendesk_list_contacts</p>
         </div>

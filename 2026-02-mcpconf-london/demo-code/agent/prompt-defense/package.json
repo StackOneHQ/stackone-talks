@@ -1,0 +1,20 @@
+{
+  "name": "@stackone/prompt-defense",
+  "version": "0.1.0",
+  "description": "Prompt injection defense framework for AI tool-calling",
+  "type": "module",
+  "dependencies": {
+    "nanoid": "^5.0.4"
+  },
+  "peerDependencies": {
+    "@huggingface/transformers": "^3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@huggingface/transformers": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
