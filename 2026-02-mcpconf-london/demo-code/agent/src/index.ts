@@ -1,17 +1,19 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import * as p from "@clack/prompts";
 import chalk from "chalk";
 import * as readline from "readline";
-import { readFileSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "fs";
+import { execSync } from "child_process";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import "dotenv/config";
 
 import * as codeMode from "./code-mode.js";
-import * as discovery from "./discovery-mode.js";
-import * as search from "./search-mode.js";
+import * as discovery from "./search-anthropic.js";
+import * as search from "./search-bm25-tfidf.js";
 import * as defense from "./defense-mode.js";
 
 // ---------------------------------------------------------------------------
@@ -23,14 +25,14 @@ const MCP_BASE_URL = "https://api.stackone.com/mcp";
 const CONTEXT_WINDOW = 200_000;
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-let AVAILABLE_ACCOUNTS: { id: string; provider: string }[] = [];
+let AVAILABLE_PROVIDERS: { id: string; provider: string }[] = [];
 try {
-	AVAILABLE_ACCOUNTS = JSON.parse(
-		readFileSync(resolve(__dirname, "../accounts.json"), "utf-8"),
+	AVAILABLE_PROVIDERS = JSON.parse(
+		readFileSync(resolve(__dirname, "../providers.json"), "utf-8"),
 	);
 } catch {}
 
-const accounts = new Map<
+const providers = new Map<
 	string,
 	{ name: string; tools: number; client: Client }
 >();
@@ -39,12 +41,121 @@ let actualInputTokens: number | null = null;
 let lastProvider = "-";
 let lastAction = "-";
 let lastLatencyMs: number | null = null;
+let builtinToolsEnabled = false;
+
+// Built-in Anthropic tools
+// - web_search: fully server-side (Anthropic executes searches)
+// - bash: client-side (we execute commands, return stdout/stderr)
+// - text_editor: client-side (we handle file read/write/replace)
+const BUILTIN_TOOLS: any[] = [
+	{ type: "web_search_20250305", name: "web_search", max_uses: 5 },
+	{ type: "bash_20250124", name: "bash" },
+	{ type: "text_editor_20250728", name: "str_replace_based_edit_tool" },
+];
+
+// Local MCP servers (stdio-based, spawned on demand)
+const LOCAL_MCP_PROVIDERS: {
+	id: string;
+	provider: string;
+	command: string;
+	args?: string[];
+}[] = [
+	{
+		id: "local::chrome-devtools",
+		provider: "Chrome DevTools",
+		command: "npx",
+		args: ["-y", "chrome-devtools-mcp@latest"],
+	},
+];
+
+// ---------------------------------------------------------------------------
+// Built-in tool handlers (bash + text editor)
+// ---------------------------------------------------------------------------
+
+function handleBash(input: { command?: string; restart?: boolean }): string {
+	if (input.restart) return "Bash session restarted.";
+	if (!input.command) return "Error: No command provided.";
+	try {
+		const output = execSync(input.command, {
+			encoding: "utf-8",
+			timeout: 30_000,
+			maxBuffer: 1024 * 1024,
+			cwd: process.cwd(),
+		});
+		return output || "(no output)";
+	} catch (err: any) {
+		// execSync throws on non-zero exit — return combined output
+		const stdout = err.stdout || "";
+		const stderr = err.stderr || "";
+		return stdout + stderr || `Error (exit ${err.status}): ${err.message}`;
+	}
+}
+
+function handleTextEditor(input: {
+	command: string;
+	path: string;
+	old_str?: string;
+	new_str?: string;
+	file_text?: string;
+	insert_line?: number;
+	insert_text?: string;
+	view_range?: [number, number];
+}): string {
+	const { command, path: filePath } = input;
+
+	if (command === "view") {
+		if (!existsSync(filePath)) return `Error: ${filePath} not found.`;
+		const stat = statSync(filePath);
+		if (stat.isDirectory()) {
+			const entries = readdirSync(filePath);
+			return entries.map((e) => {
+				const s = statSync(resolve(filePath, e));
+				return s.isDirectory() ? `${e}/` : e;
+			}).join("\n");
+		}
+		const lines = readFileSync(filePath, "utf-8").split("\n");
+		if (input.view_range) {
+			const [start, end] = input.view_range;
+			const s = Math.max(0, start - 1);
+			const e = end === -1 ? lines.length : end;
+			return lines.slice(s, e).map((l, i) => `${s + i + 1}: ${l}`).join("\n");
+		}
+		return lines.map((l, i) => `${i + 1}: ${l}`).join("\n");
+	}
+
+	if (command === "str_replace") {
+		if (!existsSync(filePath)) return `Error: ${filePath} not found.`;
+		const content = readFileSync(filePath, "utf-8");
+		const count = content.split(input.old_str!).length - 1;
+		if (count === 0) return "Error: No match found for replacement text.";
+		if (count > 1) return `Error: Found ${count} matches. Provide more context for a unique match.`;
+		writeFileSync(filePath, content.replace(input.old_str!, input.new_str ?? ""));
+		return "Successfully replaced text at exactly one location.";
+	}
+
+	if (command === "create") {
+		writeFileSync(filePath, input.file_text || "");
+		return `Created ${filePath}.`;
+	}
+
+	if (command === "insert") {
+		if (!existsSync(filePath)) return `Error: ${filePath} not found.`;
+		const lines = readFileSync(filePath, "utf-8").split("\n");
+		const at = input.insert_line ?? 0;
+		lines.splice(at, 0, input.insert_text || "");
+		writeFileSync(filePath, lines.join("\n"));
+		return `Inserted text after line ${at}.`;
+	}
+
+	return `Error: Unknown command '${command}'.`;
+}
 
 // Usage tracking: stores state from the most recent runAgent() call
 let lastMessages: Anthropic.MessageParam[] = [];
 let lastTools: Anthropic.Tool[] = [];
 let lastSystemPrompt: string | undefined;
 let turnTokenHistory: number[] = [];
+let cachedBaselineTokens: number | null = null;
 const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null;
 
 function getAuthHeader(): string {
@@ -66,11 +177,26 @@ function buildAnthropicTools(): Anthropic.Tool[] {
 	}));
 }
 
+// Shared styling helpers
+const S = {
+	brand: chalk.hex("#05C168"),
+	cmd: (name: string) => chalk.hex("#05C168").bold(name),
+	label: chalk.dim,
+	val: chalk.white,
+	muted: chalk.dim,
+	warn: chalk.yellow,
+	err: chalk.red,
+	ok: chalk.green,
+	accent: chalk.cyan,
+	heading: chalk.bold.white,
+};
+
 function contextBar(tokens: number, width = 30): string {
 	const pct = Math.min(tokens / CONTEXT_WINDOW, 1);
 	const filled = Math.round(pct * width);
-	const icon = pct > 0.75 ? "🔴" : pct > 0.5 ? "🟡" : "🟢";
-	return `${icon} ${"█".repeat(filled)}${"░".repeat(width - filled)} ${(pct * 100).toFixed(0)}%`;
+	const color = pct > 0.75 ? chalk.red : pct > 0.5 ? chalk.yellow : chalk.green;
+	const pctStr = (pct * 100).toFixed(0) + "%";
+	return `${color("█".repeat(filled))}${chalk.dim("░".repeat(width - filled))} ${color(pctStr)}`;
 }
 
 async function measureContext(opts?: {
@@ -129,21 +255,21 @@ async function showUsage(verbose = false) {
 		const conversation = totalTokens - baseline;
 
 		const lines = [
-			`Total:        ${totalTokens.toLocaleString()} tokens (${pct}% of ${CONTEXT_WINDOW / 1000}k)`,
-			`  Baseline:   ${baseline.toLocaleString()} (tools + system prompt)`,
-			`  Convo:      ${conversation.toLocaleString()} (messages + tool results)`,
-			`Remaining:    ${remaining.toLocaleString()} tokens`,
+			`${S.label("Total:")}        ${S.val(totalTokens.toLocaleString())} tokens ${S.muted("(" + pct + "% of " + CONTEXT_WINDOW / 1000 + "k)")}`,
+			`  ${S.label("Baseline:")}   ${S.val(baseline.toLocaleString())} ${S.muted("(tools + system prompt)")}`,
+			`  ${S.label("Convo:")}      ${S.val(conversation.toLocaleString())} ${S.muted("(messages + tool results)")}`,
+			`${S.label("Remaining:")}    ${S.ok(remaining.toLocaleString())} tokens`,
 			contextBar(totalTokens),
 		];
 
 		if (actualInputTokens !== null) {
 			lines.push("");
-			lines.push(`API reported: ${actualInputTokens.toLocaleString()} input_tokens (last turn)`);
+			lines.push(`${S.label("API reported:")} ${S.val(actualInputTokens.toLocaleString())} ${S.muted("input_tokens (last turn)")}`);
 		}
 
 		if (turnTokenHistory.length > 1) {
 			lines.push("");
-			lines.push("Per-turn growth:");
+			lines.push(S.heading("Per-turn growth:"));
 			for (let i = 0; i < turnTokenHistory.length; i++) {
 				const tok = turnTokenHistory[i];
 				const delta = i > 0 ? ` (+${(tok - turnTokenHistory[i - 1]).toLocaleString()})` : "";
@@ -160,7 +286,7 @@ async function showUsage(verbose = false) {
 			}
 			for (const [provider, count] of byProvider) {
 				lines.push(
-					`  ${provider.padEnd(16)} ${count} tools ≈ ${(count * avgPerTool).toLocaleString()} tokens`,
+					`  ${S.brand(provider.padEnd(16))} ${S.val(String(count))} tools ${S.muted("≈ " + (count * avgPerTool).toLocaleString() + " tokens")}`,
 				);
 			}
 		}
@@ -178,6 +304,7 @@ async function showUsage(verbose = false) {
 	const systemPrompt = codeMode.isCodeMode() ? codeMode.buildSystemPrompt(allTools) : undefined;
 	const tokens = await measureContext({ system: systemPrompt });
 	if (tokens === null) return;
+	cachedBaselineTokens = tokens;
 
 	if (!verbose) {
 		p.log.step(
@@ -191,14 +318,14 @@ async function showUsage(verbose = false) {
 	const remaining = CONTEXT_WINDOW - tokens;
 
 	const lines = [
-		`Tools:     ${allTools.size}`,
-		`Baseline:  ${tokens.toLocaleString()} tokens (${pct}% of ${CONTEXT_WINDOW / 1000}k window)`,
-		`Per tool:  ~${avgPerTool} tokens`,
-		`Remaining: ${remaining.toLocaleString()} tokens`,
+		`${S.label("Tools:")}     ${S.val(String(allTools.size))}`,
+		`${S.label("Baseline:")}  ${S.val(tokens.toLocaleString())} tokens ${S.muted("(" + pct + "% of " + CONTEXT_WINDOW / 1000 + "k window)")}`,
+		`${S.label("Per tool:")}  ${S.muted("~" + avgPerTool + " tokens")}`,
+		`${S.label("Remaining:")} ${S.ok(remaining.toLocaleString())} tokens`,
 		contextBar(tokens),
 		"",
-		"(This is the baseline cost before any conversation.)",
-		"(Send a prompt for actual usage breakdown.)",
+		S.muted("(This is the baseline cost before any conversation.)"),
+		S.muted("(Send a prompt for actual usage breakdown.)"),
 	];
 
 	const byProvider = new Map<string, number>();
@@ -207,14 +334,15 @@ async function showUsage(verbose = false) {
 	}
 	for (const [provider, count] of byProvider) {
 		lines.push(
-			`  ${provider.padEnd(16)} ${count} tools ≈ ${(count * avgPerTool).toLocaleString()} tokens`,
+			`  ${S.brand(provider.padEnd(16))} ${S.val(String(count))} tools ${S.muted("≈ " + (count * avgPerTool).toLocaleString() + " tokens")}`,
 		);
 	}
 
 	if (tokens > CONTEXT_WINDOW * 0.5) {
 		lines.push("");
-		lines.push(`⚠ ${pct}% of context used by tool definitions alone.`);
-		lines.push("The model hasn't even seen your question yet.");
+		lines.push(chalk.yellow(`⚠ ${pct}% of context used by tool definitions alone.`));
+		lines.push(chalk.yellow("The model hasn't even seen your question yet."));
+		lines.push(chalk.yellow("Each tool call will add 10-50k tokens of raw API responses on top."));
 	}
 
 	p.note(lines.join("\n"), "📊 Context Usage (baseline)");
@@ -228,23 +356,33 @@ function renderDashboard() {
 	const isCode = codeMode.isCodeMode();
 	const isDisco = discovery.isEnabled();
 	const isSearch = search.isEnabled();
+	const isDefend = defense.isEnabled();
 
 	const lines: string[] = [];
 
-	if (isCode) {
-		lines.push(`Mode:     CODE (1 tool, was ${allTools.size})`);
-	} else if (isDisco) {
-		lines.push(`Mode:     DISCOVERY (${allTools.size} tools deferred)`);
-	} else if (isSearch) {
-		lines.push(`Mode:     SEARCH (2 meta-tools, ${allTools.size} indexed)`);
-	} else {
-		lines.push(`Mode:     MCP (${allTools.size} tools in context)`);
-	}
+	// Mode line with colored badge
+	const modeBadge = isCode
+		? chalk.bgCyan.black(" CODE ")
+		: isDisco
+			? chalk.bgMagenta.white(" DISCOVERY ")
+			: isSearch
+				? chalk.bgBlue.white(" SEARCH ")
+				: chalk.bgHex("#05C168").black(" MCP ");
+	const modeDetail = isCode
+		? S.muted(`1 tool, was ${allTools.size}`)
+		: isDisco
+			? S.muted(`${allTools.size} tools deferred`)
+			: isSearch
+				? S.muted(`2 meta-tools, ${allTools.size} indexed`)
+				: S.muted(`${allTools.size}${builtinToolsEnabled ? " + " + BUILTIN_TOOLS.length + " built-in" : ""} tools in context`);
+	lines.push(`${S.label("Mode")}      ${modeBadge} ${modeDetail}`);
 
+	// Tokens
 	if (actualInputTokens !== null) {
-		const pct = ((actualInputTokens / CONTEXT_WINDOW) * 100).toFixed(0);
+		const pct = (actualInputTokens / CONTEXT_WINDOW) * 100;
+		const color = pct > 75 ? chalk.red : pct > 50 ? chalk.yellow : chalk.green;
 		lines.push(
-			`Tokens:   ${actualInputTokens.toLocaleString()} (${pct}% of ${CONTEXT_WINDOW / 1000}k)`,
+			`${S.label("Tokens")}    ${color(actualInputTokens.toLocaleString())} ${S.muted(`(${pct.toFixed(0)}% of ${CONTEXT_WINDOW / 1000}k)`)}`,
 		);
 	} else {
 		const est = isCode
@@ -252,62 +390,74 @@ function renderDashboard() {
 			: isSearch
 				? "~1k"
 				: `~${(allTools.size * 150).toLocaleString()}`;
-		lines.push(`Tokens:   ${est} est.`);
+		lines.push(`${S.label("Tokens")}    ${S.muted(est + " est.")}`);
 	}
 
-	if (defense.isEnabled()) {
-		lines.push(`Defense:  ON`);
+	// Built-in tools status
+	if (builtinToolsEnabled) {
+		const names = BUILTIN_TOOLS.map((t) => t.name).join(", ");
+		lines.push(`${S.label("Built-in")}  ${chalk.bgHex("#05C168").black(" ON ")} ${S.muted(names)}`);
 	}
-	lines.push(`Accounts: ${accounts.size}`);
-	if (lastLatencyMs !== null) lines.push(`Latency:  ${lastLatencyMs}ms`);
-	lines.push(`Last:     ${lastProvider} → ${lastAction}`);
 
-	if (accounts.size > 0) {
+	// Defense status
+	if (isDefend) {
+		lines.push(`${S.label("Defense")}   ${chalk.bgYellow.black(" ON ")}`);
+	}
+
+	// Providers
+	lines.push(`${S.label("Providers")} ${S.val(String(providers.size))}`);
+	if (lastLatencyMs !== null) lines.push(`${S.label("Latency")}   ${S.val(lastLatencyMs + "ms")}`);
+	lines.push(`${S.label("Last")}      ${S.accent(lastProvider)} → ${S.val(lastAction)}`);
+
+	if (providers.size > 0) {
 		lines.push("");
 		lines.push(
-			Array.from(accounts.values())
-				.map((a) => `${a.name}(${a.tools})`)
-				.join(", "),
+			Array.from(providers.values())
+				.map((a) => `${S.brand(a.name)}${S.muted("(" + a.tools + ")")}`)
+				.join(S.muted(", ")),
 		);
 	}
 
-	if (!isCode && !isDisco && !isSearch && allTools.size > 1000) {
-		lines.push("");
-		lines.push("🚨 CRITICAL: Over 1,000 tools. Context overload!");
-	} else if (!isCode && !isDisco && !isSearch && allTools.size > 500) {
-		lines.push("");
-		lines.push("⚠ Warning: Tool count > 500. Performance degrading.");
+	if (!isCode && !isDisco && !isSearch && cachedBaselineTokens !== null) {
+		const usagePct = cachedBaselineTokens / CONTEXT_WINDOW;
+		if (usagePct > 0.75) {
+			lines.push("");
+			lines.push(chalk.bgRed.white(" CRITICAL ") + chalk.red(` ${(usagePct * 100).toFixed(0)}% context used by tools alone. Overload!`));
+		} else if (usagePct > 0.4) {
+			lines.push("");
+			lines.push(chalk.bgYellow.black(" WARNING ") + chalk.yellow(` ${(usagePct * 100).toFixed(0)}% context used by tool definitions. Performance degrading.`));
+		}
 	}
 
 	const title = isCode
-		? "💻 CODE MODE"
+		? "💻 Code Mode"
 		: isDisco
-			? "🔍 DISCOVERY MODE"
+			? "🔍 Discovery Mode"
 			: isSearch
-				? "🔎 SEARCH MODE"
-				: "📊 MCP DEMO";
-	p.note(lines.join("\n"), title);
+				? "🔎 Search Mode"
+				: "⚡ Dashboard";
+	p.note(lines.join("\n"), S.brand(title));
 }
 
 // ---------------------------------------------------------------------------
-// Account management (MCP connection)
+// Provider management (MCP connection)
 // ---------------------------------------------------------------------------
 
-async function addAccount(providerName: string) {
-	const account = AVAILABLE_ACCOUNTS.find(
+async function addProvider(providerName: string) {
+	const entry = AVAILABLE_PROVIDERS.find(
 		(a) =>
 			a.provider.toLowerCase() === providerName.toLowerCase() ||
 			a.id === providerName,
 	);
-	if (!account) {
+	if (!entry) {
 		p.log.error(`Unknown provider: ${providerName}`);
 		p.log.message(
-			"Available: " + AVAILABLE_ACCOUNTS.map((a) => a.provider).join(", "),
+			"Available: " + AVAILABLE_PROVIDERS.map((a) => S.brand(a.provider)).join(S.muted(", ")),
 		);
 		return;
 	}
-	if (accounts.has(account.id)) {
-		p.log.warn(`${account.provider} already connected`);
+	if (providers.has(entry.id)) {
+		p.log.warn(`${entry.provider} already connected`);
 		return;
 	}
 	if (!process.env.STACKONE_API_KEY) {
@@ -315,11 +465,11 @@ async function addAccount(providerName: string) {
 		return;
 	}
 
-	p.log.step(`Connecting to ${account.provider}...`);
+	p.log.step(`Connecting to ${entry.provider}...`);
 
 	try {
 		const client = new Client({
-			name: `demo-${account.provider}`,
+			name: `demo-${entry.provider}`,
 			version: "1.0.0",
 		});
 		const authToken = Buffer.from(
@@ -331,7 +481,7 @@ async function addAccount(providerName: string) {
 				requestInit: {
 					headers: {
 						Authorization: `Basic ${authToken}`,
-						"x-account-id": account.id,
+						"x-account-id": entry.id,
 						"Content-Type": "application/json",
 						Accept: "application/json, text/event-stream",
 					},
@@ -344,26 +494,26 @@ async function addAccount(providerName: string) {
 		const toolCount = toolsResult.tools?.length || 0;
 
 		for (const tool of toolsResult.tools || []) {
-			allTools.set(`${account.provider}::${tool.name}`, {
+			allTools.set(`${entry.provider}::${tool.name}`, {
 				...tool,
-				provider: account.provider,
-				accountId: account.id,
+				provider: entry.provider,
+				providerId: entry.id,
 			});
 		}
 
-		accounts.set(account.id, {
-			name: account.provider,
+		providers.set(entry.id, {
+			name: entry.provider,
 			tools: toolCount,
 			client,
 		});
 		p.log.success(
-			`${account.provider} (+${toolCount} tools, ${allTools.size} total)`,
+			`${entry.provider} (+${toolCount} tools, ${allTools.size}${builtinToolsEnabled ? " + " + BUILTIN_TOOLS.length + " built-in" : ""} total)`,
 		);
 
 		await showUsage();
 		renderDashboard();
 	} catch (error: any) {
-		p.log.error(`Failed to connect ${account.provider}: ${error.message}`);
+		p.log.error(`Failed to connect ${entry.provider}: ${error.message}`);
 	}
 }
 
@@ -391,8 +541,8 @@ async function runAgent(prompt: string) {
 	const sandbox = codeMode.getSandbox();
 
 	if (isCode) {
-		if (accounts.size === 0) {
-			p.log.warn("No accounts connected. Use /add <provider> first.");
+		if (providers.size === 0) {
+			p.log.warn("No providers connected. Use /add <provider> first.");
 			return;
 		}
 		if (!sandbox || !sandbox.isRunning()) {
@@ -413,6 +563,16 @@ async function runAgent(prompt: string) {
 		tools = buildAnthropicTools();
 		if (tools.length > 100)
 			p.log.warn(`Loading ${tools.length} tool definitions into context...`);
+	}
+
+	// Append built-in Anthropic server tools (web search etc.)
+	if (builtinToolsEnabled) {
+		tools = [...tools, ...BUILTIN_TOOLS];
+	}
+
+	// When defense mode is on, tell the LLM how to handle boundary tags
+	if (defense.isEnabled()) {
+		systemPrompt = (systemPrompt ?? "") + "\n\n" + defense.getSystemInstructions();
 	}
 
 	try {
@@ -456,16 +616,47 @@ async function runAgent(prompt: string) {
 				if (block.type === "text") {
 					console.log("\n" + block.text);
 				} else if (block.type === "server_tool_use") {
-					// Discovery mode: tool search happened server-side
-					const query =
-						block.input?.query || block.input?.pattern || "";
-					p.log.step(`🔍 Tool search: "${query}"`);
+					// Server-side tool execution (web search, discovery tool search)
+					if (block.name === "web_search") {
+						const query = block.input?.query || "";
+						p.log.step(`🌐 Web search: ${S.accent(`"${query}"`)}`);
+					} else {
+						const query = block.input?.query || block.input?.pattern || "";
+						p.log.step(`🔍 Tool search: "${query}"`);
+					}
+				} else if ((block as any).type === "web_search_tool_result") {
+					// Web search results (server-side, just log them)
+					const results = (block as any).content || [];
+					const urls = results
+						.filter((r: any) => r.type === "web_search_result")
+						.map((r: any) => r.title || r.url);
+					if (urls.length > 0) {
+						p.log.success(`${S.ok(String(urls.length))} results: ${S.muted(urls.slice(0, 3).join(", "))}${urls.length > 3 ? S.muted(` +${urls.length - 3} more`) : ""}`);
+					}
 				} else if (block.type === "tool_use") {
-					if (isSearch && block.name === "meta_search_tools") {
-						// Search mode: client-side BM25 + TF-IDF search
+					if (builtinToolsEnabled && block.name === "bash") {
+						// Built-in: bash tool
+						const input = block.input as { command?: string; restart?: boolean };
+						lastProvider = "built-in";
+						lastAction = "bash";
+						p.log.step(`${S.accent("$")} ${input.command || "(restart)"}`);
+						const result = handleBash(input);
+						p.log.success(S.muted(result.length > 200 ? result.substring(0, 200) + "..." : result));
+						toolResults.push({ type: "tool_result", tool_use_id: block.id, content: result });
+					} else if (builtinToolsEnabled && block.name === "str_replace_based_edit_tool") {
+						// Built-in: text editor tool
+						const input = block.input as any;
+						lastProvider = "built-in";
+						lastAction = `editor:${input.command}`;
+						p.log.step(`${S.accent("\u270e")} ${input.command} ${S.muted(input.path || "")}`);
+						const result = handleTextEditor(input);
+						p.log.success(S.muted(result.length > 200 ? result.substring(0, 200) + "..." : result));
+						toolResults.push({ type: "tool_result", tool_use_id: block.id, content: result });
+					} else if (isSearch && block.name === "meta_search_tools") {
+						// Search mode: client-side Orama BM25 + TF-IDF search
 						const input = block.input as { query: string; limit?: number };
 						p.log.step(`🔎 Searching: "${input.query}"`);
-						const results = search.handleSearch(input);
+						const results = await search.handleSearch(input);
 						const resultStr = JSON.stringify(results);
 						p.log.success(
 							`Found ${results.tools.length} tools: ${results.tools.map((t) => t.name).join(", ")}`,
@@ -492,10 +683,10 @@ async function runAgent(prompt: string) {
 							resultContent = `Error: Tool '${input.tool_name}' not found`;
 							p.log.error(`Tool not found: ${input.tool_name}`);
 						} else {
-							const accountData = accounts.get(toolInfo.accountId);
-							if (accountData?.client) {
+							const providerData = providers.get(toolInfo.providerId);
+							if (providerData?.client) {
 								try {
-									const result = await accountData.client.callTool({
+									const result = await providerData.client.callTool({
 										name: input.tool_name,
 										arguments: input.params || {},
 									});
@@ -508,7 +699,7 @@ async function runAgent(prompt: string) {
 									p.log.error(err.message);
 								}
 							} else {
-								p.log.error(`No MCP client for account ${toolInfo.accountId}`);
+								p.log.error(`No MCP client for provider ${toolInfo.providerId}`);
 							}
 						}
 						if (defense.isEnabled()) {
@@ -585,13 +776,13 @@ async function runAgent(prompt: string) {
 							resultContent = `Error: Tool '${block.name}' not found`;
 							p.log.error(`Tool not found: ${block.name}`);
 						} else {
-							const accountData = accounts.get(
-								toolInfo.accountId,
+							const providerData = providers.get(
+								toolInfo.providerId,
 							);
-							if (accountData?.client) {
+							if (providerData?.client) {
 								try {
 									const result =
-										await accountData.client.callTool({
+										await providerData.client.callTool({
 											name: block.name,
 											arguments:
 												block.input as Record<
@@ -611,7 +802,7 @@ async function runAgent(prompt: string) {
 								}
 							} else {
 								p.log.error(
-									`No MCP client for account ${toolInfo.accountId}`,
+									`No MCP client for provider ${toolInfo.providerId}`,
 								);
 							}
 						}
@@ -675,12 +866,12 @@ async function runAgent(prompt: string) {
 			lines.push(`API error: ${msg}`);
 			lines.push("");
 			lines.push("The agent could not process your request.");
-			lines.push("Tool definitions alone filled the context window.");
+			lines.push("Tool definitions + accumulated raw responses filled the context window.");
 			lines.push("All conversation context has been lost.");
 
 			p.note(
 				lines.join("\n"),
-				"💥 CONTEXT WINDOW EXCEEDED — AGENT CRASHED",
+				chalk.red.bold("💥 CONTEXT WINDOW EXCEEDED — AGENT CRASHED"),
 			);
 		} else {
 			p.log.error(msg);
@@ -697,8 +888,8 @@ async function cleanupAll() {
 	discovery.cleanup();
 	search.cleanup();
 	defense.cleanup();
-	for (const account of accounts.values()) {
-		await account.client.close().catch(() => {});
+	for (const prov of providers.values()) {
+		await prov.client.close().catch(() => {});
 	}
 }
 
@@ -717,35 +908,43 @@ process.on("SIGTERM", async () => {
 // ---------------------------------------------------------------------------
 
 function showHelp() {
-	p.note(
-		[
-			"/add <provider>  Connect a StackOne account",
-			"/accounts        List available accounts",
-			"/connected       Show connected accounts",
-			"/tools           List loaded tools by provider",
-			"/usage           Show context window usage",
-			"/code            Toggle code mode (sandbox)",
-			"/discover        Toggle discovery mode (Anthropic tool search)",
-			"/search          Toggle search mode (client-side BM25 + TF-IDF)",
-			"/defend          Toggle prompt injection defense on tool results",
-			"/reset           Disconnect all accounts",
-			"/help            Show this help",
-			"/quit            Exit",
-			"",
-			"Or type any prompt to query the agent.",
-		].join("\n"),
-		"📖 Commands",
-	);
+	const c = (name: string) => S.cmd(name.padEnd(14));
+	const d = S.muted;
+
+	const lines = [
+		S.heading("Providers"),
+		`  ${c("/add")} ${d("<provider>")}  Connect an MCP provider`,
+		`  ${c("/add-all")}          Connect all + enable defaults`,
+		`  ${c("/providers")}         List available providers`,
+		`  ${c("/connected")}         Show connected providers`,
+		`  ${c("/tools")}             List loaded tools by provider`,
+		`  ${c("/reset")}             Disconnect all providers`,
+		"",
+		S.heading("Modes"),
+		`  ${c("/defaults")}         Toggle built-in tools ${d("(web, bash, editor)")}`,
+		`  ${c("/code")}             Sandbox code execution`,
+		`  ${c("/discover")}         Anthropic server-side search ${d("(beta)")}`,
+		`  ${c("/search")}           Client-side BM25 + TF-IDF search`,
+		`  ${c("/defend")}           Prompt injection defense`,
+		"",
+		S.heading("Info"),
+		`  ${c("/usage")}            Context window breakdown`,
+		`  ${c("/help")}             Show this help`,
+		`  ${c("/quit")}             Exit`,
+		"",
+		d("Or type any prompt to query the agent."),
+	];
+	p.note(lines.join("\n"), S.brand("⚡ Commands"));
 }
 
 async function main() {
-	p.intro("MCP Demo Agent — MCPconf London 2026");
+	p.intro(chalk.hex("#05C168").bold("MCP Demo Agent") + chalk.dim(" — MCPconf London 2026"));
 
 	if (!process.env.STACKONE_API_KEY) p.log.warn("STACKONE_API_KEY not set");
 	if (!process.env.ANTHROPIC_API_KEY)
 		p.log.warn("ANTHROPIC_API_KEY not set");
-	if (AVAILABLE_ACCOUNTS.length === 0)
-		p.log.warn("accounts.json not found. Copy accounts.example.json.");
+	if (AVAILABLE_PROVIDERS.length === 0)
+		p.log.warn("providers.json not found. Copy providers.example.json.");
 
 	showHelp();
 
@@ -767,22 +966,22 @@ async function main() {
 
 			if (trimmed === "/help") {
 				showHelp();
-			} else if (trimmed === "/accounts") {
-				const lines = AVAILABLE_ACCOUNTS.map((a) => {
-					const data = accounts.get(a.id);
+			} else if (trimmed === "/providers") {
+				const lines = AVAILABLE_PROVIDERS.map((a) => {
+					const data = providers.get(a.id);
 					return data
-						? `  ✓ ${a.provider.padEnd(15)} ${data.tools} tools`
-						: `  ○ ${a.provider.padEnd(15)} not connected`;
+						? `  ${S.ok("●")} ${S.brand(a.provider.padEnd(15))} ${S.muted(data.tools + " tools")}`
+						: `  ${S.muted("○")} ${chalk.white(a.provider.padEnd(15))} ${S.muted("not connected")}`;
 				});
-				p.note(lines.join("\n"), "Available Accounts");
+				p.note(lines.join("\n"), S.brand("📋 Providers"));
 			} else if (trimmed === "/connected") {
-				if (accounts.size === 0) {
-					p.log.info("No accounts connected.");
+				if (providers.size === 0) {
+					p.log.info(S.muted("No providers connected. Use ") + S.cmd("/add <provider>") + S.muted(" to connect."));
 				} else {
-					const lines = Array.from(accounts.values()).map(
-						(a) => `  ✓ ${a.name.padEnd(15)} ${a.tools} tools`,
+					const lines = Array.from(providers.values()).map(
+						(a) => `  ${S.ok("●")} ${S.brand(a.name.padEnd(15))} ${S.muted(a.tools + " tools")}`,
 					);
-					p.note(lines.join("\n"), "Connected Accounts");
+					p.note(lines.join("\n"), S.brand("🔗 Connected"));
 				}
 			} else if (trimmed === "/tools") {
 				const byProvider = new Map<string, string[]>();
@@ -791,17 +990,34 @@ async function main() {
 						byProvider.set(tool.provider, []);
 					byProvider.get(tool.provider)!.push(tool.name);
 				}
+				if (builtinToolsEnabled) {
+					byProvider.set("Built-in (Anthropic)", BUILTIN_TOOLS.map((t) => t.name));
+				}
+				const totalCount = allTools.size + (builtinToolsEnabled ? BUILTIN_TOOLS.length : 0);
 				const lines = Array.from(byProvider.entries()).map(
 					([provider, tools]) =>
-						`${provider} (${tools.length}): ${tools.slice(0, 5).join(", ")}${tools.length > 5 ? "..." : ""}`,
+						`  ${S.brand(provider)} ${S.muted("(" + tools.length + ")")}  ${S.accent(tools.slice(0, 5).join(", "))}${tools.length > 5 ? S.muted(" +" + (tools.length - 5) + " more") : ""}`,
 				);
-				p.note(lines.join("\n"), `Loaded Tools (${allTools.size})`);
+				p.note(lines.join("\n"), S.brand(`🔧 Tools (${totalCount})`));
+			} else if (trimmed === "/add-all") {
+				const unconnected = AVAILABLE_PROVIDERS.filter((a) => !providers.has(a.id));
+				if (unconnected.length === 0 && builtinToolsEnabled) {
+					p.log.info(S.muted("Everything already connected."));
+				} else {
+					if (!builtinToolsEnabled) {
+						builtinToolsEnabled = true;
+						p.log.success(`Built-in tools ${chalk.bgHex("#05C168").black(" ON ")}: ${S.accent(BUILTIN_TOOLS.map((t) => t.name).join(", "))}`);
+					}
+					for (const entry of unconnected) {
+						await addProvider(entry.provider);
+					}
+				}
 			} else if (trimmed.startsWith("/add ")) {
 				const provider = trimmed
 					.slice(5)
 					.trim()
 					.replace(/^["']|["']$/g, "");
-				await addAccount(provider);
+				await addProvider(provider);
 			} else if (trimmed === "/usage") {
 				await showUsage(true);
 			} else if (trimmed === "/code") {
@@ -809,7 +1025,7 @@ async function main() {
 				if (search.isEnabled()) search.cleanup();
 				await codeMode.toggle(
 					allTools,
-					accounts,
+					providers,
 					MCP_BASE_URL,
 					getAuthHeader(),
 					renderDashboard,
@@ -821,12 +1037,21 @@ async function main() {
 			} else if (trimmed === "/search") {
 				if (codeMode.isCodeMode()) await codeMode.cleanup();
 				if (discovery.isEnabled()) discovery.cleanup();
-				search.toggle(allTools, renderDashboard);
+				await search.toggle(allTools, renderDashboard);
+			} else if (trimmed === "/defaults") {
+				builtinToolsEnabled = !builtinToolsEnabled;
+				if (builtinToolsEnabled) {
+					const names = BUILTIN_TOOLS.map((t) => t.name);
+					p.log.success(`Built-in tools ${chalk.bgHex("#05C168").black(" ON ")}: ${S.accent(names.join(", "))}`);
+				} else {
+					p.log.info(`Built-in tools ${S.muted("OFF")}`);
+				}
+				renderDashboard();
 			} else if (trimmed === "/defend") {
-			await defense.toggle(renderDashboard);
-		} else if (trimmed === "/reset") {
+				await defense.toggle(renderDashboard);
+			} else if (trimmed === "/reset") {
 				await cleanupAll();
-				accounts.clear();
+				providers.clear();
 				allTools.clear();
 				actualInputTokens = null;
 				lastProvider = "-";
@@ -836,6 +1061,8 @@ async function main() {
 				lastTools = [];
 				lastSystemPrompt = undefined;
 				turnTokenHistory = [];
+				cachedBaselineTokens = null;
+				builtinToolsEnabled = false;
 				p.log.success("Reset complete");
 				renderDashboard();
 			} else if (trimmed.length > 0) {

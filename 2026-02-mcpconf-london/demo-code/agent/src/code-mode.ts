@@ -1,11 +1,12 @@
 /**
  * Code Mode — the "solution" side of the demo.
  *
- * Instead of loading 845 tool schemas into context (MCP mode),
- * give Claude a single `execute_code` tool with a sandbox that has
- * pre-authenticated wrappers for every MCP tool.
+ * Fixes two context explosion problems:
+ * 1. Upfront: 845 tool schemas → 1 execute_code tool (~500 tokens)
+ * 2. Per-turn: raw API responses stay in the sandbox, only filtered
+ *    summaries reach the LLM (e.g. 55k JSON → 400-char summary)
  *
- * 845 tools → 1 tool. Context drops from 130k tokens to ~500.
+ * The sandbox has pre-authenticated fetch wrappers for every MCP tool.
  */
 
 import type Anthropic from "@anthropic-ai/sdk";
@@ -44,7 +45,7 @@ export async function setupSandbox(
 		const fnName = tool.name.replace(/-/g, "_");
 		wrappers.push(`
   ${fnName}: async (args) => {
-    const res = await fetch("${mcpBaseUrl}?x-account-id=${tool.accountId}", {
+    const res = await fetch("${mcpBaseUrl}?x-account-id=${tool.providerId}", {
       method: "POST",
       headers: {
         "Authorization": "${authHeader}",
@@ -81,7 +82,7 @@ return "Sandbox ready: " + Object.keys(globalThis.tools).length + " tool wrapper
 
 export async function toggle(
 	allTools: Map<string, any>,
-	accounts: Map<string, any>,
+	providers: Map<string, any>,
 	mcpBaseUrl: string,
 	authHeader: string,
 	renderDashboard: () => void,
@@ -94,8 +95,8 @@ export async function toggle(
 		}
 		p.log.info(`Switched to MCP mode — ${allTools.size} tools in context`);
 	} else {
-		if (accounts.size === 0) {
-			p.log.warn("No accounts connected. Use /add <provider> first.");
+		if (providers.size === 0) {
+			p.log.warn("No providers connected. Use /add <provider> first.");
 			return;
 		}
 		p.log.step("Switching to Code mode...");

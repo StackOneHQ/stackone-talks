@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "Prompt injection defense framework for AI tool-calling",
   "type": "module",
+  "exports": "./src/index.ts",
   "dependencies": {
     "nanoid": "^5.0.4"
   },

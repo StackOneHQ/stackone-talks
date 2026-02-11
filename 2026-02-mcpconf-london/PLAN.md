@@ -33,123 +33,82 @@ Most talks will be **pro-MCP advocacy**. Your talk is contrarian — you expose 
 
 ---
 
-## Talk Structure (35 minutes)
+## Talk Structure (34 slides, ~25 min + Q&A)
 
-### Act 1: The Promise (5 min)
+### Part 1: The Build (slides 1-8, ~10 min)
 **"MCP is great. Let's prove it."**
 
-- Open with a live demo: coding agent (Claude Code or Cursor) connected to 3-4 MCP servers
-- Show it working well: Slack, GitHub, a database — clean, fast, useful
-- Establish credibility: "We've been building MCP infrastructure at StackOne. We connect agents to 300+ enterprise APIs."
-- Set the hook: "But what happens when you actually try to use this in production?"
+- Audience warm-up: hands up for who's built agents, connected tools, etc.
+- Personal story: Claude Code + 1,000 tools, "that's where agents are going"
+- Live demo: boot the agent, add 3 providers (Gmail, Trello, Gong), query "List my recent emails"
+- Scale up: add 15 more providers live, watch context bar fill to 57%
+- Show `/usage` — real Anthropic count_tokens API, not an estimate
 
-### Act 2: The Breakdown (12 min)
-**"Now let's add the rest of the enterprise."**
+### Part 2: The Break (slides 9-14, ~4 min)
+**"This is where it starts falling apart."**
 
-This is the core demo. Progressively add MCP servers and show what breaks:
+- Problem 1: Context Explosion — tool definitions eat 134k tokens (two thirds of context), then per-turn raw API responses compound it
+- Problem 2: Tool Ambiguity — "list my contacts" matches 3+ providers, agent guesses, positional bias compounds
+- Cite research: Chroma Context Rot (-30% accuracy), ODSC tool selection bias (+9.5%)
 
-#### Phase 1: 10 MCP servers → Things slow down
-- Add Salesforce, Workday, SAP, ServiceNow, BambooHR, etc.
-- Show context window filling up with tool definitions
-- Agent starts getting confused about which tool to use
-- Latency increases visibly
+### Let's Fix This (slides 15-22, ~8 min)
+**"Two problems. Let's fix them."**
 
-#### Phase 2: 20+ servers with multiple accounts → Chaos
-- Same tool (e.g., "list_employees") exists across 5 different providers
-- Multiple account IDs for the same provider (prod, staging, different regions)
-- Agent picks the wrong account, calls the wrong API
-- Show the actual token count / context usage — the audience sees the problem numerically
+- Fix 1: Dynamic Tool Discovery — 891 tools → 2 meta-tools (`search_tools` + `execute_tool`), 268x context reduction
+- Search Strategies: BM25 (83%), BM25+TF-IDF hybrid (98%), Semantic (~99%). We use hybrid, 200 lines, sub-ms.
+- Optional live demo: `/search` mode
+- Fix 2: Code Mode — agent writes TypeScript, executes in sandbox. Raw data stays in sandbox, only filtered summary reaches LLM. 98.7% token reduction per Anthropic's research.
+- Optional live demo: `/code` mode
 
-#### Phase 3: The safety nightmare (enterprise kicker)
-- Add a "rogue" third-party MCP server (pre-built for the demo)
-- Show it injecting malicious instructions via tool descriptions
-- Agent follows the injection — exfiltrates data or takes unauthorized action
-- Pause. Let the audience absorb this. "This is what your security team is worried about."
+### Plot Twist: Safety (slides 23-31, ~6 min)
+**"But there's a bigger problem..."**
 
-### Act 3: The Solution (12 min)
-**"Here's how we actually solve this."**
+- Problem 3: Indirect Prompt Injection — legitimate tools reading untrusted data (emails, CRM records, web search, call transcripts)
+- Injection diagram: Gmail returns email with hidden instructions, agent follows them
+- Live demo or static walkthrough of the attack
+- Cite research: OWASP #1, ICLR 84% vulnerable, AgentDojo/NIST 81% novel attacks
+- Fix 3: Content Sanitization — Tier 1 regex + Tier 2 MLP classifier, sentence-level scoring, blocks before agent sees it
+- Same attack with defense: blocked at score 1.0
 
-Rebuild the demo using StackOne's approach:
+### Close (slides 32-34, ~5 min)
+**"MCP is the protocol. You need infrastructure around it."**
 
-#### Solution 1: Unified Tool Layer
-- Replace 20 MCP servers with 1 StackOne MCP endpoint
-- Same capabilities, fraction of the context
-- Show the before/after token count — dramatic reduction
-- Demo: agent correctly routes "list employees" to the right provider + account
-
-#### Solution 2: Dynamic Tool Discovery (Meta Tools)
-- Show `meta_search_tools` — agent searches for tools by intent instead of loading all
-- "Find me tools for managing employee time off" → returns 3 relevant tools out of 1,000+
-- Agent operates with surgical precision instead of context overload
-
-#### Solution 3: Enterprise Safety
-- Show StackOne's tool descriptions are clean — no injection surface
-- Unified auth layer — agent never sees raw credentials
-- Audit trail — every tool call logged with account, provider, action
-- Contrast: "20 third-party MCP servers with 20 different trust models vs. 1 verified layer"
-
-### Act 4: Close (6 min)
-**"The future isn't more tools. It's smarter tool access."**
-
-- Recap the 3 problems: context explosion, ambiguity, safety
-- Recap the 3 solutions: unification, discovery, trust
-- Key message: "MCP is the protocol. But protocols don't solve operational problems — infrastructure does."
-- QR code: free StackOne access for conference attendees
-- "Come to our booth for a deeper dive" (if applicable)
+- Recap: problem → fix pairs (Context → Discovery, Ambiguity → Code Mode, Injection → Sanitization)
+- Complementary approaches: sub-agents, formal verification, MCP gateways, RLM
+- Takeaway: "Protocols don't solve what happens when you connect hundreds of tools."
+- QR code: stackone.com/request-free-access
 
 ---
 
 ## Technical Demo Components
 
-### What Needs to Be Built
+### What Was Built
 
-#### 1. "Naive" Multi-MCP Setup (Act 2)
-```
-Purpose: Show the problem
-Components:
-  - 15-20 MCP server configs (can be mix of real and mock)
-  - Real servers: Slack, GitHub, Notion (already have these)
-  - Mock servers: Workday, SAP, ServiceNow (return dummy data)
-  - "Rogue" server: injects prompt via tool description
-  - Script to progressively enable servers during live demo
-```
+#### 1. Demo Agent (`demo-code/agent/`)
+Single TypeScript agent with progressive `/add` commands to connect providers live on stage. Dashboard shows real-time context usage, tool counts, and mode indicators.
 
-#### 2. StackOne Unified Setup (Act 3)
-```
-Purpose: Show the solution
-Components:
-  - Single StackOne MCP endpoint
-  - Connected accounts: mix of HR, CRM, ATS providers
-  - Meta tools enabled (search + execute)
-  - Pre-configured with multiple accounts per provider
-```
+**Source files:**
+| File | Purpose |
+|------|---------|
+| `src/index.ts` | Agent loop, dashboard, command handling |
+| `src/search-anthropic.ts` | `/discover` — Anthropic server-side BM25 (beta) |
+| `src/search-bm25-tfidf.ts` | `/search` — client-side hybrid Orama BM25 + TF-IDF |
+| `src/code-mode.ts` | `/code` — sandboxed execution |
+| `src/defense-mode.ts` | `/defend` — wraps @stackone/prompt-defense |
+| `src/sandbox.ts` | Sandbox runtime for code mode |
+| `src/test-search.ts` | 47 search accuracy tests (46 passing) |
+| `prompt-defense/` | Local package: Tier 1 regex + Tier 2 MLP classifier |
 
-#### 3. Measurement Dashboard (Visual Aid)
-```
-Purpose: Make the problem visible to the audience
-Shows:
-  - Token count / context usage (real-time or simulated)
-  - Number of active tools
-  - API call routing (which provider/account was selected)
-  - Safety score (clean vs. potentially injected descriptions)
-```
+#### 2. Injection Demo (`demo-code/agent/gmail-agent/`)
+Separate runner that demonstrates indirect prompt injection via Gmail — both the undefended attack and the defended version with content sanitization.
 
-#### 4. Safety Demo Server (Act 2, Phase 3)
-```
-Purpose: Show MCP tool description injection
-Implementation:
-  - MCP server that looks legitimate (e.g., "calendar-sync")
-  - Tool descriptions contain hidden instructions
-  - When agent reads the tool list, injection activates
-  - Pre-recorded backup in case live demo is risky
-```
+#### 3. Slides (`slides.html`)
+Self-contained HTML slide deck with 34 slides. Static terminal mockups serve as backup for every live demo segment. Hosted at `talks.stackone.space/2026-02-mcpconf-london/`.
 
 ### Fallback Strategy
-- **Pre-record every segment** as high-quality screen capture
-- Keep recordings in `assets/` folder, labeled by act
-- If live demo fails at any point, seamlessly cut to recording
-- Presentation software (Keynote/Slides) should have video embeds ready
-- "Demo gods" contingency: have a rehearsed narrative for showing screenshots
+- Every live demo segment has a matching static slide with terminal mockup
+- If API is slow or demo fails, walk through the slides — the audience sees the same output
+- No external dependencies needed for the slides (single HTML file)
 
 ---
 
@@ -210,17 +169,17 @@ Implementation:
 ## Files in This Repo
 
 ```
-mcp-conference-demo/
-├── DEMO-PLAN.md              ← This file
-├── transcripts/              ← Meeting notes, planning calls
-├── scripts/                  ← Talk script, speaker notes
-├── demo-code/                ← All demo source code
-│   ├── naive-multi-mcp/      ← Act 2: the broken setup
-│   ├── stackone-unified/     ← Act 3: the solution
-│   ├── rogue-server/         ← Safety demo MCP server
-│   └── dashboard/            ← Measurement visualization
-├── assets/                   ← Recordings, images, QR codes
-└── slides-notes/             ← Slide deck and speaker notes
+2026-02-mcpconf-london/
+├── PLAN.md                        ← This file
+├── PREP-SCRIPT.md                 ← Talk script & run sheet
+├── slides.html                    ← 34-slide HTML deck
+├── demo-code/
+│   └── agent/                     ← Main demo agent
+│       ├── src/                   ← Agent source (see table above)
+│       ├── prompt-defense/        ← @stackone/prompt-defense local package
+│       └── gmail-agent/           ← Injection attack + defense runner
+├── assets/                        ← Images, headshot
+└── scripts/                       ← Deployment scripts
 ```
 
 ---
