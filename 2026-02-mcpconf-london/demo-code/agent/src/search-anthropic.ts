@@ -1,5 +1,5 @@
 /**
- * Discovery Mode — Anthropic Tool Search Tool (beta).
+ * Anthropic Search — Anthropic Tool Search Tool (beta).
  *
  * All tools are sent with defer_loading: true. Claude searches
  * for relevant tools server-side before calling them.
@@ -27,9 +27,9 @@ export function toggle(
 	}
 	enabled = !enabled;
 	if (enabled) {
-		p.log.success(`Discovery mode ON — ${toolCount} tools deferred`);
+		p.log.success(`Anthropic search ON — ${toolCount} tools deferred`);
 	} else {
-		p.log.info("Discovery mode OFF — all tools loaded in context");
+		p.log.info("Anthropic search OFF — all tools loaded in context");
 	}
 	renderDashboard();
 }
@@ -37,7 +37,7 @@ export function toggle(
 /** Wrap tools with defer_loading and prepend the BM25 tool search tool. */
 export function wrapTools(tools: Anthropic.Tool[]): any[] {
 	return [
-		{ type: "tool_search_tool_bm25_20251119", name: "tool_search" },
+		{ type: "tool_search_tool_bm25_20251119", name: "tool_search_tool_bm25" },
 		...tools.map((t) => ({ ...t, defer_loading: true })),
 	];
 }

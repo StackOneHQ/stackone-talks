@@ -23,6 +23,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import * as orama from "@orama/orama";
 import * as p from "@clack/prompts";
+import { S } from "./display.js";
 
 // ---------------------------------------------------------------------------
 // Config
@@ -393,6 +394,80 @@ export async function handleSearch(input: {
 		}),
 		debug,
 	};
+}
+
+// ---------------------------------------------------------------------------
+// Tool dispatch — handles meta_search_tools and meta_execute_tool blocks
+// ---------------------------------------------------------------------------
+
+type McpExecutor = (
+	toolName: string,
+	args: Record<string, unknown>,
+) => Promise<{ content: string; provider: string }>;
+
+export type ToolHandlerResult = {
+	toolResult: Anthropic.ToolResultBlockParam;
+	lastProvider: string;
+	lastAction: string;
+};
+
+export async function handleToolUse(
+	block: { id: string; name: string; input: any },
+	executeMcpTool: McpExecutor,
+): Promise<ToolHandlerResult | null> {
+	if (!enabled) return null;
+
+	if (block.name === "meta_search_tools") {
+		const input = block.input as { query: string; limit?: number };
+		p.log.step(`🔎 Searching ${S.accent(indexedTools.size + " tools")} for: ${S.accent(`"${input.query}"`)}`);
+		const results = await handleSearch(input);
+		const { debug } = results;
+
+		if (debug.bm25Top.length > 0) {
+			const bm25Line = debug.bm25Top.slice(0, 3).map((t) => `${t.name} ${S.muted(`(${t.score})`)}`).join(", ");
+			p.log.info(`  ${S.label("BM25:")}    ${bm25Line}`);
+		}
+		if (debug.tfidfTop.length > 0) {
+			const tfidfLine = debug.tfidfTop.slice(0, 3).map((t) => `${t.name} ${S.muted(`(${t.score})`)}`).join(", ");
+			p.log.info(`  ${S.label("TF-IDF:")}  ${tfidfLine}`);
+		}
+		if (debug.fusionTop.length > 0) {
+			const fusionLine = debug.fusionTop.map((t) =>
+				`${S.brand(t.name)} ${S.muted(`(0.2×${t.bm25} + 0.8×${t.tfidf} = ${t.hybrid})`)}`
+			).join(", ");
+			p.log.info(`  ${S.label("Hybrid:")}  ${fusionLine}`);
+		}
+		p.log.success(
+			`Found ${results.tools.length} tools in ${S.accent(debug.elapsed)} ${S.muted(`(${debug.totalCandidates} candidates)`)}`,
+		);
+
+		const { debug: _debug, ...resultForLLM } = results;
+		return {
+			toolResult: {
+				type: "tool_result",
+				tool_use_id: block.id,
+				content: JSON.stringify(resultForLLM),
+			},
+			lastProvider: "search",
+			lastAction: "meta_search_tools",
+		};
+	}
+
+	if (block.name === "meta_execute_tool") {
+		const input = block.input as { tool_name: string; params?: Record<string, unknown> };
+		const result = await executeMcpTool(input.tool_name, input.params || {});
+		return {
+			toolResult: {
+				type: "tool_result",
+				tool_use_id: block.id,
+				content: result.content,
+			},
+			lastProvider: result.provider,
+			lastAction: input.tool_name,
+		};
+	}
+
+	return null;
 }
 
 // ---------------------------------------------------------------------------
