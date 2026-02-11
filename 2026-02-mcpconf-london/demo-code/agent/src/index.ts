@@ -126,7 +126,30 @@ async function measureContext(): Promise<number | null> {
 }
 
 async function showContextUsage(verbose = false) {
-  if (allTools.size === 0) return;
+  if (allTools.size === 0) {
+    if (verbose) {
+      console.log(chalk.bold("\n📊 Context Window Analysis"));
+      console.log(chalk.gray("─".repeat(55)));
+      console.log(
+        chalk.cyan("  Tools loaded:    ") + chalk.bold.white("0")
+      );
+      console.log(
+        chalk.cyan("  Token cost:      ") + chalk.bold.green("0") +
+        chalk.gray(` (0% of ${(CONTEXT_WINDOW / 1000).toFixed(0)}k window)`)
+      );
+      console.log(
+        chalk.cyan("  Remaining:       ") +
+        chalk.green(CONTEXT_WINDOW.toLocaleString()) +
+        chalk.gray(" tokens for system prompt + conversation")
+      );
+      console.log(
+        chalk.cyan("  Context bar:     ") + renderContextBar(0)
+      );
+      console.log(chalk.gray("─".repeat(55)));
+      console.log(chalk.gray("  No tools loaded. Use /add <provider> to connect accounts.\n"));
+    }
+    return;
+  }
 
   const tokens = await measureContext();
   if (tokens === null) return;
