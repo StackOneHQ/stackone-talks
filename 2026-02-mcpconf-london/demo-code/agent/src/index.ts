@@ -839,7 +839,7 @@ async function runDemoSequence() {
   await addAccount("Zendesk");
 
   console.log(chalk.bold.red("\n\n🚨 CONTEXT EXPLOSION"));
-  console.log(chalk.gray("Watch what happens with 400+ tools...\n"));
+  console.log(chalk.gray(`Watch what happens with ${dashboard.toolCount}+ tools...\n`));
   await runAgent("List my contacts");
 
   console.log(chalk.bold.hex("#05C168")("\n\n✅ Demo Sequence Complete"));

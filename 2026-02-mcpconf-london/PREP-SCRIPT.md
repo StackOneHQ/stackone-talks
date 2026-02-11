@@ -487,16 +487,22 @@ npm run run-attack -- --defend-only
 |---------|-------------|
 | `npm start` | Boot the agent |
 | `/add-defaults` | Load agent built-in tools (web search, file ops, bash, etc.) |
-| `/add <Provider>` | Connect a provider (Gmail, Trello, Gong, HubSpot, Ashby, GitHub, Zendesk, Honeycomb, Jira, Humaans, Datadog, Google Docs, Google Drive, Google Calendar, Fireflies) |
-| `/accounts` | Show connected accounts + tool count |
+| `/add <Provider>` | Connect a provider (see list below) |
+| `/accounts` | List all available accounts (connected/not) |
+| `/connected` | Show only connected accounts |
+| `/tools` | List all loaded tools by provider |
 | `/context` | Show real token cost of loaded tools (calls count_tokens API) |
 | `/code` | Toggle code mode (1 tool sandbox) ↔ MCP mode (all tools) |
 | `/demo` | Run the full demo sequence automatically |
 | `/reset` | Disconnect all accounts + stop sandbox |
-| `exit` or Ctrl+C | Quit |
+| `/help` | Show command help |
+| `/quit` or Ctrl+C | Quit |
+
+### Available providers (18 total, 880 MCP tools)
+Gmail (42), Trello (109), Gong (16), GitHub (74), HubSpot (65), Ashby (108), Zendesk (45), Honeycomb (28), Range (22), Browserbase (18), Jira (158), Humaans (51), Datadog (26), Google Docs (3), Google Drive (47), Google Calendar (37), Fireflies (4), Notion (27)
 
 ### Provider add order (for the build-up)
-0. /add-defaults (15 tools - agent built-ins)
+0. `/add-defaults` (15 tools, agent built-ins)
 1. Gmail (42 tools)
 2. Trello (109 tools)
 3. Gong (16 tools)
@@ -507,7 +513,8 @@ npm run run-attack -- --defend-only
 8. *-- ambiguity demo here --*
 9. Zendesk (45 tools)
 10. Honeycomb (28 tools)
-13. *-- context explosion demo here --*
+11. + remaining 8 providers
+12. *-- context explosion demo here --*
 
 ### Demo queries to type
 - **"List my recent emails"** — works great with 3 providers (happy path)
