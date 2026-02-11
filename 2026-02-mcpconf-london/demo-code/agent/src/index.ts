@@ -251,7 +251,7 @@ async function runAgent(prompt: string) {
 		];
 		let turnCount = 0;
 
-		while (turnCount < 5) {
+		while (turnCount < 10) {
 			turnCount++;
 			const turnStart = Date.now();
 
