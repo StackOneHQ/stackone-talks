@@ -293,12 +293,16 @@ export async function showUsage(o: UsageOpts, verbose = false) {
 		S.muted("(Send a prompt for actual usage breakdown.)"),
 	];
 
-	if (o.allTools.size > 0) {
+	// Per-provider breakdown only when MCP tools are in context (not in search/code modes)
+	const mcpToolsInBaseline = toolCount >= o.allTools.size && o.allTools.size > 0;
+	if (mcpToolsInBaseline) {
 		for (const [provider, count] of groupByProvider(o.allTools)) {
 			lines.push(
 				`  ${S.brand(provider.padEnd(16))} ${S.val(String(count))} tools ${S.muted("≈ " + (count * avgPerTool).toLocaleString() + " tokens")}`,
 			);
 		}
+	} else if (o.allTools.size > 0) {
+		lines.push(`${S.label("Tools sent:")}  ${S.val(String(toolCount))} ${S.muted("(" + o.allTools.size + " available)")}`);
 	}
 
 	if (tokens > CONTEXT_WINDOW * 0.5) {

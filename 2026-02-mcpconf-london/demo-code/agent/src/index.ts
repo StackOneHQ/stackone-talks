@@ -422,24 +422,45 @@ async function main() {
 					p.note(lines.join("\n"), S.brand("🔗 Connected"));
 				}
 			} else if (trimmed === "/tools") {
-				const byProvider = new Map<string, string[]>();
-				for (const [, tool] of allTools) {
-					if (!byProvider.has(tool.provider))
-						byProvider.set(tool.provider, []);
-					byProvider.get(tool.provider)!.push(tool.name);
+				const lines: string[] = [];
+				let totalCount = 0;
+
+				if (search.isEnabled()) {
+					const searchTools = search.buildTools();
+					totalCount = searchTools.length;
+					lines.push(`  ${S.brand("Search")} ${S.muted("(" + searchTools.length + ")")}  ${S.accent(searchTools.map((t) => t.name).join(", "))}`);
+					lines.push(`  ${S.muted(allTools.size + " tools indexed (not in context)")}`);
+				} else if (discovery.isEnabled()) {
+					totalCount = 1;
+					lines.push(`  ${S.brand("Anthropic Search")} ${S.muted("(1)")}  ${S.accent("tool_search_tool_bm25")}`);
+					lines.push(`  ${S.muted(allTools.size + " tools deferred (loaded on demand)")}`);
+				} else if (codeMode.isCodeMode()) {
+					totalCount = 1;
+					lines.push(`  ${S.brand("Code Mode")} ${S.muted("(1)")}  ${S.accent("execute_code")}`);
+					lines.push(`  ${S.muted(allTools.size + " tools available via sandbox")}`);
+				} else {
+					const byProvider = new Map<string, string[]>();
+					for (const [, tool] of allTools) {
+						if (!byProvider.has(tool.provider))
+							byProvider.set(tool.provider, []);
+						byProvider.get(tool.provider)!.push(tool.name);
+					}
+					totalCount = allTools.size;
+					for (const [provider, provTools] of byProvider) {
+						lines.push(
+							`  ${S.brand(provider)} ${S.muted("(" + provTools.length + ")")}  ${S.accent(provTools.slice(0, 5).join(", "))}${provTools.length > 5 ? S.muted(" +" + (provTools.length - 5) + " more") : ""}`,
+						);
+					}
 				}
+
 				if (builtinToolsEnabled) {
-					byProvider.set("Built-in (Anthropic)", BUILTIN_TOOLS.map((t) => t.name));
+					totalCount += BUILTIN_TOOLS.length;
+					lines.push(`  ${S.brand("Built-in (Anthropic)")} ${S.muted("(" + BUILTIN_TOOLS.length + ")")}  ${S.accent(BUILTIN_TOOLS.map((t) => t.name).join(", "))}`);
 				}
 				if (anthropicCodeEnabled) {
-					byProvider.set("Anthropic Sandbox", [CODE_EXECUTION_TOOL.name]);
+					totalCount += 1;
+					lines.push(`  ${S.brand("Anthropic Sandbox")} ${S.muted("(1)")}  ${S.accent(CODE_EXECUTION_TOOL.name)}`);
 				}
-				const extraCount = (builtinToolsEnabled ? BUILTIN_TOOLS.length : 0) + (anthropicCodeEnabled ? 1 : 0);
-				const totalCount = allTools.size + extraCount;
-				const lines = Array.from(byProvider.entries()).map(
-					([provider, tools]) =>
-						`  ${S.brand(provider)} ${S.muted("(" + tools.length + ")")}  ${S.accent(tools.slice(0, 5).join(", "))}${tools.length > 5 ? S.muted(" +" + (tools.length - 5) + " more") : ""}`,
-				);
 				p.note(lines.join("\n"), S.brand(`🔧 Tools (${totalCount})`));
 			} else if (trimmed === "/add-all") {
 				const unconnectedCloud = AVAILABLE_PROVIDERS.filter((a) => !providers.has(a.id));
