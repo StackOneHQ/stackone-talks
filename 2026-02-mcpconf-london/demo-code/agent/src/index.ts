@@ -5,32 +5,21 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import * as p from "@clack/prompts";
 import chalk from "chalk";
 import * as readline from "readline";
-import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "fs";
-import { execSync } from "child_process";
-import { resolve, dirname } from "path";
-import { fileURLToPath } from "url";
 import "dotenv/config";
 
-import * as codeMode from "./code-mode.js";
+import * as codeMode from "./code-mode/index.js";
 import * as discovery from "./search-anthropic.js";
 import * as search from "./search-bm25-tfidf.js";
 import * as defense from "./defense-mode.js";
+import { MODEL, MCP_BASE_URL, CONTEXT_WINDOW, getAuthHeader, loadProviders, LOCAL_MCP_PROVIDERS } from "./config.js";
+import { BUILTIN_TOOLS, CODE_EXECUTION_BETA, CODE_EXECUTION_TOOL } from "./builtin-tools.js";
+import { S, contextBar } from "./display.js";
 
 // ---------------------------------------------------------------------------
-// Config & state
+// State
 // ---------------------------------------------------------------------------
 
-const MODEL = "claude-sonnet-4-5-20250929";
-const MCP_BASE_URL = "https://api.stackone.com/mcp";
-const CONTEXT_WINDOW = 200_000;
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-let AVAILABLE_PROVIDERS: { id: string; provider: string }[] = [];
-try {
-	AVAILABLE_PROVIDERS = JSON.parse(
-		readFileSync(resolve(__dirname, "../providers.json"), "utf-8"),
-	);
-} catch {}
+const AVAILABLE_PROVIDERS = loadProviders();
 
 const providers = new Map<
 	string,
@@ -42,113 +31,7 @@ let lastProvider = "-";
 let lastAction = "-";
 let lastLatencyMs: number | null = null;
 let builtinToolsEnabled = false;
-
-// Built-in Anthropic tools
-// - web_search: fully server-side (Anthropic executes searches)
-// - bash: client-side (we execute commands, return stdout/stderr)
-// - text_editor: client-side (we handle file read/write/replace)
-const BUILTIN_TOOLS: any[] = [
-	{ type: "web_search_20250305", name: "web_search", max_uses: 5 },
-	{ type: "bash_20250124", name: "bash" },
-	{ type: "text_editor_20250728", name: "str_replace_based_edit_tool" },
-];
-
-// Local MCP servers (stdio-based, spawned on demand)
-const LOCAL_MCP_PROVIDERS: {
-	id: string;
-	provider: string;
-	command: string;
-	args?: string[];
-}[] = [
-	{
-		id: "local::chrome-devtools",
-		provider: "Chrome DevTools",
-		command: "npx",
-		args: ["-y", "chrome-devtools-mcp@latest"],
-	},
-];
-
-// ---------------------------------------------------------------------------
-// Built-in tool handlers (bash + text editor)
-// ---------------------------------------------------------------------------
-
-function handleBash(input: { command?: string; restart?: boolean }): string {
-	if (input.restart) return "Bash session restarted.";
-	if (!input.command) return "Error: No command provided.";
-	try {
-		const output = execSync(input.command, {
-			encoding: "utf-8",
-			timeout: 30_000,
-			maxBuffer: 1024 * 1024,
-			cwd: process.cwd(),
-		});
-		return output || "(no output)";
-	} catch (err: any) {
-		// execSync throws on non-zero exit — return combined output
-		const stdout = err.stdout || "";
-		const stderr = err.stderr || "";
-		return stdout + stderr || `Error (exit ${err.status}): ${err.message}`;
-	}
-}
-
-function handleTextEditor(input: {
-	command: string;
-	path: string;
-	old_str?: string;
-	new_str?: string;
-	file_text?: string;
-	insert_line?: number;
-	insert_text?: string;
-	view_range?: [number, number];
-}): string {
-	const { command, path: filePath } = input;
-
-	if (command === "view") {
-		if (!existsSync(filePath)) return `Error: ${filePath} not found.`;
-		const stat = statSync(filePath);
-		if (stat.isDirectory()) {
-			const entries = readdirSync(filePath);
-			return entries.map((e) => {
-				const s = statSync(resolve(filePath, e));
-				return s.isDirectory() ? `${e}/` : e;
-			}).join("\n");
-		}
-		const lines = readFileSync(filePath, "utf-8").split("\n");
-		if (input.view_range) {
-			const [start, end] = input.view_range;
-			const s = Math.max(0, start - 1);
-			const e = end === -1 ? lines.length : end;
-			return lines.slice(s, e).map((l, i) => `${s + i + 1}: ${l}`).join("\n");
-		}
-		return lines.map((l, i) => `${i + 1}: ${l}`).join("\n");
-	}
-
-	if (command === "str_replace") {
-		if (!existsSync(filePath)) return `Error: ${filePath} not found.`;
-		const content = readFileSync(filePath, "utf-8");
-		const count = content.split(input.old_str!).length - 1;
-		if (count === 0) return "Error: No match found for replacement text.";
-		if (count > 1) return `Error: Found ${count} matches. Provide more context for a unique match.`;
-		writeFileSync(filePath, content.replace(input.old_str!, input.new_str ?? ""));
-		return "Successfully replaced text at exactly one location.";
-	}
-
-	if (command === "create") {
-		writeFileSync(filePath, input.file_text || "");
-		return `Created ${filePath}.`;
-	}
-
-	if (command === "insert") {
-		if (!existsSync(filePath)) return `Error: ${filePath} not found.`;
-		const lines = readFileSync(filePath, "utf-8").split("\n");
-		const at = input.insert_line ?? 0;
-		lines.splice(at, 0, input.insert_text || "");
-		writeFileSync(filePath, lines.join("\n"));
-		return `Inserted text after line ${at}.`;
-	}
-
-	return `Error: Unknown command '${command}'.`;
-}
+let anthropicCodeEnabled = false;
 
 // Usage tracking: stores state from the most recent runAgent() call
 let lastMessages: Anthropic.MessageParam[] = [];
@@ -157,13 +40,6 @@ let lastSystemPrompt: string | undefined;
 let turnTokenHistory: number[] = [];
 let cachedBaselineTokens: number | null = null;
 const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null;
-
-function getAuthHeader(): string {
-	return (
-		"Basic " +
-		Buffer.from((process.env.STACKONE_API_KEY || "") + ":").toString("base64")
-	);
-}
 
 // ---------------------------------------------------------------------------
 // Tool helpers
@@ -175,28 +51,6 @@ function buildAnthropicTools(): Anthropic.Tool[] {
 		description: `[${tool.provider}] ${tool.description || ""}`,
 		input_schema: tool.inputSchema || { type: "object", properties: {} },
 	}));
-}
-
-// Shared styling helpers
-const S = {
-	brand: chalk.hex("#05C168"),
-	cmd: (name: string) => chalk.hex("#05C168").bold(name),
-	label: chalk.dim,
-	val: chalk.white,
-	muted: chalk.dim,
-	warn: chalk.yellow,
-	err: chalk.red,
-	ok: chalk.green,
-	accent: chalk.cyan,
-	heading: chalk.bold.white,
-};
-
-function contextBar(tokens: number, width = 30): string {
-	const pct = Math.min(tokens / CONTEXT_WINDOW, 1);
-	const filled = Math.round(pct * width);
-	const color = pct > 0.75 ? chalk.red : pct > 0.5 ? chalk.yellow : chalk.green;
-	const pctStr = (pct * 100).toFixed(0) + "%";
-	return `${color("█".repeat(filled))}${chalk.dim("░".repeat(width - filled))} ${color(pctStr)}`;
 }
 
 async function measureContext(opts?: {
@@ -374,7 +228,7 @@ function renderDashboard() {
 			? S.muted(`${allTools.size} tools deferred`)
 			: isSearch
 				? S.muted(`2 meta-tools, ${allTools.size} indexed`)
-				: S.muted(`${allTools.size}${builtinToolsEnabled ? " + " + BUILTIN_TOOLS.length + " built-in" : ""} tools in context`);
+				: S.muted(`${allTools.size}${builtinToolsEnabled ? " + " + BUILTIN_TOOLS.length + " built-in" : ""}${anthropicCodeEnabled ? " + 1 sandbox" : ""} tools in context`);
 	lines.push(`${S.label("Mode")}      ${modeBadge} ${modeDetail}`);
 
 	// Tokens
@@ -397,6 +251,11 @@ function renderDashboard() {
 	if (builtinToolsEnabled) {
 		const names = BUILTIN_TOOLS.map((t) => t.name).join(", ");
 		lines.push(`${S.label("Built-in")}  ${chalk.bgHex("#05C168").black(" ON ")} ${S.muted(names)}`);
+	}
+
+	// Anthropic code execution status
+	if (anthropicCodeEnabled) {
+		lines.push(`${S.label("Sandbox")}   ${chalk.bgCyan.black(" ANTHROPIC ")} ${S.muted("server-side code_execution")}`);
 	}
 
 	// Defense status
@@ -444,76 +303,98 @@ function renderDashboard() {
 // ---------------------------------------------------------------------------
 
 async function addProvider(providerName: string) {
+	// Check both StackOne and local MCP providers
 	const entry = AVAILABLE_PROVIDERS.find(
 		(a) =>
 			a.provider.toLowerCase() === providerName.toLowerCase() ||
 			a.id === providerName,
 	);
-	if (!entry) {
+	const localEntry = LOCAL_MCP_PROVIDERS.find(
+		(l) =>
+			l.provider.toLowerCase() === providerName.toLowerCase() ||
+			l.id === providerName,
+	);
+	if (!entry && !localEntry) {
 		p.log.error(`Unknown provider: ${providerName}`);
-		p.log.message(
-			"Available: " + AVAILABLE_PROVIDERS.map((a) => S.brand(a.provider)).join(S.muted(", ")),
-		);
+		const all = [
+			...AVAILABLE_PROVIDERS.map((a) => a.provider),
+			...LOCAL_MCP_PROVIDERS.map((l) => l.provider),
+		];
+		p.log.message("Available: " + all.map((n) => S.brand(n)).join(S.muted(", ")));
 		return;
 	}
-	if (providers.has(entry.id)) {
-		p.log.warn(`${entry.provider} already connected`);
+	const id = entry?.id ?? localEntry!.id;
+	const name = entry?.provider ?? localEntry!.provider;
+	if (providers.has(id)) {
+		p.log.warn(`${name} already connected`);
 		return;
 	}
-	if (!process.env.STACKONE_API_KEY) {
+	if (entry && !process.env.STACKONE_API_KEY) {
 		p.log.error("STACKONE_API_KEY not set");
 		return;
 	}
 
-	p.log.step(`Connecting to ${entry.provider}...`);
+	p.log.step(`Connecting to ${name}...`);
 
 	try {
 		const client = new Client({
-			name: `demo-${entry.provider}`,
+			name: `demo-${name}`,
 			version: "1.0.0",
 		});
-		const authToken = Buffer.from(
-			`${process.env.STACKONE_API_KEY}:`,
-		).toString("base64");
-		const transport = new StreamableHTTPClientTransport(
-			new URL(MCP_BASE_URL),
-			{
-				requestInit: {
-					headers: {
-						Authorization: `Basic ${authToken}`,
-						"x-account-id": entry.id,
-						"Content-Type": "application/json",
-						Accept: "application/json, text/event-stream",
+
+		if (localEntry) {
+			// Local MCP server — spawn via stdio
+			const transport = new StdioClientTransport({
+				command: localEntry.command,
+				args: localEntry.args,
+				stderr: "pipe",
+			});
+			await client.connect(transport);
+		} else {
+			// StackOne cloud MCP server — HTTP transport
+			const authToken = Buffer.from(
+				`${process.env.STACKONE_API_KEY}:`,
+			).toString("base64");
+			const transport = new StreamableHTTPClientTransport(
+				new URL(MCP_BASE_URL),
+				{
+					requestInit: {
+						headers: {
+							Authorization: `Basic ${authToken}`,
+							"x-account-id": entry!.id,
+							"Content-Type": "application/json",
+							Accept: "application/json, text/event-stream",
+						},
 					},
 				},
-			},
-		);
+			);
+			await client.connect(transport);
+		}
 
-		await client.connect(transport);
 		const toolsResult = await client.listTools();
 		const toolCount = toolsResult.tools?.length || 0;
 
 		for (const tool of toolsResult.tools || []) {
-			allTools.set(`${entry.provider}::${tool.name}`, {
+			allTools.set(`${name}::${tool.name}`, {
 				...tool,
-				provider: entry.provider,
-				providerId: entry.id,
+				provider: name,
+				providerId: id,
 			});
 		}
 
-		providers.set(entry.id, {
-			name: entry.provider,
+		providers.set(id, {
+			name,
 			tools: toolCount,
 			client,
 		});
 		p.log.success(
-			`${entry.provider} (+${toolCount} tools, ${allTools.size}${builtinToolsEnabled ? " + " + BUILTIN_TOOLS.length + " built-in" : ""} total)`,
+			`${name} (+${toolCount} tools, ${allTools.size}${builtinToolsEnabled ? " + " + BUILTIN_TOOLS.length + " built-in" : ""}${anthropicCodeEnabled ? " + 1 sandbox" : ""} total)`,
 		);
 
 		await showUsage();
 		renderDashboard();
 	} catch (error: any) {
-		p.log.error(`Failed to connect ${entry.provider}: ${error.message}`);
+		p.log.error(`Failed to connect ${name}: ${error.message}`);
 	}
 }
 
@@ -570,6 +451,11 @@ async function runAgent(prompt: string) {
 		tools = [...tools, ...BUILTIN_TOOLS];
 	}
 
+	// Anthropic code execution mode: add server-side sandbox tool
+	if (anthropicCodeEnabled) {
+		tools = [...tools, CODE_EXECUTION_TOOL];
+	}
+
 	// When defense mode is on, tell the LLM how to handle boundary tags
 	if (defense.isEnabled()) {
 		systemPrompt = (systemPrompt ?? "") + "\n\n" + defense.getSystemInstructions();
@@ -593,10 +479,14 @@ async function runAgent(prompt: string) {
 				messages,
 			};
 
-			// Discovery mode needs the tool-search beta header
-			const response: any = isDisco
+			// Combine beta headers as needed
+			const betas = [
+				...(isDisco ? [discovery.BETA] : []),
+				...(anthropicCodeEnabled ? [CODE_EXECUTION_BETA] : []),
+			];
+			const response: any = betas.length > 0
 				? await anthropic.messages.create(createParams, {
-						headers: { "anthropic-beta": discovery.BETA },
+						headers: { "anthropic-beta": betas.join(",") },
 					})
 				: await anthropic.messages.create(createParams);
 
@@ -616,16 +506,26 @@ async function runAgent(prompt: string) {
 				if (block.type === "text") {
 					console.log("\n" + block.text);
 				} else if (block.type === "server_tool_use") {
-					// Server-side tool execution (web search, discovery tool search)
+					// Server-side tools (web search, code execution, discovery)
 					if (block.name === "web_search") {
 						const query = block.input?.query || "";
 						p.log.step(`🌐 Web search: ${S.accent(`"${query}"`)}`);
+					} else if (block.name === "bash_code_execution") {
+						const cmd = block.input?.command || "";
+						lastProvider = "built-in";
+						lastAction = "bash";
+						p.log.step(`${S.accent("$")} ${cmd.length > 80 ? cmd.substring(0, 80) + "..." : cmd}`);
+					} else if (block.name === "text_editor_code_execution") {
+						const { command, path } = block.input || {};
+						lastProvider = "built-in";
+						lastAction = `editor:${command}`;
+						p.log.step(`${S.accent("\u270e")} ${command} ${S.muted(path || "")}`);
 					} else {
 						const query = block.input?.query || block.input?.pattern || "";
-						p.log.step(`🔍 Tool search: "${query}"`);
+						p.log.step(`🔍 Anthropic BM25 search across ${S.accent(allTools.size + " deferred tools")}: ${S.accent(`"${query}"`)}`);
+						p.log.info(`  ${S.muted("Server-side ranking — scores not exposed to client")}`);
 					}
 				} else if ((block as any).type === "web_search_tool_result") {
-					// Web search results (server-side, just log them)
 					const results = (block as any).content || [];
 					const urls = results
 						.filter((r: any) => r.type === "web_search_result")
@@ -633,34 +533,42 @@ async function runAgent(prompt: string) {
 					if (urls.length > 0) {
 						p.log.success(`${S.ok(String(urls.length))} results: ${S.muted(urls.slice(0, 3).join(", "))}${urls.length > 3 ? S.muted(` +${urls.length - 3} more`) : ""}`);
 					}
+				} else if ((block as any).type === "bash_code_execution_tool_result") {
+					const r = (block as any).content || {};
+					if (r.stdout) p.log.success(S.muted(r.stdout.length > 200 ? r.stdout.substring(0, 200) + "..." : r.stdout));
+					if (r.stderr) p.log.warn(S.muted(r.stderr.length > 200 ? r.stderr.substring(0, 200) + "..." : r.stderr));
+				} else if ((block as any).type === "text_editor_code_execution_tool_result") {
+					const r = (block as any).content || {};
+					if (r.content) p.log.success(S.muted(String(r.content).substring(0, 200)));
 				} else if (block.type === "tool_use") {
-					if (builtinToolsEnabled && block.name === "bash") {
-						// Built-in: bash tool
-						const input = block.input as { command?: string; restart?: boolean };
-						lastProvider = "built-in";
-						lastAction = "bash";
-						p.log.step(`${S.accent("$")} ${input.command || "(restart)"}`);
-						const result = handleBash(input);
-						p.log.success(S.muted(result.length > 200 ? result.substring(0, 200) + "..." : result));
-						toolResults.push({ type: "tool_result", tool_use_id: block.id, content: result });
-					} else if (builtinToolsEnabled && block.name === "str_replace_based_edit_tool") {
-						// Built-in: text editor tool
-						const input = block.input as any;
-						lastProvider = "built-in";
-						lastAction = `editor:${input.command}`;
-						p.log.step(`${S.accent("\u270e")} ${input.command} ${S.muted(input.path || "")}`);
-						const result = handleTextEditor(input);
-						p.log.success(S.muted(result.length > 200 ? result.substring(0, 200) + "..." : result));
-						toolResults.push({ type: "tool_result", tool_use_id: block.id, content: result });
-					} else if (isSearch && block.name === "meta_search_tools") {
+					if (isSearch && block.name === "meta_search_tools") {
 						// Search mode: client-side Orama BM25 + TF-IDF search
 						const input = block.input as { query: string; limit?: number };
-						p.log.step(`🔎 Searching: "${input.query}"`);
+						p.log.step(`🔎 Searching ${S.accent(allTools.size + " tools")} for: ${S.accent(`"${input.query}"`)}`);
 						const results = await search.handleSearch(input);
-						const resultStr = JSON.stringify(results);
+						const { debug } = results;
+
+						// Show search mechanics for the audience
+						if (debug.bm25Top.length > 0) {
+							const bm25Line = debug.bm25Top.slice(0, 3).map((t) => `${t.name} ${S.muted(`(${t.score})`)}`).join(", ");
+							p.log.info(`  ${S.label("BM25:")}    ${bm25Line}`);
+						}
+						if (debug.tfidfTop.length > 0) {
+							const tfidfLine = debug.tfidfTop.slice(0, 3).map((t) => `${t.name} ${S.muted(`(${t.score})`)}`).join(", ");
+							p.log.info(`  ${S.label("TF-IDF:")}  ${tfidfLine}`);
+						}
+						if (debug.fusionTop.length > 0) {
+							const fusionLine = debug.fusionTop.map((t) =>
+								`${S.brand(t.name)} ${S.muted(`(0.2×${t.bm25} + 0.8×${t.tfidf} = ${t.hybrid})`)}`
+							).join(", ");
+							p.log.info(`  ${S.label("Hybrid:")}  ${fusionLine}`);
+						}
 						p.log.success(
-							`Found ${results.tools.length} tools: ${results.tools.map((t) => t.name).join(", ")}`,
+							`Found ${results.tools.length} tools in ${S.accent(debug.elapsed)} ${S.muted(`(${debug.totalCandidates} candidates)`)}`,
 						);
+
+						const { debug: _debug, ...resultForLLM } = results;
+						const resultStr = JSON.stringify(resultForLLM);
 						toolResults.push({
 							type: "tool_result",
 							tool_use_id: block.id,
@@ -921,8 +829,9 @@ function showHelp() {
 		`  ${c("/reset")}             Disconnect all providers`,
 		"",
 		S.heading("Modes"),
-		`  ${c("/defaults")}         Toggle built-in tools ${d("(web, bash, editor)")}`,
-		`  ${c("/code")}             Sandbox code execution`,
+		`  ${c("/defaults")}         Toggle built-in tools ${d("(web search)")}`,
+		`  ${c("/code")}             Custom code execution ${d("(local sandbox)")}`,
+		`  ${c("/acode")}            Anthropic code execution ${d("(server sandbox)")}`,
 		`  ${c("/discover")}         Anthropic server-side search ${d("(beta)")}`,
 		`  ${c("/search")}           Client-side BM25 + TF-IDF search`,
 		`  ${c("/defend")}           Prompt injection defense`,
@@ -973,6 +882,16 @@ async function main() {
 						? `  ${S.ok("●")} ${S.brand(a.provider.padEnd(15))} ${S.muted(data.tools + " tools")}`
 						: `  ${S.muted("○")} ${chalk.white(a.provider.padEnd(15))} ${S.muted("not connected")}`;
 				});
+				if (LOCAL_MCP_PROVIDERS.length > 0) {
+					lines.push("");
+					lines.push(S.label("  Local MCP servers:"));
+					for (const l of LOCAL_MCP_PROVIDERS) {
+						const data = providers.get(l.id);
+						lines.push(data
+							? `  ${S.ok("●")} ${S.brand(l.provider.padEnd(15))} ${S.muted(data.tools + " tools")} ${S.muted("(local)")}`
+							: `  ${S.muted("○")} ${chalk.white(l.provider.padEnd(15))} ${S.muted("not connected")} ${S.muted("(local)")}`);
+					}
+				}
 				p.note(lines.join("\n"), S.brand("📋 Providers"));
 			} else if (trimmed === "/connected") {
 				if (providers.size === 0) {
@@ -993,22 +912,30 @@ async function main() {
 				if (builtinToolsEnabled) {
 					byProvider.set("Built-in (Anthropic)", BUILTIN_TOOLS.map((t) => t.name));
 				}
-				const totalCount = allTools.size + (builtinToolsEnabled ? BUILTIN_TOOLS.length : 0);
+				if (anthropicCodeEnabled) {
+					byProvider.set("Anthropic Sandbox", [CODE_EXECUTION_TOOL.name]);
+				}
+				const extraCount = (builtinToolsEnabled ? BUILTIN_TOOLS.length : 0) + (anthropicCodeEnabled ? 1 : 0);
+				const totalCount = allTools.size + extraCount;
 				const lines = Array.from(byProvider.entries()).map(
 					([provider, tools]) =>
 						`  ${S.brand(provider)} ${S.muted("(" + tools.length + ")")}  ${S.accent(tools.slice(0, 5).join(", "))}${tools.length > 5 ? S.muted(" +" + (tools.length - 5) + " more") : ""}`,
 				);
 				p.note(lines.join("\n"), S.brand(`🔧 Tools (${totalCount})`));
 			} else if (trimmed === "/add-all") {
-				const unconnected = AVAILABLE_PROVIDERS.filter((a) => !providers.has(a.id));
-				if (unconnected.length === 0 && builtinToolsEnabled) {
+				const unconnectedCloud = AVAILABLE_PROVIDERS.filter((a) => !providers.has(a.id));
+				const unconnectedLocal = LOCAL_MCP_PROVIDERS.filter((l) => !providers.has(l.id));
+				if (unconnectedCloud.length === 0 && unconnectedLocal.length === 0 && builtinToolsEnabled) {
 					p.log.info(S.muted("Everything already connected."));
 				} else {
 					if (!builtinToolsEnabled) {
 						builtinToolsEnabled = true;
 						p.log.success(`Built-in tools ${chalk.bgHex("#05C168").black(" ON ")}: ${S.accent(BUILTIN_TOOLS.map((t) => t.name).join(", "))}`);
 					}
-					for (const entry of unconnected) {
+					for (const entry of unconnectedCloud) {
+						await addProvider(entry.provider);
+					}
+					for (const entry of unconnectedLocal) {
 						await addProvider(entry.provider);
 					}
 				}
@@ -1030,6 +957,14 @@ async function main() {
 					getAuthHeader(),
 					renderDashboard,
 				);
+			} else if (trimmed === "/acode") {
+				anthropicCodeEnabled = !anthropicCodeEnabled;
+				if (anthropicCodeEnabled) {
+					p.log.success(`Anthropic code execution ${chalk.bgCyan.black(" ON ")} ${S.muted("(server-side sandbox)")}`);
+				} else {
+					p.log.info(`Anthropic code execution ${S.muted("OFF")}`);
+				}
+				renderDashboard();
 			} else if (trimmed === "/discover") {
 				if (codeMode.isCodeMode()) await codeMode.cleanup();
 				if (search.isEnabled()) search.cleanup();
@@ -1063,6 +998,7 @@ async function main() {
 				turnTokenHistory = [];
 				cachedBaselineTokens = null;
 				builtinToolsEnabled = false;
+				anthropicCodeEnabled = false;
 				p.log.success("Reset complete");
 				renderDashboard();
 			} else if (trimmed.length > 0) {

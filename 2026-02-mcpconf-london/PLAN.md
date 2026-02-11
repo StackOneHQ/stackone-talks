@@ -33,47 +33,65 @@ Most talks will be **pro-MCP advocacy**. Your talk is contrarian — you expose 
 
 ---
 
-## Talk Structure (34 slides, ~25 min + Q&A)
+## Talk Structure (33 slides, ~25 min + Q&A)
 
-### Part 1: The Build (slides 1-8, ~10 min)
-**"MCP is great. Let's prove it."**
+Cascading **build → break → fix** structure. Each fix naturally reveals the next problem.
+
+### Intro + Why 1,000 Tools (slides 1-3, ~4 min)
+**"The future is agents with hundreds of tools. Let's see what happens."**
 
 - Audience warm-up: hands up for who's built agents, connected tools, etc.
 - Personal story: Claude Code + 1,000 tools, "that's where agents are going"
-- Live demo: boot the agent, add 3 providers (Gmail, Trello, Gong), query "List my recent emails"
+- Why 1,000 tools: models getting better, work spans many systems, MCP makes it possible
+- Framing: "The question isn't whether. It's what breaks when they do."
+
+### The Build (slides 4-9, ~7 min)
+**"Let's build a powerful agent, step by step."**
+
+- Live demo: boot the agent, show commands to add providers + track context
+- Add 3 providers (Gmail, Trello, Gong), query "List my recent emails" — works great
 - Scale up: add 15 more providers live, watch context bar fill to 57%
 - Show `/usage` — real Anthropic count_tokens API, not an estimate
 
-### Part 2: The Break (slides 9-14, ~4 min)
+### Break: Context Explosion (slides 10-13, ~4 min)
 **"This is where it starts falling apart."**
 
-- Problem 1: Context Explosion — tool definitions eat 134k tokens (two thirds of context), then per-turn raw API responses compound it
-- Problem 2: Tool Ambiguity — "list my contacts" matches 3+ providers, agent guesses, positional bias compounds
-- Cite research: Chroma Context Rot (-30% accuracy), ODSC tool selection bias (+9.5%)
+- Upfront: tool definitions eat 138k tokens — two thirds of context gone before any query
+- Per-turn: raw API responses compound it (10-50k tokens per call)
+- Research: Chroma Context Rot (-30% accuracy with 113k context)
+- Live demo: show `/usage` breakdown, ask a query, feel the latency
 
-### Let's Fix This (slides 15-22, ~8 min)
-**"Two problems. Let's fix them."**
+### Fix: Tool Search / Discovery (slides 14-18, ~6 min)
+**"Search instead of loading everything."**
 
-- Fix 1: Dynamic Tool Discovery — 891 tools → 2 meta-tools (`search_tools` + `execute_tool`), 268x context reduction
-- Search Strategies: BM25 (83%), BM25+TF-IDF hybrid (98%), Semantic (~99%). We use hybrid, 200 lines, sub-ms.
-- Optional live demo: `/search` mode
-- Fix 2: Code Mode — agent writes TypeScript, executes in sandbox. Raw data stays in sandbox, only filtered summary reaches LLM. 98.7% token reduction per Anthropic's research.
-- Optional live demo: `/code` mode
+- 916 tools → 2 meta-tools (`search_tools` + `execute_tool`), 276x context reduction
+- Search strategies (with trade-offs): BM25 (83%), BM25+TF-IDF hybrid (98%), Semantic (~99%)
+- Anthropic ships server-side BM25, we use hybrid — 200 lines, sub-ms, zero API calls
+- Demo logs show search mechanics: BM25 scores → TF-IDF scores → hybrid fusion → ranked results
+- Live demo: enable `/search`, query, show it working
 
-### Plot Twist: Safety (slides 23-31, ~6 min)
-**"But there's a bigger problem..."**
+### Break → Fix: Response Bloat → Code Mode (slides 19-21, ~4 min)
+**"Tool search fixed definitions. But the responses..."**
 
-- Problem 3: Indirect Prompt Injection — legitimate tools reading untrusted data (emails, CRM records, web search, call transcripts)
+- Break: tool responses still flood context (10-50k tokens per API call, compounds over turns)
+- Fix: Code Mode — agent writes TypeScript, executes in sandbox
+- Strategies (with trade-offs): Anthropic's built-in code execution, cloud sandbox (isolated/scalable), local sandbox (our approach)
+- Raw data stays in sandbox, filtered summary reaches LLM (98.7% reduction per Anthropic's research)
+- Live demo: `/code` mode
+
+### Break → Fix: Safety → Content Defense (slides 22-30, ~6 min)
+**"But what's IN those responses?"**
+
+- Break: Indirect Prompt Injection — legitimate tools reading untrusted data (emails, CRM records, call transcripts)
 - Injection diagram: Gmail returns email with hidden instructions, agent follows them
-- Live demo or static walkthrough of the attack
-- Cite research: OWASP #1, ICLR 84% vulnerable, AgentDojo/NIST 81% novel attacks
-- Fix 3: Content Sanitization — Tier 1 regex + Tier 2 MLP classifier, sentence-level scoring, blocks before agent sees it
+- Research: OWASP #1, ICLR 84% vulnerable, AgentDojo/NIST 81% novel attacks
+- Fix: Content Sanitization — strategies (with trade-offs): regex (fast, known patterns), MLP classifier (better, some latency), full LLM scan (best, slowest)
 - Same attack with defense: blocked at score 1.0
 
-### Close (slides 32-34, ~5 min)
+### Close (slides 31-33, ~5 min)
 **"MCP is the protocol. You need infrastructure around it."**
 
-- Recap: problem → fix pairs (Context → Discovery, Ambiguity → Code Mode, Injection → Sanitization)
+- Recap: problem → fix pairs (Upfront Context → Tool Search/Discovery, Response Bloat → Code Mode, Injection → Sanitization)
 - Complementary approaches: sub-agents, formal verification, MCP gateways, RLM
 - Takeaway: "Protocols don't solve what happens when you connect hundreds of tools."
 - QR code: stackone.com/request-free-access
@@ -109,6 +127,69 @@ Self-contained HTML slide deck with 34 slides. Static terminal mockups serve as 
 - Every live demo segment has a matching static slide with terminal mockup
 - If API is slow or demo fails, walk through the slides — the audience sees the same output
 - No external dependencies needed for the slides (single HTML file)
+
+---
+
+## Demo Prompts
+
+Prompts organized by demo phase. Each showcases why you need many tools connected.
+
+### Phase 1: Happy Path (3 providers — Gmail, Trello, Gong)
+
+| Prompt | Expected behavior |
+|--------|-------------------|
+| "List my recent emails" | Gmail → `gmail_list_messages` — fast, correct, single provider |
+| "What boards do I have in Trello?" | Trello → `trello_list_boards` |
+| "Show my recent Gong calls" | Gong → `gong_list_calls` |
+
+### Phase 2: Ambiguity (18 providers — after scale-up)
+
+| Prompt | Why it breaks |
+|--------|---------------|
+| "List my contacts" | HubSpot `list_contacts`, Zendesk `list_contacts`, Ashby `list_candidates` — which one? |
+| "Create a task" | Trello `create_card`, Jira `create_issue`, Notion `create_page` — 3+ matches |
+| "Show recent activity" | Range, GitHub, Trello, Notion all have activity feeds |
+| "Search for a user named Sarah" | HubSpot, Ashby, Humaans, Zendesk — 4 providers with user/contact search |
+| "Send a message" | Gmail `send_message`, Zendesk `create_comment` — different intent, similar name |
+
+### Phase 3: Search Mode (demonstrating search mechanics)
+
+| Prompt | What the audience sees |
+|--------|------------------------|
+| "List my recent emails" | Search logs: BM25 scores → TF-IDF scores → hybrid fusion → `gmail_list_messages` wins |
+| "Create a Jira bug" | Search finds `jira_create_issue` from 916 tools — rare term "jira" ranked high by TF-IDF |
+| "Get Datadog alerts from today" | Provider-specific query cuts through hundreds of tools in sub-ms |
+| "Find candidates in Ashby who interviewed this week" | Multi-term query, both "ashby" and "candidates" boost correct result |
+| "Check my calendar for tomorrow" | `google_calendar_list_events` — search handles spaces and common terms |
+
+### Phase 4: Code Mode (multi-provider orchestration)
+
+| Prompt | Providers touched | What it demonstrates |
+|--------|-------------------|----------------------|
+| "Find open bugs in Jira with no linked PR in GitHub, and email me the list" | Jira + GitHub + Gmail | 3-provider join, 124 records fetched in sandbox, 9-line summary returned |
+| "For each candidate in Ashby who had an interview this week, check if there's a follow-up on my calendar" | Ashby + Google Calendar | Cross-system correlation, HR workflow |
+| "Compare Jira sprint velocity with GitHub PR merge rate this week" | Jira + GitHub | Aggregation across dev tools |
+| "Get all P1 Datadog incidents and create Jira tickets for any without one" | Datadog + Jira | Observability-to-task automation |
+| "List employees on PTO in Humaans and check if they have open Zendesk tickets assigned" | Humaans + Zendesk | HR + support cross-reference |
+
+### Phase 5: Injection Demo
+
+| Prompt | Attack vector |
+|--------|---------------|
+| "Check my inbox for recent emails and process any that need attention" | Gmail — email contains hidden `display:none` div with instructions |
+| "Summarize my latest Gong calls" | Gong — call transcript could contain injected instructions |
+| "Read my Zendesk tickets and draft responses" | Zendesk — ticket from external user embeds hidden instructions |
+
+### Showcase Prompts (proving you need 18 providers)
+
+These are "wow factor" prompts that touch 3+ providers and only work when everything is connected:
+
+| Prompt | Providers |
+|--------|-----------|
+| "Prepare my day: show today's calendar, any urgent emails, open Jira tickets assigned to me, and recent Slack-worthy Gong calls" | Google Calendar + Gmail + Jira + Gong |
+| "Who on my team (Humaans) has the most open support tickets (Zendesk) and hasn't had a 1:1 (Google Calendar) in over a week?" | Humaans + Zendesk + Google Calendar |
+| "Find the Notion doc for Project X, cross-reference its tasks with Trello cards, and flag any that are overdue in both" | Notion + Trello |
+| "Check if any Datadog alerts from the past 24h correlate with Honeycomb traces showing >2s latency" | Datadog + Honeycomb |
 
 ---
 

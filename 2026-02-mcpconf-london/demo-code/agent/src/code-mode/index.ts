@@ -29,7 +29,7 @@ export function getSandbox(): PersistentSandbox | null {
 }
 
 // ---------------------------------------------------------------------------
-// Sandbox setup — injects fetch-based wrappers for every MCP tool
+// Sandbox setup — registers MCP tool wrappers via data, not templates
 // ---------------------------------------------------------------------------
 
 export async function setupSandbox(
@@ -40,37 +40,15 @@ export async function setupSandbox(
 	if (sandbox) await sandbox.stop();
 	sandbox = await createPersistentSandbox({ timeout: 30000 });
 
-	const wrappers: string[] = [];
-	for (const [, tool] of allTools) {
-		const fnName = tool.name.replace(/-/g, "_");
-		wrappers.push(`
-  ${fnName}: async (args) => {
-    const res = await fetch("${mcpBaseUrl}?x-account-id=${tool.providerId}", {
-      method: "POST",
-      headers: {
-        "Authorization": "${authHeader}",
-        "Content-Type": "application/json",
-        "Accept": "application/json, text/event-stream"
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0", id: "call-" + Date.now(),
-        method: "tools/call",
-        params: { name: "${tool.name}", arguments: args }
-      })
-    });
-    const data = await res.json();
-    if (data.result?.content) {
-      const tc = data.result.content.find(c => c.type === "text");
-      if (tc?.text) { try { return JSON.parse(tc.text); } catch { return tc.text; } }
-    }
-    return data.result || data;
-  }`);
-	}
+	// Pass tool definitions as JSON data to registerTools() in the runner
+	const toolDefs = Array.from(allTools.values()).map((t) => ({
+		name: t.name,
+		providerId: t.providerId,
+	}));
 
-	const result = await sandbox.execute(`
-globalThis.tools = {${wrappers.join(",")}
-};
-return "Sandbox ready: " + Object.keys(globalThis.tools).length + " tool wrappers loaded"`);
+	const result = await sandbox.execute(
+		`return registerTools(${JSON.stringify(toolDefs)}, ${JSON.stringify(mcpBaseUrl)}, ${JSON.stringify(authHeader)})`,
+	);
 
 	if (!result.success) throw new Error(`Sandbox setup failed: ${result.error}`);
 	p.log.step(String(result.result));

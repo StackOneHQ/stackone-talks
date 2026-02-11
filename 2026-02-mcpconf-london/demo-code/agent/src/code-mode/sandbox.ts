@@ -3,10 +3,6 @@
  *
  * Maintains a running Node.js subprocess that can execute multiple code
  * snippets while preserving state (e.g., injected tool wrappers).
- *
- * NOTE: The sandbox subprocess intentionally uses eval() to execute
- * LLM-generated code. This is the core mechanism — the sandbox IS
- * a code execution environment. Same pattern as poc-execute.
  */
 
 import { spawn, type ChildProcess } from "child_process";
@@ -27,9 +23,10 @@ export interface ExecutionResult {
 
 // Resolve the sandbox runner script path relative to this file.
 // Works both under tsx (runs from src/) and compiled JS (runs from dist/).
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const SANDBOX_RUNNER_PATH = resolve(__dirname, "sandbox-runner.mjs");
+const SANDBOX_RUNNER_PATH = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "sandbox-runner.mjs",
+);
 
 export class PersistentSandbox {
   private process: ChildProcess | null = null;
