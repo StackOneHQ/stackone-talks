@@ -33,7 +33,7 @@ Most talks will be **pro-MCP advocacy**. Your talk is contrarian — you expose 
 
 ---
 
-## Talk Structure (34 slides, ~25 min + Q&A)
+## Talk Structure (31 slides, ~25 min + Q&A)
 
 Cascading **build → break → fix** structure. Each fix naturally reveals the next problem.
 
@@ -53,42 +53,42 @@ Cascading **build → break → fix** structure. Each fix naturally reveals the 
 - Scale up: add 15 more providers live, watch context bar fill to 57%
 - Show `/usage` — real Anthropic count_tokens API, not an estimate
 
-### Break: Context Explosion (slides 10-13, ~4 min)
+### Break: Context Explosion (slides 10-14, ~4 min)
 **"This is where it starts falling apart."**
 
 - Upfront: tool definitions eat 138k tokens — two thirds of context gone before any query
-- Per-turn: raw API responses compound it (10-50k tokens per call)
 - Research: Chroma Context Rot (-30% accuracy with 113k context)
-- Live demo: show `/usage` breakdown, ask a query, feel the latency
+- Meme break, then "Let's fix this"
 
-### Fix: Tool Search / Discovery (slides 14-18, ~6 min)
+### Fix: Tool Search / Discovery (slides 15-16, ~5 min)
 **"Search instead of loading everything."**
 
 - 916 tools → 2 meta-tools (`search_tools` + `execute_tool`), 276x context reduction
-- Search strategies (with trade-offs): BM25 (83%), BM25+TF-IDF hybrid (98%), Semantic (~99%)
-- Anthropic ships server-side BM25, we use hybrid — 200 lines, sub-ms, zero API calls
-- Demo logs show search mechanics: BM25 scores → TF-IDF scores → hybrid fusion → ranked results
+- Before/after visual: 138k tokens → 500 tokens
+- Search strategies (with trade-offs): BM25 (60-80%), BM25+TF-IDF hybrid (75-90%), Semantic (90-99%) — accuracy on MCP tool routing specifically
+- Anthropic ships server-side BM25, we use hybrid — zero API calls, sub-ms
 - Live demo: enable `/search`, query, show it working
 
-### Break → Fix: Response Bloat → Code Mode (slides 19-21, ~4 min)
+### Break → Fix: Response Bloat → Code Mode (slides 17-20, ~4 min)
 **"Tool search fixed definitions. But the responses..."**
 
-- Break: tool responses still flood context (10-50k tokens per API call, compounds over turns)
+- Break: oversized responses (20k tokens per call), intermediate results pile up, unneeded fields
 - Fix: Code Mode — agent writes TypeScript, executes in sandbox
-- Strategies (with trade-offs): Anthropic's built-in code execution, cloud sandbox (isolated/scalable), local sandbox (our approach)
-- Raw data stays in sandbox, filtered summary reaches LLM (98.7% reduction per Anthropic's research)
+- Before/after visual: raw JSON dump vs filtered summary
+- Pioneered by Cloudflare, validated by Anthropic (98.7% token reduction)
 - Live demo: `/code` mode
 
-### Break → Fix: Safety → Content Defense (slides 22-30, ~6 min)
+### Break → Fix: Safety → Content Defense (slides 21-28, ~6 min)
 **"But what's IN those responses?"**
 
 - Break: Indirect Prompt Injection — legitimate tools reading untrusted data (emails, CRM records, call transcripts)
 - Injection diagram: Gmail returns email with hidden instructions, agent follows them
 - Research: OWASP #1, ICLR 84% vulnerable, AgentDojo/NIST 81% novel attacks
-- Fix: Content Sanitization — strategies (with trade-offs): regex (fast, known patterns), MLP classifier (better, some latency), full LLM scan (best, slowest)
+- Fix: Content Sanitization — flow diagram: MCP Tool → poisoned response → Sanitizer (Tier 1 regex + Tier 2 MLP) → clean output
+- Defense powered by `@stackone/prompt-defense` (private beta)
 - Same attack with defense: blocked at score 1.0
 
-### Close (slides 31-33, ~5 min)
+### Close (slides 29-31, ~5 min)
 **"MCP is the protocol. You need infrastructure around it."**
 
 - Recap: problem → fix pairs (Upfront Context → Tool Search/Discovery, Response Bloat → Code Mode, Injection → Sanitization)
@@ -121,7 +121,7 @@ Single TypeScript agent with progressive `/add` commands to connect providers li
 Separate runner that demonstrates indirect prompt injection via Gmail — both the undefended attack and the defended version with content sanitization.
 
 #### 3. Slides (`slides.html`)
-Self-contained HTML slide deck with 34 slides. Static terminal mockups serve as backup for every live demo segment. Hosted at `talks.stackone.space/2026-02-mcpconf-london/`.
+Self-contained HTML slide deck with 31 slides. Static terminal mockups serve as backup for every live demo segment. Hosted at `talks.stackone.space/2026-02-mcpconf-london/`.
 
 ### Fallback Strategy
 - Every live demo segment has a matching static slide with terminal mockup

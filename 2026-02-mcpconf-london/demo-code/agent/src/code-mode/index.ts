@@ -12,6 +12,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { createPersistentSandbox, type PersistentSandbox } from "./sandbox.js";
 import * as p from "@clack/prompts";
+import chalk from "chalk";
 
 // ---------------------------------------------------------------------------
 // State
@@ -110,6 +111,58 @@ export function buildExecuteCodeTool(): Anthropic.Tool {
 			},
 			required: ["code"],
 		},
+	};
+}
+
+// ---------------------------------------------------------------------------
+// Tool dispatch — handles execute_code blocks
+// ---------------------------------------------------------------------------
+
+export type ToolHandlerResult = {
+	toolResult: Anthropic.ToolResultBlockParam;
+	lastProvider: string;
+	lastAction: string;
+};
+
+export async function handleToolUse(
+	block: { id: string; name: string; input: any },
+	restartSandbox: () => Promise<void>,
+): Promise<ToolHandlerResult | null> {
+	if (!enabled || block.name !== "execute_code") return null;
+
+	const currentSandbox = getSandbox();
+	if (!currentSandbox || !currentSandbox.isRunning()) {
+		p.log.warn("Sandbox crashed, restarting...");
+		await restartSandbox();
+	}
+
+	p.log.step("💻 Code execution:");
+	console.log(chalk.cyan(block.input.code));
+
+	const execResult = await getSandbox()!.execute(block.input.code);
+
+	if (execResult.success) {
+		const resultStr = JSON.stringify(execResult.result, null, 2);
+		p.log.success(
+			"Result: " + resultStr.substring(0, 300) + (resultStr.length > 300 ? "..." : ""),
+		);
+		return {
+			toolResult: { type: "tool_result", tool_use_id: block.id, content: resultStr },
+			lastProvider: "sandbox",
+			lastAction: "execute_code",
+		};
+	}
+
+	p.log.error(`Error: ${execResult.error}`);
+	return {
+		toolResult: {
+			type: "tool_result",
+			tool_use_id: block.id,
+			content: `Error: ${execResult.error}`,
+			is_error: true,
+		},
+		lastProvider: "sandbox",
+		lastAction: "execute_code",
 	};
 }
 
