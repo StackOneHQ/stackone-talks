@@ -1,0 +1,5 @@
+[
+  { "id": "your-gmail-account-id", "provider": "Gmail" },
+  { "id": "your-trello-account-id", "provider": "Trello" },
+  { "id": "your-github-account-id", "provider": "GitHub" }
+]
