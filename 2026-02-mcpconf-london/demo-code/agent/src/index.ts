@@ -41,8 +41,9 @@ let lastLatencyMs: number | null = null;
 let builtinToolsEnabled = false;
 let anthropicCodeEnabled = false;
 
+// Conversation history persists across runAgent() calls
+let conversationMessages: Anthropic.MessageParam[] = [];
 // Usage tracking: stores state from the most recent runAgent() call
-let lastMessages: Anthropic.MessageParam[] = [];
 let lastTools: Anthropic.Tool[] = [];
 let lastSystemPrompt: string | undefined;
 let turnTokenHistory: number[] = [];
@@ -98,7 +99,7 @@ async function usage(verbose = false) {
 		allTools,
 		currentTools: current.tools,
 		currentSystemPrompt: current.systemPrompt,
-		lastMessages,
+		conversationMessages,
 		lastTools: lastTools as any[],
 		lastSystemPrompt,
 		actualInputTokens,
@@ -246,9 +247,8 @@ async function runAgent(prompt: string) {
 	else if (allTools.size > 100) p.log.warn(`Loading ${tools.length} tool definitions into context...`);
 
 	try {
-		const messages: Anthropic.MessageParam[] = [
-			{ role: "user", content: prompt },
-		];
+		// Append new user message to persistent conversation history
+		conversationMessages.push({ role: "user", content: prompt });
 		let turnCount = 0;
 
 		while (turnCount < 10) {
@@ -260,7 +260,7 @@ async function runAgent(prompt: string) {
 				max_tokens: 8192,
 				...(tools.length > 0 ? { tools } : {}),
 				...(systemPrompt ? { system: systemPrompt } : {}),
-				messages,
+				messages: conversationMessages,
 			};
 
 			const betas = [
@@ -309,12 +309,13 @@ async function runAgent(prompt: string) {
 				}
 			}
 
+			// Always append assistant response to conversation history
+			conversationMessages.push({ role: "assistant", content: response.content });
+
 			if (toolResults.length === 0) break;
-			messages.push({ role: "assistant", content: response.content });
-			messages.push({ role: "user", content: toolResults });
+			conversationMessages.push({ role: "user", content: toolResults });
 		}
 
-		lastMessages = [...messages];
 		lastTools = [...tools];
 		lastSystemPrompt = systemPrompt;
 		lastLatencyMs = Date.now() - startTime;
@@ -522,7 +523,7 @@ async function main() {
 				lastProvider = "-";
 				lastAction = "-";
 				lastLatencyMs = null;
-				lastMessages = [];
+				conversationMessages = [];
 				lastTools = [];
 				lastSystemPrompt = undefined;
 				turnTokenHistory = [];

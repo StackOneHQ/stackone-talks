@@ -185,7 +185,7 @@ export interface UsageOpts {
 	allTools: Map<string, any>;
 	currentTools: any[];
 	currentSystemPrompt?: string;
-	lastMessages: Anthropic.MessageParam[];
+	conversationMessages: Anthropic.MessageParam[];
 	lastTools: any[];
 	lastSystemPrompt?: string;
 	actualInputTokens: number | null;
@@ -195,12 +195,12 @@ export interface UsageOpts {
 }
 
 export async function showUsage(o: UsageOpts, verbose = false) {
-	const hasRun = o.lastMessages.length > 0;
+	const hasRun = o.conversationMessages.length > 0;
 
 	if (hasRun) {
 		const totalTokens = await measureContext(o.anthropic, {
 			tools: o.lastTools as Anthropic.Tool[],
-			messages: o.lastMessages,
+			messages: o.conversationMessages,
 			system: o.lastSystemPrompt,
 		});
 		const baselineTokens = await measureContext(o.anthropic, {

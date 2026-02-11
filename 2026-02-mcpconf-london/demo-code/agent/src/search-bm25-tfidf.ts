@@ -58,12 +58,36 @@ const STOPWORDS = new Set([
 	"have", "has", "had", "you", "your", "my", "me", "we", "our", "all",
 ]);
 
+/**
+ * Lightweight multi-pass stemmer for TF-IDF matching.
+ * Step 1 strips plurals: "candidates" → "candidate"
+ * Step 2 strips verb/noun suffixes: "creating" → "creat", "create" → "creat"
+ *
+ * This ensures related forms converge: candidates/candidate → candidat,
+ * creating/create → creat, postings/posting → post, emails/email → email.
+ */
+function stem(word: string): string {
+	if (word.length <= 3) return word;
+	let w = word;
+	// Step 1: Strip plurals
+	if (w.endsWith("ies") && w.length > 4) w = w.slice(0, -3) + "y";
+	else if (w.endsWith("sses")) w = w.slice(0, -2);
+	else if (w.endsWith("s") && !w.endsWith("ss") && !w.endsWith("us") && w.length > 3)
+		w = w.slice(0, -1);
+	// Step 2: Strip verb/noun suffixes
+	if (w.endsWith("ing") && w.length > 6) w = w.slice(0, -3);
+	else if (w.endsWith("ed") && w.length > 5) w = w.slice(0, -2);
+	else if (w.endsWith("e") && w.length > 4) w = w.slice(0, -1);
+	return w;
+}
+
 function tokenize(text: string): string[] {
 	return text
 		.toLowerCase()
-		.replace(/[^a-z0-9_\s]/g, " ")
+		.replace(/[^a-z0-9\s]/g, " ") // split on dashes, underscores, punctuation
 		.split(/\s+/)
-		.filter((t) => t.length > 0 && !STOPWORDS.has(t));
+		.filter((t) => t.length > 0 && !STOPWORDS.has(t))
+		.map(stem);
 }
 
 type SparseVec = Map<number, number>;
@@ -156,13 +180,14 @@ function buildCorpus(allTools: Map<string, any>): { id: string; text: string }[]
 		const actionTypes = ["create", "update", "delete", "get", "list", "search"];
 		const actions = parts.filter((p: string) => actionTypes.includes(p));
 
+		const partsText = parts.join(" ");
 		return {
 			id: key,
 			text: [
-				`${tool.name} ${tool.name} ${tool.name}`,
+				`${partsText} ${partsText} ${partsText}`, // triple split parts for boosting
 				`${integration} ${actions.join(" ")}`,
 				tool.description || "",
-				parts.join(" "),
+				partsText,
 			].join(" "),
 		};
 	});
@@ -304,7 +329,7 @@ export async function handleSearch(input: {
 
 	const t0 = performance.now();
 	const limit = input.limit || 5;
-	const minScore = 0.3;
+	const minScore = 0.25;
 
 	const [bm25Results, tfidfResults] = await Promise.all([
 		orama.search(oramaDb, {
@@ -442,11 +467,17 @@ export async function handleToolUse(
 		);
 
 		const { debug: _debug, ...resultForLLM } = results;
+		const withHint = {
+			...resultForLLM,
+			next_step: results.tools.length > 0
+				? "Now call meta_execute_tool with the best matching tool name and parameters."
+				: "No tools found. Try a different search query.",
+		};
 		return {
 			toolResult: {
 				type: "tool_result",
 				tool_use_id: block.id,
-				content: JSON.stringify(resultForLLM),
+				content: JSON.stringify(withHint),
 			},
 			lastProvider: "search",
 			lastAction: "meta_search_tools",
@@ -480,14 +511,22 @@ export function buildSystemPrompt(): string {
 		providers.add(tool.provider);
 	}
 	return [
-		"You discover and call tools using two meta-tools:",
+		"You have two meta-tools to discover and call tools:",
 		"1. meta_search_tools — find tools by natural language query",
 		"2. meta_execute_tool — call a discovered tool by name",
 		"",
+		"WORKFLOW (follow strictly):",
+		"1. Call meta_search_tools with a query",
+		"2. Pick the best matching tool from results",
+		"3. Call meta_execute_tool with that tool's name and parameters",
+		"4. Present the results to the user",
+		"",
+		"IMPORTANT: After searching, you MUST call meta_execute_tool.",
+		"Do NOT just describe the tools you found — actually call one.",
+		"If the first search misses, try ONE more query, then execute the best match.",
+		"",
 		`Available providers: ${Array.from(providers).join(", ")}`,
 		`Total tools indexed: ${indexedTools.size}`,
-		"",
-		"Always search first, then execute. Return concise results.",
 	].join("\n");
 }
 
