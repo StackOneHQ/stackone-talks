@@ -33,7 +33,7 @@ Most talks will be **pro-MCP advocacy**. Your talk is contrarian — you expose 
 
 ---
 
-## Talk Structure (33 slides, ~25 min + Q&A)
+## Talk Structure (34 slides, ~25 min + Q&A)
 
 Cascading **build → break → fix** structure. Each fix naturally reveals the next problem.
 
@@ -92,7 +92,7 @@ Cascading **build → break → fix** structure. Each fix naturally reveals the 
 **"MCP is the protocol. You need infrastructure around it."**
 
 - Recap: problem → fix pairs (Upfront Context → Tool Search/Discovery, Response Bloat → Code Mode, Injection → Sanitization)
-- Complementary approaches: sub-agents, formal verification, MCP gateways, RLM
+- Complementary approaches: sub-agents, RLM
 - Takeaway: "Protocols don't solve what happens when you connect hundreds of tools."
 - QR code: stackone.com/request-free-access
 
