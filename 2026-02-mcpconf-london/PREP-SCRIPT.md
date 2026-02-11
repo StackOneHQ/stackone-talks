@@ -8,7 +8,8 @@
 
 ---
 
-## PRE-TALK SETUP (Do 30 min before)
+<details>
+<summary><h2>PRE-TALK SETUP (Do 30 min before)</h2></summary>
 
 ### 1. Close sensitive apps
 - [ ] Close Slack (notifications + visible messages)
@@ -53,6 +54,8 @@
 - [ ] Each "LIVE DEMO" slide shows exactly what the audience would see
 - [ ] You can walk through the slides without ever switching to terminal
 - [ ] If API is slow: say "let me show you what this looks like" and use slides
+
+</details>
 
 ---
 
@@ -334,6 +337,49 @@ Show my Trello boards
 
 > "Different provider, same two meta-tools. 'Trello' is a rare term in the corpus, so TF-IDF weighs it heavily. Sub-millisecond."
 
+**[OPTIONAL: BM25 vs HYBRID COMPARISON]**
+
+*If time, toggle to Anthropic's server-side BM25 to show where it breaks:*
+
+```
+/search
+```
+*Toggle hybrid off.*
+
+```
+/asearch
+```
+*Enables Anthropic server-side BM25 (tools sent with defer_loading: true).*
+
+```
+Create a Jira ticket
+```
+*With BM25: likely picks the wrong tool. In testing, BM25 picks `ashby_create_candidate` instead of `jira_create_issue` because "create" matches everything and BM25 doesn't weight "jira" heavily enough as a rare term.*
+
+> "See that? BM25 picked Ashby, a recruiting tool. The word 'create' matches 10+ tools across every provider. 'Jira' should be the tiebreaker, but BM25 doesn't weight rare terms like provider names heavily enough."
+
+```
+/asearch
+```
+*Toggle Anthropic search off.*
+
+```
+/search
+```
+*Toggle hybrid back on.*
+
+```
+Create a Jira ticket
+```
+*With hybrid: `jira_create_issue` wins. TF-IDF's inverse document frequency weights "jira" heavily because it only appears in 6 of 916 tools.*
+
+> "Same query, hybrid search. TF-IDF weights 'jira' heavily because it only appears in a handful of tools. That's the 80% TF-IDF in our fusion formula doing the work."
+
+*Other queries that break BM25 but work with hybrid (backup options):*
+- **"file a bug in jira"** — BM25: `ashby_list_interviews`, Hybrid: Jira tools
+- **"send a notification"** — BM25: `ashby_list_candidates`, Hybrid: `gmail_send_message`
+- **"who are the candidates for the engineering role"** — BM25: `github_list_repos`(!), Hybrid: `ashby_list_candidates`
+
 *Leave search mode ON for now — it still works for the next section.*
 
 ---
@@ -398,6 +444,56 @@ List my recent emails, just show subject and sender
 *Claude writes TypeScript: `tools.gmail_list_messages()` → `.map(m => ({ subject, from }))` → filtered array.*
 
 > "The raw API response with all the headers, metadata, body text — stays inside the sandbox. Only the filtered summary with subject and sender comes back to Claude."
+
+```
+/code
+```
+*Toggles back.*
+
+**[OPTIONAL: ANTHROPIC CODE_EXECUTION vs CUSTOM SANDBOX]**
+
+*If time, show why Anthropic's built-in code_execution doesn't solve the same problem:*
+
+```
+/acode
+```
+*Enables Anthropic's server-side code_execution alongside all MCP tools.*
+
+> "Anthropic ships a code_execution tool. But watch what happens. It's additive — all 916 MCP tools are still in context, plus code_execution. It doesn't replace them."
+
+```
+List my recent emails
+```
+*Claude calls `gmail_list_messages` normally. Raw JSON enters context. Claude might then use code_execution to summarize, but the 20k tokens of raw email data are already in the context window.*
+
+```
+/usage
+```
+*Show token count — context still high because raw MCP response entered the conversation.*
+
+> "See that? The raw API response is already in context. Code execution can process it after the fact, but the context damage is done."
+
+```
+/acode
+```
+*Toggle off.*
+
+```
+/code
+```
+*Switch to custom sandbox.*
+
+```
+List my recent emails, just show subject and sender
+```
+*Claude writes TypeScript inside sandbox. Raw data never enters context.*
+
+```
+/usage
+```
+*Show token count — much lower.*
+
+> "Our sandbox is different. The agent doesn't call MCP tools then process the results. It writes code that calls the tools from inside the sandbox. Raw data stays there. Only the filtered return value comes back. Anthropic's code_execution is a compute tool. This is a context architecture."
 
 ```
 /code
@@ -569,6 +665,20 @@ Gmail (42), Trello (109), Gong (16), GitHub (74), HubSpot (65), Ashby (108), Zen
 | "List my recent emails, just show subject and sender" | Code mode | Single-provider, shows filtering — agent writes `tools.gmail_list_messages()` + `.map()` |
 | "Check my inbox for recent emails and process any that need attention" | Injection demo | Broad phrasing triggers full email read |
 
+**BM25 vs Hybrid comparison queries (Anthropic search breaks, ours works):**
+| Query | BM25 (Anthropic) picks | Hybrid (ours) picks |
+|-------|------------------------|---------------------|
+| "Create a Jira ticket" | `ashby_create_candidate` | `jira_create_issue` |
+| "file a bug in jira" | `ashby_list_interviews` | Jira tools |
+| "send a notification" | `ashby_list_candidates` | `gmail_send_message` |
+| "who are the candidates for the engineering role" | `github_list_repos` | `ashby_list_candidates` |
+
+**Anthropic code_execution vs custom sandbox comparison:**
+| Step | What happens |
+|------|-------------|
+| `/acode` + "List my recent emails" | 916 tools still in context. Raw JSON enters context. `/usage` shows high token count. |
+| `/code` + "List my recent emails, just show subject and sender" | 1 tool in context. Raw data stays in sandbox. `/usage` shows minimal tokens. |
+
 **Backup/alternative queries (if time or primary fails):**
 | Query | Phase | Notes |
 |-------|-------|-------|
@@ -581,6 +691,8 @@ Gmail (42), Trello (109), Gong (16), GitHub (74), HubSpot (65), Ashby (108), Zen
 - **Agent won't start:** Check `.env` file has both keys. Run `npm install` if needed.
 - **API timeout:** Say "the API is being a bit slow, let me show you on the slide what this looks like" and advance to the static version.
 - **Wrong tool picked:** That's actually great for the demo. "See? With 916 tools, the model sometimes picks the wrong one."
+- **BM25 comparison doesn't fail:** Anthropic's server-side BM25 may not match our local Orama BM25 exactly. If it picks the right tool, try "file a bug in jira" or "send a notification" instead. If it still works, skip the comparison — mention the accuracy range difference verbally.
+- **Anthropic code_execution comparison:** If Claude doesn't use code_execution and just returns raw results, that proves the point even better — "See? It doesn't know to filter the response. The raw data is just sitting in context."
 - **Injection demo fails:** Walk through slide 23/24 which show the attack statically.
 
 ---
