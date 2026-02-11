@@ -11,6 +11,8 @@
 
 import { spawn, type ChildProcess } from "child_process";
 import { randomUUID } from "crypto";
+import { fileURLToPath } from "url";
+import { dirname, resolve } from "path";
 
 export interface SandboxConfig {
   timeout?: number;
@@ -23,57 +25,11 @@ export interface ExecutionResult {
   latencyMs: number;
 }
 
-// The code that runs inside the sandbox subprocess.
-// It reads JSON requests on stdin, executes the code, and writes results to stdout.
-// Uses eval() deliberately — this IS a code execution sandbox.
-const SANDBOX_RUNNER = `
-import { createInterface } from 'readline';
-
-const rl = createInterface({
-  input: process.stdin,
-  output: process.stdout,
-  terminal: false
-});
-
-// Signal ready
-console.log(JSON.stringify({ type: 'ready' }));
-
-rl.on('line', async (line) => {
-  try {
-    const { id, code } = JSON.parse(line);
-    const startTime = Date.now();
-
-    try {
-      const asyncCode = code.includes('await')
-        ? \`(async () => { \${code} })()\`
-        : code;
-
-      // eval is intentional: this is a sandbox for executing LLM-generated code
-      const result = await (0, eval)(asyncCode);
-      const latencyMs = Date.now() - startTime;
-
-      console.log(JSON.stringify({
-        type: 'result',
-        id,
-        success: true,
-        result,
-        latencyMs
-      }));
-    } catch (err) {
-      const latencyMs = Date.now() - startTime;
-      console.log(JSON.stringify({
-        type: 'result',
-        id,
-        success: false,
-        error: err.message || String(err),
-        latencyMs
-      }));
-    }
-  } catch (parseErr) {
-    // Invalid JSON, ignore
-  }
-});
-`;
+// Resolve the sandbox runner script path relative to this file.
+// Works both under tsx (runs from src/) and compiled JS (runs from dist/).
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const SANDBOX_RUNNER_PATH = resolve(__dirname, "sandbox-runner.mjs");
 
 export class PersistentSandbox {
   private process: ChildProcess | null = null;
@@ -101,7 +57,7 @@ export class PersistentSandbox {
 
     this.process = spawn(
       "node",
-      ["--experimental-vm-modules", "--input-type=module", "-e", SANDBOX_RUNNER],
+      ["--experimental-vm-modules", SANDBOX_RUNNER_PATH],
       {
         stdio: ["pipe", "pipe", "pipe"],
         env: { ...process.env, NODE_NO_WARNINGS: "1" },
