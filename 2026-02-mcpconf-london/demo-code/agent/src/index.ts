@@ -612,20 +612,19 @@ async function runAgent(prompt: string) {
     anthropic = new Anthropic({ apiKey });
   }
 
-  if (dashboard.accounts.size === 0) {
-    console.log(chalk.yellow("No accounts connected. Use /add <provider> first."));
-    return;
-  }
-
   console.log(chalk.gray("\n🤖 Processing with Claude..."));
 
   const startTime = Date.now();
 
   // Build tools and system prompt based on mode
-  let tools: Anthropic.Tool[];
+  let tools: Anthropic.Tool[] = [];
   let systemPrompt: string | undefined;
 
   if (codeMode) {
+    if (dashboard.accounts.size === 0) {
+      console.log(chalk.yellow("No accounts connected. Use /add <provider> first."));
+      return;
+    }
     if (!sandbox || !sandbox.isRunning()) {
       console.log(chalk.yellow("  Sandbox not ready, setting up..."));
       await setupCodeModeSandbox();
@@ -633,7 +632,7 @@ async function runAgent(prompt: string) {
     tools = [buildExecuteCodeTool()];
     systemPrompt = buildCodeModeSystemPrompt();
     console.log(chalk.cyan(`  Code mode: 1 tool in context`));
-  } else {
+  } else if (allTools.size > 0) {
     tools = buildAnthropicTools();
     if (tools.length > 100) {
       console.log(
@@ -655,7 +654,7 @@ async function runAgent(prompt: string) {
       const response = await anthropic.messages.create({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 2048,
-        tools,
+        ...(tools.length > 0 ? { tools } : {}),
         ...(systemPrompt ? { system: systemPrompt } : {}),
         messages,
       });
