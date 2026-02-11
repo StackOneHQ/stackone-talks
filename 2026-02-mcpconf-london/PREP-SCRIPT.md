@@ -121,14 +121,9 @@ The agent should boot up showing the ASCII banner. Leave it running.
 ### Slide 5: Start Small (slide=start-small)
 **[ON TERMINAL - LIVE DEMO]**
 
-> "Let's start small. Every agent starts with built-in capabilities."
+> "Let's start small. A few productivity tools."
 
 Type these commands one at a time, pausing briefly for each:
-
-```
-/add-defaults
-```
-*Wait for "✓ Agent defaults (+15 tools: web_search, bash, file ops...)" to appear*
 
 ```
 /add Gmail
@@ -204,7 +199,7 @@ List my recent emails
 
 *Now show the detailed breakdown:*
 ```
-/context
+/usage
 ```
 *This calls the real Anthropic count_tokens API. Shows actual token cost, average per tool, remaining context, provider breakdown.*
 
@@ -244,7 +239,7 @@ List my recent emails
 
 *If you haven't already, show the context measurement:*
 ```
-/context
+/usage
 ```
 *Points at the output:* > "Look at this. [X] tokens consumed by tool definitions alone. That's [Y]% of the context window gone, and we haven't asked anything yet."
 
@@ -313,7 +308,7 @@ List my contacts
 **If running the redteaming demo live:**
 ```bash
 # In a separate terminal:
-cd ~/repos/stackone/stackone-talks/2026-02-mcpconf-london/demo-code/stackone-agent-redteaming/guard/gmail-agent
+cd ~/repos/stackone/stackone-talks/2026-02-mcpconf-london/demo-code/agent/gmail-agent
 npm run run-attack
 ```
 *This runs the undefended then defended attack.*
@@ -364,7 +359,34 @@ npm run run-attack
 
 **TRADE-OFFS (mention briefly):**
 
-> "The trade-off is search quality. Lexical search like BM25 is sub-millisecond but keyword-only. Semantic search with embeddings is much better at matching 'get me my team members' to list_employees, but you need to build and maintain those embeddings. Anthropic and OpenAI are both adding tool search to their SDKs natively now, so the approach is catching on."
+> "The trade-off is search quality. There are different ways to do this. Anthropic has their own Tool Search built into the API — you mark tools as deferred, and their server runs BM25 to find relevant ones. That's `/discover` in our demo. But it only works with Claude."
+>
+> "A more portable approach: run the search client-side. We have `/search` which combines two algorithms. TF-IDF converts each tool name and description into a vector and scores by cosine similarity — good at finding conceptual matches. BM25 adds term frequency saturation and length normalization — it stops long verbose descriptions from dominating and boosts short precise tool names. We fuse the scores: 20% BM25, 80% TF-IDF. The 20/80 split was tuned on real tool-calling evaluations and gives about 11% better accuracy than either alone."
+>
+> "The whole thing is 200 lines, zero dependencies, sub-millisecond. And it works with any model — OpenAI, Gemini, local — because the search runs on the client, not in the LLM provider's API."
+
+**[OPTIONAL: LIVE SEARCH MODE DEMO]**
+
+If time permits, show search mode:
+
+```
+/search
+```
+*Dashboard changes: "🔎 SEARCH MODE", "Mode: SEARCH (2 meta-tools, 895 indexed)"*
+
+> "Two meta-tools instead of 895. The search index is built from tool names and descriptions, runs entirely client-side."
+
+```
+List my recent emails
+```
+*Claude calls meta_search_tools with query "list emails", gets back gmail_list_messages as top result with score, then calls meta_execute_tool to invoke it.*
+
+> "See the flow? Search first, execute second. The model never sees 895 tool schemas. It sees the search results — maybe 3-5 tools — picks one, and calls it."
+
+```
+/search
+```
+*Toggle off, back to MCP mode.*
 
 ---
 
@@ -486,14 +508,14 @@ npm run run-attack -- --defend-only
 | Command | What it does |
 |---------|-------------|
 | `npm start` | Boot the agent |
-| `/add-defaults` | Load agent built-in tools (web search, file ops, bash, etc.) |
 | `/add <Provider>` | Connect a provider (see list below) |
 | `/accounts` | List all available accounts (connected/not) |
 | `/connected` | Show only connected accounts |
 | `/tools` | List all loaded tools by provider |
-| `/context` | Show real token cost of loaded tools (calls count_tokens API) |
+| `/usage` | Show context window usage (baseline before a run, actual breakdown after) |
 | `/code` | Toggle code mode (1 tool sandbox) ↔ MCP mode (all tools) |
-| `/demo` | Run the full demo sequence automatically |
+| `/discover` | Toggle discovery mode (Anthropic Tool Search, deferred loading) |
+| `/search` | Toggle search mode (client-side BM25 + TF-IDF, model-agnostic) |
 | `/reset` | Disconnect all accounts + stop sandbox |
 | `/help` | Show command help |
 | `/quit` or Ctrl+C | Quit |
@@ -502,7 +524,6 @@ npm run run-attack -- --defend-only
 Gmail (42), Trello (109), Gong (16), GitHub (74), HubSpot (65), Ashby (108), Zendesk (45), Honeycomb (28), Range (22), Browserbase (18), Jira (158), Humaans (51), Datadog (26), Google Docs (3), Google Drive (47), Google Calendar (37), Fireflies (4), Notion (27)
 
 ### Provider add order (for the build-up)
-0. `/add-defaults` (15 tools, agent built-ins)
 1. Gmail (42 tools)
 2. Trello (109 tools)
 3. Gong (16 tools)
@@ -567,10 +588,8 @@ Gmail (42), Trello (109), Gong (16), GitHub (74), HubSpot (65), Ashby (108), Zen
 │   │   ├── src/index.ts           # Agent source code (MCP mode + code mode)
 │   │   ├── src/sandbox.ts         # Persistent sandbox (from poc-execute)
 │   │   └── package.json
-│   └── stackone-agent-redteaming/ # Security/injection demo
-│       └── guard/
-│           ├── prompt-defense/    # Defense npm package
-│           └── gmail-agent/       # Attack + defense runner
+│   │   ├── gmail-agent/           # Security: attack + defense runner
+│   │   └── prompt-defense/        # Security: defense npm package
 └── public/
     └── 2026-02-mcpconf-london/
         └── index.html             # Deployed slides

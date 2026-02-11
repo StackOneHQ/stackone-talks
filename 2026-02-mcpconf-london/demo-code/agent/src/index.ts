@@ -1,8 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { BetaTool } from "@anthropic-ai/sdk/resources/beta/messages/messages.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { createPersistentSandbox, type PersistentSandbox } from "./sandbox.js";
+import * as p from "@clack/prompts";
 import chalk from "chalk";
 import * as readline from "readline";
 import { readFileSync } from "fs";
@@ -10,80 +9,54 @@ import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import "dotenv/config";
 
-// Constants
+import * as codeMode from "./code-mode.js";
+import * as discovery from "./discovery-mode.js";
+import * as search from "./search-mode.js";
+import * as defense from "./defense-mode.js";
+
+// ---------------------------------------------------------------------------
+// Config & state
+// ---------------------------------------------------------------------------
+
+const MODEL = "claude-sonnet-4-5-20250929";
 const MCP_BASE_URL = "https://api.stackone.com/mcp";
+const CONTEXT_WINDOW = 200_000;
 
-// Dashboard state
-interface DashboardState {
-	toolCount: number;
-	tokenEstimate: number;
-	actualInputTokens: number | null; // from API response.usage
-	lastProvider: string;
-	lastAction: string;
-	lastLatencyMs: number | null;
-	accounts: Map<string, { name: string; tools: number; client?: Client }>;
-}
-
-const dashboard: DashboardState = {
-	toolCount: 0,
-	tokenEstimate: 0,
-	actualInputTokens: null,
-	lastProvider: "-",
-	lastAction: "-",
-	lastLatencyMs: null,
-	accounts: new Map(),
-};
-
-// Load accounts from gitignored config file (keeps account IDs out of repo)
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const accountsPath = resolve(__dirname, "../accounts.json");
 let AVAILABLE_ACCOUNTS: { id: string; provider: string }[] = [];
 try {
-	AVAILABLE_ACCOUNTS = JSON.parse(readFileSync(accountsPath, "utf-8"));
-} catch {
-	// accounts.json missing — agent still works, just can't /add providers
+	AVAILABLE_ACCOUNTS = JSON.parse(
+		readFileSync(resolve(__dirname, "../accounts.json"), "utf-8"),
+	);
+} catch {}
+
+const accounts = new Map<
+	string,
+	{ name: string; tools: number; client: Client }
+>();
+const allTools = new Map<string, any>();
+let actualInputTokens: number | null = null;
+let lastProvider = "-";
+let lastAction = "-";
+let lastLatencyMs: number | null = null;
+
+// Usage tracking: stores state from the most recent runAgent() call
+let lastMessages: Anthropic.MessageParam[] = [];
+let lastTools: Anthropic.Tool[] = [];
+let lastSystemPrompt: string | undefined;
+let turnTokenHistory: number[] = [];
+const anthropic = process.env.ANTHROPIC_API_KEY ? new Anthropic() : null;
+
+function getAuthHeader(): string {
+	return (
+		"Basic " +
+		Buffer.from((process.env.STACKONE_API_KEY || "") + ":").toString("base64")
+	);
 }
 
-// Default agent tools (built-in capabilities, not from MCP providers)
-const DEFAULT_TOOLS = [
-	{ name: "web_search", description: "Search the web for information" },
-	{ name: "web_fetch", description: "Fetch and extract content from a URL" },
-	{ name: "read_file", description: "Read the contents of a file" },
-	{ name: "write_file", description: "Create or overwrite a file" },
-	{ name: "edit_file", description: "Make targeted edits to an existing file" },
-	{ name: "list_directory", description: "List files and directories" },
-	{
-		name: "search_files",
-		description: "Search file contents with regex patterns",
-	},
-	{ name: "bash", description: "Execute shell commands in a sandbox" },
-	{ name: "python", description: "Execute Python code" },
-	{
-		name: "computer_use",
-		description: "Take screenshots and interact with the screen",
-	},
-	{
-		name: "text_editor",
-		description: "View and edit text with syntax highlighting",
-	},
-	{ name: "save_memory", description: "Persist information across sessions" },
-	{ name: "recall_memory", description: "Retrieve saved information" },
-	{
-		name: "create_artifact",
-		description: "Generate documents, diagrams, or files",
-	},
-	{ name: "calculator", description: "Evaluate mathematical expressions" },
-];
-
-let allTools: Map<string, any> = new Map();
-let anthropic: Anthropic;
-
 // ---------------------------------------------------------------------------
-// Context measurement — shows real token cost BEFORE any query
-// Uses Anthropic's count_tokens API to measure tool definition overhead
+// Tool helpers
 // ---------------------------------------------------------------------------
-
-const CONTEXT_WINDOW = 200_000; // Haiku 4.5 context window
 
 function buildAnthropicTools(): Anthropic.Tool[] {
 	return Array.from(allTools.values()).map((tool) => ({
@@ -93,330 +66,232 @@ function buildAnthropicTools(): Anthropic.Tool[] {
 	}));
 }
 
-function renderContextBar(tokens: number, width = 40): string {
+function contextBar(tokens: number, width = 30): string {
 	const pct = Math.min(tokens / CONTEXT_WINDOW, 1);
 	const filled = Math.round(pct * width);
-	const empty = width - filled;
-	const color = pct > 0.75 ? chalk.red : pct > 0.5 ? chalk.yellow : chalk.green;
-	const bar = color("█".repeat(filled)) + chalk.gray("░".repeat(empty));
-	const pctStr = (pct * 100).toFixed(0) + "%";
-	return `[${bar}] ${pctStr}`;
+	const icon = pct > 0.75 ? "🔴" : pct > 0.5 ? "🟡" : "🟢";
+	return `${icon} ${"█".repeat(filled)}${"░".repeat(width - filled)} ${(pct * 100).toFixed(0)}%`;
 }
 
-async function measureContext(): Promise<number | null> {
-	if (!anthropic) {
-		const apiKey = process.env.ANTHROPIC_API_KEY;
-		if (!apiKey) return null;
-		anthropic = new Anthropic({ apiKey });
-	}
-
-	if (allTools.size === 0) return null;
-
-	const tools = buildAnthropicTools();
-
+async function measureContext(opts?: {
+	tools?: Anthropic.Tool[];
+	messages?: Anthropic.MessageParam[];
+	system?: string;
+}): Promise<number | null> {
+	if (!anthropic) return null;
+	const tools = opts?.tools ?? buildAnthropicTools();
+	if (tools.length === 0 && !opts?.messages) return null;
 	try {
 		const result = await anthropic.beta.messages.countTokens({
-			model: "claude-haiku-4-5",
-			tools: tools as BetaTool[],
-			messages: [{ role: "user", content: "hello" }],
+			model: MODEL,
+			...(tools.length > 0 ? { tools: tools as any[] } : {}),
+			...(opts?.system ? { system: opts.system } : {}),
+			messages: opts?.messages ?? [{ role: "user", content: "hello" }],
 		});
 		return result.input_tokens;
 	} catch {
-		// Fallback: estimate from JSON size (roughly 3.5 chars per token)
-		const jsonSize = JSON.stringify(tools).length;
-		return Math.round(jsonSize / 3.5);
+		return Math.round(JSON.stringify(tools).length / 3.5);
 	}
 }
 
-async function showContextUsage(verbose = false) {
-	if (allTools.size === 0) {
-		if (verbose) {
-			console.log(chalk.bold("\n📊 Context Window Analysis"));
-			console.log(chalk.gray("─".repeat(55)));
-			console.log(chalk.cyan("  Tools loaded:    ") + chalk.bold.white("0"));
-			console.log(
-				chalk.cyan("  Token cost:      ") +
-					chalk.bold.green("0") +
-					chalk.gray(` (0% of ${(CONTEXT_WINDOW / 1000).toFixed(0)}k window)`),
+// ---------------------------------------------------------------------------
+// Usage display
+// ---------------------------------------------------------------------------
+
+async function showUsage(verbose = false) {
+	const hasRun = lastMessages.length > 0;
+
+	// ── After an agent run: show actual usage breakdown ──
+	if (hasRun) {
+		const totalTokens = await measureContext({
+			tools: lastTools as Anthropic.Tool[],
+			messages: lastMessages,
+			system: lastSystemPrompt,
+		});
+
+		const baselineTokens = await measureContext({
+			tools: lastTools as Anthropic.Tool[],
+			system: lastSystemPrompt,
+		});
+
+		if (totalTokens === null) return;
+
+		if (!verbose) {
+			p.log.step(
+				`Usage: ${totalTokens.toLocaleString()} tokens ${contextBar(totalTokens)}`,
 			);
-			console.log(
-				chalk.cyan("  Remaining:       ") +
-					chalk.green(CONTEXT_WINDOW.toLocaleString()) +
-					chalk.gray(" tokens for system prompt + conversation"),
-			);
-			console.log(chalk.cyan("  Context bar:     ") + renderContextBar(0));
-			console.log(chalk.gray("─".repeat(55)));
-			console.log(
-				chalk.gray(
-					"  No tools loaded. Use /add <provider> to connect accounts.\n",
-				),
-			);
+			return;
 		}
+
+		const pct = ((totalTokens / CONTEXT_WINDOW) * 100).toFixed(1);
+		const remaining = CONTEXT_WINDOW - totalTokens;
+		const baseline = baselineTokens ?? 0;
+		const conversation = totalTokens - baseline;
+
+		const lines = [
+			`Total:        ${totalTokens.toLocaleString()} tokens (${pct}% of ${CONTEXT_WINDOW / 1000}k)`,
+			`  Baseline:   ${baseline.toLocaleString()} (tools + system prompt)`,
+			`  Convo:      ${conversation.toLocaleString()} (messages + tool results)`,
+			`Remaining:    ${remaining.toLocaleString()} tokens`,
+			contextBar(totalTokens),
+		];
+
+		if (actualInputTokens !== null) {
+			lines.push("");
+			lines.push(`API reported: ${actualInputTokens.toLocaleString()} input_tokens (last turn)`);
+		}
+
+		if (turnTokenHistory.length > 1) {
+			lines.push("");
+			lines.push("Per-turn growth:");
+			for (let i = 0; i < turnTokenHistory.length; i++) {
+				const tok = turnTokenHistory[i];
+				const delta = i > 0 ? ` (+${(tok - turnTokenHistory[i - 1]).toLocaleString()})` : "";
+				lines.push(`  Turn ${i + 1}: ${tok.toLocaleString()}${delta}`);
+			}
+		}
+
+		if (allTools.size > 0 && baselineTokens !== null) {
+			const avgPerTool = Math.round(baselineTokens / allTools.size);
+			lines.push("");
+			const byProvider = new Map<string, number>();
+			for (const [, tool] of allTools) {
+				byProvider.set(tool.provider, (byProvider.get(tool.provider) || 0) + 1);
+			}
+			for (const [provider, count] of byProvider) {
+				lines.push(
+					`  ${provider.padEnd(16)} ${count} tools ≈ ${(count * avgPerTool).toLocaleString()} tokens`,
+				);
+			}
+		}
+
+		p.note(lines.join("\n"), "📊 Context Usage (actual)");
 		return;
 	}
 
-	const tokens = await measureContext();
+	// ── No agent run yet: show baseline estimate ──
+	if (allTools.size === 0) {
+		if (verbose) p.log.info("No tools loaded and no agent run yet. Use /add <provider> to connect.");
+		return;
+	}
+
+	const systemPrompt = codeMode.isCodeMode() ? codeMode.buildSystemPrompt(allTools) : undefined;
+	const tokens = await measureContext({ system: systemPrompt });
 	if (tokens === null) return;
 
-	dashboard.actualInputTokens = tokens;
-
-	// Compact version (after /add)
 	if (!verbose) {
-		console.log(
-			chalk.gray("  Context: ") +
-				renderContextBar(tokens) +
-				chalk.gray("  ") +
-				chalk.bold(tokens.toLocaleString()) +
-				chalk.gray(" tokens (before any query)"),
+		p.log.step(
+			`Baseline: ${tokens.toLocaleString()} tokens ${contextBar(tokens)}`,
 		);
 		return;
 	}
 
-	// Verbose version (/context command)
-	const remaining = CONTEXT_WINDOW - tokens;
 	const pct = ((tokens / CONTEXT_WINDOW) * 100).toFixed(1);
 	const avgPerTool = Math.round(tokens / allTools.size);
+	const remaining = CONTEXT_WINDOW - tokens;
 
-	console.log(chalk.bold("\n📊 Context Window Analysis"));
-	console.log(chalk.gray("─".repeat(55)));
-	console.log(
-		chalk.cyan("  Tools loaded:    ") +
-			chalk.bold.white(allTools.size.toLocaleString()),
-	);
-	console.log(
-		chalk.cyan("  Token cost:      ") +
-			chalk.bold.yellow(tokens.toLocaleString()) +
-			chalk.gray(` (${pct}% of ${(CONTEXT_WINDOW / 1000).toFixed(0)}k window)`),
-	);
-	console.log(
-		chalk.cyan("  Avg per tool:    ") + chalk.white(`~${avgPerTool} tokens`),
-	);
-	console.log(
-		chalk.cyan("  Remaining:       ") +
-			(remaining < 50000
-				? chalk.red(remaining.toLocaleString())
-				: chalk.green(remaining.toLocaleString())) +
-			chalk.gray(" tokens for system prompt + conversation"),
-	);
-	console.log(chalk.cyan("  Context bar:     ") + renderContextBar(tokens));
+	const lines = [
+		`Tools:     ${allTools.size}`,
+		`Baseline:  ${tokens.toLocaleString()} tokens (${pct}% of ${CONTEXT_WINDOW / 1000}k window)`,
+		`Per tool:  ~${avgPerTool} tokens`,
+		`Remaining: ${remaining.toLocaleString()} tokens`,
+		contextBar(tokens),
+		"",
+		"(This is the baseline cost before any conversation.)",
+		"(Send a prompt for actual usage breakdown.)",
+	];
 
-	// Breakdown by provider
 	const byProvider = new Map<string, number>();
-	for (const [_key, tool] of allTools) {
+	for (const [, tool] of allTools) {
 		byProvider.set(tool.provider, (byProvider.get(tool.provider) || 0) + 1);
 	}
-
-	console.log(chalk.gray("─".repeat(55)));
-	console.log(chalk.bold("  Per provider (estimated):"));
 	for (const [provider, count] of byProvider) {
-		const estTokens = count * avgPerTool;
-		console.log(
-			chalk.gray("    ") +
-				chalk.cyan(provider.padEnd(16)) +
-				chalk.white(`${count} tools`) +
-				chalk.gray(` ≈ ${estTokens.toLocaleString()} tokens`),
+		lines.push(
+			`  ${provider.padEnd(16)} ${count} tools ≈ ${(count * avgPerTool).toLocaleString()} tokens`,
 		);
 	}
 
 	if (tokens > CONTEXT_WINDOW * 0.5) {
-		console.log(
-			chalk.red(
-				`\n  ⚠️  Over ${((tokens / CONTEXT_WINDOW) * 100).toFixed(0)}% of context used by tool definitions alone.`,
-			),
-		);
-		console.log(chalk.red("  The model hasn't even seen your question yet."));
+		lines.push("");
+		lines.push(`⚠ ${pct}% of context used by tool definitions alone.`);
+		lines.push("The model hasn't even seen your question yet.");
 	}
-	console.log(chalk.gray("─".repeat(55)) + "\n");
+
+	p.note(lines.join("\n"), "📊 Context Usage (baseline)");
 }
 
-// Code mode state
-let codeMode = false;
-let sandbox: PersistentSandbox | null = null;
-
-function getAuthHeader(): string {
-	const apiKey = process.env.STACKONE_API_KEY || "";
-	return "Basic " + Buffer.from(apiKey + ":").toString("base64");
-}
+// ---------------------------------------------------------------------------
+// Dashboard
+// ---------------------------------------------------------------------------
 
 function renderDashboard() {
-	const width = 55;
-	const border = chalk.gray("─".repeat(width));
+	const isCode = codeMode.isCodeMode();
+	const isDisco = discovery.isEnabled();
+	const isSearch = search.isEnabled();
 
-	console.log("\n" + border);
-	if (codeMode) {
-		console.log(chalk.bold.hex("#FF6B00")("  💻 CODE MODE DASHBOARD"));
-	} else {
-		console.log(chalk.bold.hex("#05C168")("  📊 MCP DEMO DASHBOARD"));
-	}
-	console.log(border);
+	const lines: string[] = [];
 
-	if (codeMode) {
-		console.log(
-			chalk.cyan("  Mode:     ") +
-				chalk.bold.hex("#FF6B00")("CODE".padStart(6)) +
-				chalk.gray(` (1 tool, was ${dashboard.toolCount})`),
-		);
+	if (isCode) {
+		lines.push(`Mode:     CODE (1 tool, was ${allTools.size})`);
+	} else if (isDisco) {
+		lines.push(`Mode:     DISCOVERY (${allTools.size} tools deferred)`);
+	} else if (isSearch) {
+		lines.push(`Mode:     SEARCH (2 meta-tools, ${allTools.size} indexed)`);
 	} else {
-		console.log(
-			chalk.cyan("  Tools:    ") +
-				chalk.bold.yellow(dashboard.toolCount.toLocaleString().padStart(6)) +
-				chalk.gray(" loaded in context"),
-		);
+		lines.push(`Mode:     MCP (${allTools.size} tools in context)`);
 	}
 
-	if (dashboard.actualInputTokens !== null) {
-		const pct = ((dashboard.actualInputTokens / 200000) * 100).toFixed(0);
-		const tokenColor =
-			dashboard.actualInputTokens > 150000
-				? chalk.bold.red
-				: dashboard.actualInputTokens > 80000
-					? chalk.bold.yellow
-					: chalk.bold.white;
-		console.log(
-			chalk.cyan("  Tokens:   ") +
-				tokenColor(dashboard.actualInputTokens.toLocaleString().padStart(6)) +
-				chalk.gray(` input (${pct}% of 200k context)`),
+	if (actualInputTokens !== null) {
+		const pct = ((actualInputTokens / CONTEXT_WINDOW) * 100).toFixed(0);
+		lines.push(
+			`Tokens:   ${actualInputTokens.toLocaleString()} (${pct}% of ${CONTEXT_WINDOW / 1000}k)`,
 		);
 	} else {
-		console.log(
-			chalk.cyan("  Tokens:   ") +
-				chalk.bold.yellow(
-					codeMode
-						? "~500".padStart(6)
-						: ("~" + dashboard.tokenEstimate.toLocaleString()).padStart(6),
-				) +
-				chalk.gray(codeMode ? " (system prompt)" : " est. (tool definitions)"),
+		const est = isCode
+			? "~500"
+			: isSearch
+				? "~1k"
+				: `~${(allTools.size * 150).toLocaleString()}`;
+		lines.push(`Tokens:   ${est} est.`);
+	}
+
+	if (defense.isEnabled()) {
+		lines.push(`Defense:  ON`);
+	}
+	lines.push(`Accounts: ${accounts.size}`);
+	if (lastLatencyMs !== null) lines.push(`Latency:  ${lastLatencyMs}ms`);
+	lines.push(`Last:     ${lastProvider} → ${lastAction}`);
+
+	if (accounts.size > 0) {
+		lines.push("");
+		lines.push(
+			Array.from(accounts.values())
+				.map((a) => `${a.name}(${a.tools})`)
+				.join(", "),
 		);
 	}
-	console.log(
-		chalk.cyan("  Accounts: ") +
-			chalk.bold.white(dashboard.accounts.size.toString().padStart(6)),
-	);
-	if (dashboard.lastLatencyMs !== null) {
-		const latencyColor =
-			dashboard.lastLatencyMs > 5000
-				? chalk.bold.red
-				: dashboard.lastLatencyMs > 2000
-					? chalk.bold.yellow
-					: chalk.bold.green;
-		console.log(
-			chalk.cyan("  Latency:  ") +
-				latencyColor((dashboard.lastLatencyMs + "ms").padStart(6)),
-		);
-	}
-	console.log(
-		chalk.cyan("  Last:     ") +
-			chalk.hex("#05C168")(dashboard.lastProvider) +
-			chalk.gray(" → ") +
-			chalk.white(dashboard.lastAction),
-	);
-	console.log(border);
 
-	// Show connected accounts
-	if (dashboard.accounts.size > 0) {
-		const accountList = Array.from(dashboard.accounts.values())
-			.map((a) => `${a.name}(${a.tools})`)
-			.join(", ");
-		console.log(chalk.gray("  " + accountList));
+	if (!isCode && !isDisco && !isSearch && allTools.size > 1000) {
+		lines.push("");
+		lines.push("🚨 CRITICAL: Over 1,000 tools. Context overload!");
+	} else if (!isCode && !isDisco && !isSearch && allTools.size > 500) {
+		lines.push("");
+		lines.push("⚠ Warning: Tool count > 500. Performance degrading.");
 	}
 
-	// Warnings (only in MCP mode)
-	if (!codeMode) {
-		if (dashboard.toolCount > 1000) {
-			console.log(
-				chalk.red("\n  🚨 CRITICAL: Over 1,000 tools. Context overload!"),
-			);
-		} else if (dashboard.toolCount > 500) {
-			console.log(
-				chalk.yellow(
-					"\n  ⚠️  Warning: Tool count > 500. Performance degrading.",
-				),
-			);
-		}
-	}
-
-	console.log(border + "\n");
+	const title = isCode
+		? "💻 CODE MODE"
+		: isDisco
+			? "🔍 DISCOVERY MODE"
+			: isSearch
+				? "🔎 SEARCH MODE"
+				: "📊 MCP DEMO";
+	p.note(lines.join("\n"), title);
 }
 
-async function connectAccount(accountId: string): Promise<boolean> {
-	const account = AVAILABLE_ACCOUNTS.find((a) => a.id === accountId);
-	if (!account) {
-		console.log(chalk.red(`Unknown account: ${accountId}`));
-		return false;
-	}
-
-	if (dashboard.accounts.has(accountId)) {
-		console.log(chalk.yellow(`${account.provider} already connected`));
-		return false;
-	}
-
-	const apiKey = process.env.STACKONE_API_KEY;
-	if (!apiKey) {
-		console.log(chalk.red("Error: STACKONE_API_KEY not set"));
-		return false;
-	}
-
-	console.log(chalk.cyan(`Connecting to ${account.provider}...`));
-
-	try {
-		const client = new Client({
-			name: `demo-${account.provider}`,
-			version: "1.0.0",
-		});
-		const authToken = Buffer.from(`${apiKey}:`).toString("base64");
-
-		const transport = new StreamableHTTPClientTransport(
-			new URL("https://api.stackone.com/mcp"),
-			{
-				requestInit: {
-					headers: {
-						Authorization: `Basic ${authToken}`,
-						"x-account-id": accountId,
-						"Content-Type": "application/json",
-						Accept: "application/json, text/event-stream",
-					},
-				},
-			},
-		);
-
-		await client.connect(transport);
-
-		// Get tools from this account
-		const toolsResult = await client.listTools();
-		const toolCount = toolsResult.tools?.length || 0;
-
-		// Store tools with provider prefix
-		for (const tool of toolsResult.tools || []) {
-			allTools.set(`${account.provider}::${tool.name}`, {
-				...tool,
-				provider: account.provider,
-				accountId: accountId,
-			});
-		}
-
-		dashboard.accounts.set(accountId, {
-			name: account.provider,
-			tools: toolCount,
-			client,
-		});
-		dashboard.toolCount += toolCount;
-		dashboard.tokenEstimate = dashboard.toolCount * 150;
-
-		console.log(
-			chalk.green(`  ✓ ${account.provider}`) +
-				chalk.gray(` (+${toolCount} tools, ${dashboard.toolCount} total)`),
-		);
-
-		await showContextUsage();
-		renderDashboard();
-		return true;
-	} catch (error: any) {
-		console.log(
-			chalk.red(`  ✗ Failed to connect ${account.provider}: ${error.message}`),
-		);
-		return false;
-	}
-}
+// ---------------------------------------------------------------------------
+// Account management (MCP connection)
+// ---------------------------------------------------------------------------
 
 async function addAccount(providerName: string) {
 	const account = AVAILABLE_ACCOUNTS.find(
@@ -425,323 +300,257 @@ async function addAccount(providerName: string) {
 			a.id === providerName,
 	);
 	if (!account) {
-		console.log(chalk.red(`Unknown provider: ${providerName}`));
-		console.log(
-			chalk.gray(
-				"Available: " + AVAILABLE_ACCOUNTS.map((a) => a.provider).join(", "),
-			),
+		p.log.error(`Unknown provider: ${providerName}`);
+		p.log.message(
+			"Available: " + AVAILABLE_ACCOUNTS.map((a) => a.provider).join(", "),
 		);
 		return;
 	}
-	await connectAccount(account.id);
-}
-
-async function addDefaults() {
-	if (dashboard.accounts.has("defaults")) {
-		console.log(chalk.yellow("Default tools already loaded"));
+	if (accounts.has(account.id)) {
+		p.log.warn(`${account.provider} already connected`);
+		return;
+	}
+	if (!process.env.STACKONE_API_KEY) {
+		p.log.error("STACKONE_API_KEY not set");
 		return;
 	}
 
-	console.log(chalk.cyan("Loading agent default tools..."));
+	p.log.step(`Connecting to ${account.provider}...`);
 
-	for (const tool of DEFAULT_TOOLS) {
-		allTools.set(`Defaults::${tool.name}`, {
-			...tool,
-			provider: "Defaults",
-			accountId: "defaults",
-			inputSchema: { type: "object", properties: {} },
+	try {
+		const client = new Client({
+			name: `demo-${account.provider}`,
+			version: "1.0.0",
 		});
-	}
-
-	dashboard.accounts.set("defaults", {
-		name: "Defaults",
-		tools: DEFAULT_TOOLS.length,
-	});
-	dashboard.toolCount += DEFAULT_TOOLS.length;
-	dashboard.tokenEstimate = dashboard.toolCount * 150;
-
-	console.log(
-		chalk.green(`  ✓ Agent defaults`) +
-			chalk.gray(
-				` (+${DEFAULT_TOOLS.length} tools: web_search, bash, file ops, etc.)`,
-			),
-	);
-
-	await showContextUsage();
-	renderDashboard();
-}
-
-// ---------------------------------------------------------------------------
-// Code Mode: sandbox with MCP tool wrappers
-// Pattern from poc-execute/examples/stackone_prompt_demo.ts
-// ---------------------------------------------------------------------------
-
-async function setupCodeModeSandbox(): Promise<void> {
-	if (sandbox) {
-		await sandbox.stop();
-	}
-
-	sandbox = await createPersistentSandbox({ timeout: 30000 });
-
-	const authHeader = getAuthHeader();
-	const toolWrappers: string[] = [];
-
-	for (const [_key, tool] of allTools) {
-		// Skip default tools — they're not real MCP endpoints
-		if (tool.accountId === "defaults") continue;
-
-		const fnName = tool.name.replace(/-/g, "_");
-		const accountId = tool.accountId;
-
-		toolWrappers.push(`
-  ${fnName}: async (args) => {
-    const res = await fetch("${MCP_BASE_URL}?x-account-id=${accountId}", {
-      method: "POST",
-      headers: {
-        "Authorization": "${authHeader}",
-        "Content-Type": "application/json",
-        "Accept": "application/json, text/event-stream"
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: "call-" + Date.now(),
-        method: "tools/call",
-        params: { name: "${tool.name}", arguments: args }
-      })
-    });
-    const data = await res.json();
-    if (data.result?.content) {
-      const tc = data.result.content.find(c => c.type === "text");
-      if (tc?.text) {
-        try { return JSON.parse(tc.text); } catch { return tc.text; }
-      }
-    }
-    return data.result || data;
-  }`);
-	}
-
-	// Note: tool wrappers contain `await` in their bodies, which triggers
-	// the sandbox's async wrapper. Use `return` so the result propagates.
-	const setupCode = `
-globalThis.tools = {${toolWrappers.join(",")}
-};
-return "Sandbox ready: " + Object.keys(globalThis.tools).length + " tool wrappers loaded"`;
-
-	const result = await sandbox.execute(setupCode);
-	if (!result.success) {
-		throw new Error(`Sandbox setup failed: ${result.error}`);
-	}
-	console.log(chalk.gray(`  ${result.result}`));
-}
-
-function buildCodeModeSystemPrompt(): string {
-	const byProvider = new Map<string, string[]>();
-	for (const [_key, tool] of allTools) {
-		const provider = tool.provider;
-		if (!byProvider.has(provider)) byProvider.set(provider, []);
-		const fnName = tool.name.replace(/-/g, "_");
-		const desc = (tool.description || "").slice(0, 80);
-		byProvider.get(provider)!.push(`  - tools.${fnName}(args): ${desc}`);
-	}
-
-	const toolList = Array.from(byProvider.entries())
-		.map(([provider, tools]) => {
-			const listed = tools.slice(0, 10).join("\n");
-			const more =
-				tools.length > 10 ? `\n  ... and ${tools.length - 10} more` : "";
-			return `### ${provider}\n${listed}${more}`;
-		})
-		.join("\n\n");
-
-	return `You answer questions by writing TypeScript code that calls MCP tool wrappers in a sandbox.
-
-## Available Tools
-${toolList}
-
-## How to Use
-- Call tools: \`await tools.tool_name({ query: { key: "value" } })\`
-- All query parameter values must be STRINGS (e.g., per_page: "10" not 10)
-- Navigate nested responses: results may be at data.result.data or data.data
-- Filter and summarize results - don't return raw API responses
-- Return a concise object with only the fields the user needs
-
-## Example
-\`\`\`typescript
-const data = await tools.gmail_list_messages({ query: { per_page: "5" } });
-let messages = data?.data?.data || data?.data || [];
-if (!Array.isArray(messages)) messages = [];
-return messages.slice(0, 5).map(m => ({ subject: m.subject, from: m.from }));
-\`\`\``;
-}
-
-function buildExecuteCodeTool(): Anthropic.Tool {
-	return {
-		name: "execute_code",
-		description:
-			"Execute TypeScript code in a sandbox with pre-configured MCP tool wrappers. " +
-			"Use `await tools.tool_name(args)` to call tools. " +
-			"Return a concise, filtered result.",
-		input_schema: {
-			type: "object" as const,
-			properties: {
-				code: {
-					type: "string",
-					description:
-						"TypeScript code to execute. Use await tools.* to call MCP tools. Return a value to send it back.",
+		const authToken = Buffer.from(
+			`${process.env.STACKONE_API_KEY}:`,
+		).toString("base64");
+		const transport = new StreamableHTTPClientTransport(
+			new URL(MCP_BASE_URL),
+			{
+				requestInit: {
+					headers: {
+						Authorization: `Basic ${authToken}`,
+						"x-account-id": account.id,
+						"Content-Type": "application/json",
+						Accept: "application/json, text/event-stream",
+					},
 				},
 			},
-			required: ["code"],
-		},
-	};
-}
-
-async function toggleCodeMode(): Promise<void> {
-	if (codeMode) {
-		codeMode = false;
-		if (sandbox) {
-			await sandbox.stop();
-			sandbox = null;
-		}
-		console.log(chalk.yellow("\n⚡ Switched to MCP mode"));
-		console.log(
-			chalk.gray(`   ${dashboard.toolCount} tools loaded in context`),
 		);
-	} else {
-		if (dashboard.accounts.size === 0) {
-			console.log(
-				chalk.yellow("No accounts connected. Use /add <provider> first."),
-			);
-			return;
+
+		await client.connect(transport);
+		const toolsResult = await client.listTools();
+		const toolCount = toolsResult.tools?.length || 0;
+
+		for (const tool of toolsResult.tools || []) {
+			allTools.set(`${account.provider}::${tool.name}`, {
+				...tool,
+				provider: account.provider,
+				accountId: account.id,
+			});
 		}
-		console.log(chalk.cyan("\n⚡ Switching to Code mode..."));
-		try {
-			await setupCodeModeSandbox();
-			codeMode = true;
-			console.log(chalk.green("  ✓ Code mode active"));
-			console.log(
-				chalk.gray(`   1 tool in context (was ${dashboard.toolCount})`),
-			);
-		} catch (err: any) {
-			console.log(chalk.red(`  ✗ Failed to set up sandbox: ${err.message}`));
-		}
+
+		accounts.set(account.id, {
+			name: account.provider,
+			tools: toolCount,
+			client,
+		});
+		p.log.success(
+			`${account.provider} (+${toolCount} tools, ${allTools.size} total)`,
+		);
+
+		await showUsage();
+		renderDashboard();
+	} catch (error: any) {
+		p.log.error(`Failed to connect ${account.provider}: ${error.message}`);
 	}
-	renderDashboard();
 }
 
 // ---------------------------------------------------------------------------
-// Agent loop (supports both MCP mode and Code mode with multi-turn)
+// Agent loop (MCP mode + Code mode + Discovery mode, multi-turn)
 // ---------------------------------------------------------------------------
 
 async function runAgent(prompt: string) {
 	if (!anthropic) {
-		const apiKey = process.env.ANTHROPIC_API_KEY;
-		if (!apiKey) {
-			console.log(chalk.red("Error: ANTHROPIC_API_KEY not set"));
-			return;
-		}
-		anthropic = new Anthropic({ apiKey });
+		p.log.error("ANTHROPIC_API_KEY not set");
+		return;
 	}
 
-	console.log(chalk.gray("\n🤖 Processing with Claude..."));
-
+	p.log.step("Processing with Claude...");
 	const startTime = Date.now();
 
-	// Build tools and system prompt based on mode
-	let tools: Anthropic.Tool[] = [];
-	let systemPrompt: string | undefined;
+	// Reset per-run usage tracking
+	turnTokenHistory = [];
 
-	if (codeMode) {
-		if (dashboard.accounts.size === 0) {
-			console.log(
-				chalk.yellow("No accounts connected. Use /add <provider> first."),
-			);
+	let tools: any[] = [];
+	let systemPrompt: string | undefined;
+	const isCode = codeMode.isCodeMode();
+	const isDisco = discovery.isEnabled();
+	const isSearch = search.isEnabled();
+	const sandbox = codeMode.getSandbox();
+
+	if (isCode) {
+		if (accounts.size === 0) {
+			p.log.warn("No accounts connected. Use /add <provider> first.");
 			return;
 		}
 		if (!sandbox || !sandbox.isRunning()) {
-			console.log(chalk.yellow("  Sandbox not ready, setting up..."));
-			await setupCodeModeSandbox();
+			p.log.step("Sandbox not ready, setting up...");
+			await codeMode.setupSandbox(allTools, MCP_BASE_URL, getAuthHeader());
 		}
-		tools = [buildExecuteCodeTool()];
-		systemPrompt = buildCodeModeSystemPrompt();
-		console.log(chalk.cyan(`  Code mode: 1 tool in context`));
+		tools = [codeMode.buildExecuteCodeTool()];
+		systemPrompt = codeMode.buildSystemPrompt(allTools);
+		p.log.info("Code mode: 1 tool in context");
+	} else if (isDisco) {
+		tools = discovery.wrapTools(buildAnthropicTools());
+		p.log.info(`Discovery mode: ${allTools.size} tools deferred`);
+	} else if (isSearch) {
+		tools = search.buildTools();
+		systemPrompt = search.buildSystemPrompt();
+		p.log.info(`Search mode: 2 meta-tools (${allTools.size} indexed)`);
 	} else if (allTools.size > 0) {
 		tools = buildAnthropicTools();
-		if (tools.length > 100) {
-			console.log(
-				chalk.yellow(
-					`⏳ Loading ${tools.length} tool definitions into context...`,
-				),
-			);
-		}
+		if (tools.length > 100)
+			p.log.warn(`Loading ${tools.length} tool definitions into context...`);
 	}
 
 	try {
-		// Multi-turn agent loop
 		const messages: Anthropic.MessageParam[] = [
 			{ role: "user", content: prompt },
 		];
 		let turnCount = 0;
-		const maxTurns = 5;
 
-		while (turnCount < maxTurns) {
+		while (turnCount < 5) {
 			turnCount++;
-
 			const turnStart = Date.now();
-			const response = await anthropic.messages.create({
-				model: "claude-haiku-4-5-20251001",
+
+			const createParams: any = {
+				model: MODEL,
 				max_tokens: 2048,
 				...(tools.length > 0 ? { tools } : {}),
 				...(systemPrompt ? { system: systemPrompt } : {}),
 				messages,
-			});
-			const turnMs = Date.now() - turnStart;
+			};
 
-			// Capture actual token usage from API
-			if (turnCount === 1 && response.usage) {
-				dashboard.actualInputTokens = response.usage.input_tokens;
-				const pct = ((response.usage.input_tokens / 200000) * 100).toFixed(0);
-				console.log(
-					chalk.gray(`  📊 Actual input: `) +
-						chalk.bold.yellow(response.usage.input_tokens.toLocaleString()) +
-						chalk.gray(` tokens (${pct}% of context window)`) +
-						chalk.gray(` · ${turnMs}ms`),
+			// Discovery mode needs the tool-search beta header
+			const response: any = isDisco
+				? await anthropic.messages.create(createParams, {
+						headers: { "anthropic-beta": discovery.BETA },
+					})
+				: await anthropic.messages.create(createParams);
+
+			if (response.usage) {
+				const inputTok = response.usage.input_tokens;
+				actualInputTokens = inputTok;
+				turnTokenHistory.push(inputTok);
+				const pct = ((inputTok / CONTEXT_WINDOW) * 100).toFixed(0);
+				p.log.step(
+					`Turn ${turnCount}: ${inputTok.toLocaleString()} tokens (${pct}%) · ${Date.now() - turnStart}ms`,
 				);
 			}
 
-			// Collect tool results for this turn
 			const toolResults: Anthropic.ToolResultBlockParam[] = [];
 
 			for (const block of response.content) {
 				if (block.type === "text") {
-					console.log(chalk.white("\n" + block.text));
+					console.log("\n" + block.text);
+				} else if (block.type === "server_tool_use") {
+					// Discovery mode: tool search happened server-side
+					const query =
+						block.input?.query || block.input?.pattern || "";
+					p.log.step(`🔍 Tool search: "${query}"`);
 				} else if (block.type === "tool_use") {
-					if (codeMode && block.name === "execute_code") {
-						// Code mode: run in sandbox
-						const input = block.input as { code: string };
-						dashboard.lastAction = "execute_code";
-						dashboard.lastProvider = "sandbox";
+					if (isSearch && block.name === "meta_search_tools") {
+						// Search mode: client-side BM25 + TF-IDF search
+						const input = block.input as { query: string; limit?: number };
+						p.log.step(`🔎 Searching: "${input.query}"`);
+						const results = search.handleSearch(input);
+						const resultStr = JSON.stringify(results);
+						p.log.success(
+							`Found ${results.tools.length} tools: ${results.tools.map((t) => t.name).join(", ")}`,
+						);
+						toolResults.push({
+							type: "tool_result",
+							tool_use_id: block.id,
+							content: resultStr,
+						});
+					} else if (isSearch && block.name === "meta_execute_tool") {
+						// Search mode: dispatch to MCP client
+						const input = block.input as { tool_name: string; params?: Record<string, unknown> };
+						const toolKey = Array.from(allTools.keys()).find((k) =>
+							k.endsWith(`::${input.tool_name}`),
+						);
+						const toolInfo = toolKey ? allTools.get(toolKey) : undefined;
+						lastProvider = toolInfo?.provider || "unknown";
+						lastAction = input.tool_name;
 
-						// Re-check sandbox is alive (could have crashed between turns)
-						if (!sandbox || !sandbox.isRunning()) {
-							console.log(chalk.yellow("  Sandbox crashed, restarting..."));
-							await setupCodeModeSandbox();
+						p.log.step(`🔧 ${lastProvider}::${input.tool_name}`);
+
+						let resultContent = "Tool execution failed";
+						if (!toolInfo) {
+							resultContent = `Error: Tool '${input.tool_name}' not found`;
+							p.log.error(`Tool not found: ${input.tool_name}`);
+						} else {
+							const accountData = accounts.get(toolInfo.accountId);
+							if (accountData?.client) {
+								try {
+									const result = await accountData.client.callTool({
+										name: input.tool_name,
+										arguments: input.params || {},
+									});
+									resultContent = JSON.stringify(result);
+									p.log.success(
+										"Result: " + resultContent.substring(0, 150) + "...",
+									);
+								} catch (err: any) {
+									resultContent = `Error: ${err.message}`;
+									p.log.error(err.message);
+								}
+							} else {
+								p.log.error(`No MCP client for account ${toolInfo.accountId}`);
+							}
+						}
+						if (defense.isEnabled()) {
+							resultContent = await defense.defendResult(resultContent, input.tool_name);
+						}
+						toolResults.push({
+							type: "tool_result",
+							tool_use_id: block.id,
+							content: resultContent,
+						});
+					} else if (isCode && block.name === "execute_code") {
+						// Code mode: execute in sandbox
+						lastAction = "execute_code";
+						lastProvider = "sandbox";
+
+						const currentSandbox = codeMode.getSandbox();
+						if (!currentSandbox || !currentSandbox.isRunning()) {
+							p.log.warn("Sandbox crashed, restarting...");
+							await codeMode.setupSandbox(
+								allTools,
+								MCP_BASE_URL,
+								getAuthHeader(),
+							);
 						}
 
-						console.log(chalk.hex("#FF6B00")("\n💻 Code execution:"));
-						console.log(chalk.gray("─".repeat(50)));
-						console.log(chalk.cyan(input.code));
-						console.log(chalk.gray("─".repeat(50)));
+						p.log.step("💻 Code execution:");
+						console.log(chalk.cyan(block.input.code));
 
-						const execResult = await sandbox!.execute(input.code);
+						const execResult = await codeMode
+							.getSandbox()!
+							.execute(block.input.code);
 
 						if (execResult.success) {
-							const resultStr = JSON.stringify(execResult.result, null, 2);
-							console.log(
-								chalk.green("  ✓ Result: ") +
-									chalk.gray(
-										resultStr.substring(0, 300) +
-											(resultStr.length > 300 ? "..." : ""),
-									),
+							const resultStr = JSON.stringify(
+								execResult.result,
+								null,
+								2,
+							);
+							p.log.success(
+								"Result: " +
+									resultStr.substring(0, 300) +
+									(resultStr.length > 300 ? "..." : ""),
 							);
 							toolResults.push({
 								type: "tool_result",
@@ -749,7 +558,7 @@ async function runAgent(prompt: string) {
 								content: resultStr,
 							});
 						} else {
-							console.log(chalk.red(`  ✗ Error: ${execResult.error}`));
+							p.log.error(`Error: ${execResult.error}`);
 							toolResults.push({
 								type: "tool_result",
 								tool_use_id: block.id,
@@ -758,63 +567,57 @@ async function runAgent(prompt: string) {
 							});
 						}
 					} else {
-						// MCP mode: dispatch to MCP client
+						// MCP mode or Discovery mode: dispatch to MCP client
 						const toolKey = Array.from(allTools.keys()).find((k) =>
 							k.endsWith(`::${block.name}`),
 						);
-						const toolInfo = toolKey ? allTools.get(toolKey) : undefined;
-						dashboard.lastProvider = toolInfo?.provider || "unknown";
-						dashboard.lastAction = block.name;
+						const toolInfo = toolKey
+							? allTools.get(toolKey)
+							: undefined;
+						lastProvider = toolInfo?.provider || "unknown";
+						lastAction = block.name;
 
-						console.log(
-							chalk.hex("#05C168")(`\n🔧 Tool call: `) +
-								chalk.white(`${dashboard.lastProvider}::${block.name}`),
-						);
-						console.log(
-							chalk.gray(
-								`   Input: ${JSON.stringify(block.input).substring(0, 100)}...`,
-							),
-						);
+						p.log.step(`🔧 ${lastProvider}::${block.name}`);
 
-						let resultContent: string;
+						let resultContent = "Tool execution failed";
 
 						if (!toolInfo) {
-							resultContent = `Error: Tool '${block.name}' not found in loaded tools`;
-							console.log(chalk.red(`   ✗ Tool not found: ${block.name}`));
-						} else if (toolInfo.accountId === "defaults") {
-							resultContent = `Tool '${block.name}' is a built-in agent capability (not an MCP tool). Use MCP-connected tools instead.`;
-							console.log(
-								chalk.yellow(
-									`   ⚠ ${block.name} is a default tool (not executable via MCP)`,
-								),
-							);
+							resultContent = `Error: Tool '${block.name}' not found`;
+							p.log.error(`Tool not found: ${block.name}`);
 						} else {
-							resultContent = "Tool execution failed";
-							const accountData = dashboard.accounts.get(toolInfo.accountId);
+							const accountData = accounts.get(
+								toolInfo.accountId,
+							);
 							if (accountData?.client) {
 								try {
-									const result = await accountData.client.callTool({
-										name: block.name,
-										arguments: block.input as Record<string, unknown>,
-									});
+									const result =
+										await accountData.client.callTool({
+											name: block.name,
+											arguments:
+												block.input as Record<
+													string,
+													unknown
+												>,
+										});
 									resultContent = JSON.stringify(result);
-									console.log(
-										chalk.green(`   ✓ Result: `) +
-											chalk.gray(resultContent.substring(0, 150) + "..."),
+									p.log.success(
+										"Result: " +
+											resultContent.substring(0, 150) +
+											"...",
 									);
 								} catch (err: any) {
 									resultContent = `Error: ${err.message}`;
-									console.log(chalk.red(`   ✗ Error: ${err.message}`));
+									p.log.error(err.message);
 								}
 							} else {
-								console.log(
-									chalk.red(
-										`   ✗ No MCP client for account ${toolInfo.accountId}`,
-									),
+								p.log.error(
+									`No MCP client for account ${toolInfo.accountId}`,
 								);
 							}
 						}
-
+						if (defense.isEnabled()) {
+							resultContent = await defense.defendResult(resultContent, block.name);
+						}
 						toolResults.push({
 							type: "tool_result",
 							tool_use_id: block.id,
@@ -824,27 +627,30 @@ async function runAgent(prompt: string) {
 				}
 			}
 
-			// No tool calls means Claude is done
 			if (toolResults.length === 0) break;
-
-			// Feed results back for the next turn
 			messages.push({ role: "assistant", content: response.content });
 			messages.push({ role: "user", content: toolResults });
 		}
 
-		const elapsed = Date.now() - startTime;
-		dashboard.lastLatencyMs = elapsed;
-		console.log(chalk.gray(`\n⏱  Response time: ${elapsed}ms`));
+		// Store conversation state for /usage inspection
+		lastMessages = [...messages];
+		lastTools = [...tools];
+		lastSystemPrompt = systemPrompt;
+
+		lastLatencyMs = Date.now() - startTime;
+		p.log.step(`Response time: ${lastLatencyMs}ms`);
 		renderDashboard();
 	} catch (error: any) {
 		const msg = error.message || String(error);
-
-		// Parse "prompt is too long: 208645 tokens > 200000 maximum"
 		const tokenMatch = msg.match(
 			/(\d[\d,]+)\s*tokens?\s*>\s*(\d[\d,]+)\s*max/i,
 		);
 
-		if (tokenMatch || msg.includes("too long") || msg.includes("context")) {
+		if (
+			tokenMatch ||
+			msg.includes("too long") ||
+			msg.includes("context")
+		) {
 			const used = tokenMatch
 				? parseInt(tokenMatch[1].replace(/,/g, ""))
 				: null;
@@ -852,160 +658,52 @@ async function runAgent(prompt: string) {
 				? parseInt(tokenMatch[2].replace(/,/g, ""))
 				: CONTEXT_WINDOW;
 
-			console.log(chalk.red("\n" + "═".repeat(55)));
-			console.log(
-				chalk.bold.red("  💥 CONTEXT WINDOW EXCEEDED — AGENT CRASHED"),
-			);
-			console.log(chalk.red("═".repeat(55)));
+			const lines = [];
 			if (used && limit) {
 				const pct = ((used / limit) * 100).toFixed(0);
-				console.log(
-					chalk.red(
-						`  Requested: ${used.toLocaleString()} tokens (${pct}% of ${(limit / 1000).toFixed(0)}k limit)`,
-					),
+				lines.push(
+					`Requested: ${used.toLocaleString()} tokens (${pct}% of ${(limit / 1000).toFixed(0)}k limit)`,
 				);
-				console.log(chalk.red(`  Capacity:  ${limit.toLocaleString()} tokens`));
-				console.log(
-					chalk.red(
-						`  Overflow:  +${(used - limit).toLocaleString()} tokens over limit`,
-					),
+				lines.push(
+					`Capacity:  ${limit.toLocaleString()} tokens`,
 				);
+				lines.push(
+					`Overflow:  +${(used - limit).toLocaleString()} tokens over limit`,
+				);
+				lines.push("");
 			}
-			console.log(chalk.red(`\n  API error: ${msg}`));
-			console.log(chalk.red("═".repeat(55)));
-			console.log(
-				chalk.yellow("\n  The agent could not process your request."),
+			lines.push(`API error: ${msg}`);
+			lines.push("");
+			lines.push("The agent could not process your request.");
+			lines.push("Tool definitions alone filled the context window.");
+			lines.push("All conversation context has been lost.");
+
+			p.note(
+				lines.join("\n"),
+				"💥 CONTEXT WINDOW EXCEEDED — AGENT CRASHED",
 			);
-			console.log(
-				chalk.yellow("  Tool definitions alone filled the context window."),
-			);
-			console.log(chalk.yellow("  All conversation context has been lost.\n"));
 		} else {
-			console.log(chalk.red(`\nError: ${msg}`));
+			p.log.error(msg);
 		}
 	}
 }
 
 // ---------------------------------------------------------------------------
-// CLI commands
+// Cleanup
 // ---------------------------------------------------------------------------
-
-function showHelp() {
-	console.log(chalk.bold("\n📖 Demo Commands:"));
-	console.log(
-		chalk.cyan("  /add-defaults") +
-			chalk.gray("   - Load agent built-in tools (web, files, etc.)"),
-	);
-	console.log(
-		chalk.cyan("  /add <provider>") +
-			chalk.gray(" - Connect a StackOne account"),
-	);
-	console.log(
-		chalk.cyan("  /accounts") + chalk.gray("       - List available accounts"),
-	);
-	console.log(
-		chalk.cyan("  /connected") + chalk.gray("      - Show connected accounts"),
-	);
-	console.log(
-		chalk.cyan("  /tools") + chalk.gray("          - List all loaded tools"),
-	);
-	console.log(
-		chalk.cyan("  /context") +
-			chalk.gray("        - Show real token cost of loaded tools"),
-	);
-	console.log(
-		chalk.cyan("  /code") +
-			chalk.gray("           - Toggle code mode (sandbox execution)"),
-	);
-	console.log(
-		chalk.cyan("  /reset") + chalk.gray("          - Disconnect all accounts"),
-	);
-	console.log(
-		chalk.cyan("  /demo") +
-			chalk.gray("           - Run the full demo sequence"),
-	);
-	console.log(
-		chalk.cyan("  /help") + chalk.gray("           - Show this help"),
-	);
-	console.log(chalk.cyan("  /quit") + chalk.gray("           - Exit"));
-	console.log(chalk.gray("\nOr type any prompt to run the agent.\n"));
-}
-
-async function runDemoSequence() {
-	console.log(chalk.bold.hex("#05C168")("\n🎬 Starting Demo Sequence...\n"));
-
-	// Phase 1: Start small
-	console.log(chalk.bold.blue("━━━ Phase 1: A Basic Agent ━━━"));
-	console.log(
-		chalk.gray("Starting with agent defaults and productivity tools...\n"),
-	);
-	await addDefaults();
-	await new Promise((r) => setTimeout(r, 1000));
-	await addAccount("Gmail");
-	await new Promise((r) => setTimeout(r, 1000));
-	await addAccount("Trello");
-	await new Promise((r) => setTimeout(r, 1000));
-	await addAccount("Gong");
-
-	console.log(chalk.gray('\nDemo prompt: "List my recent emails"\n'));
-	await runAgent("List my recent emails from today");
-
-	// Phase 2: Expand capabilities
-	console.log(chalk.bold.blue("\n\n━━━ Phase 2: Expand Capabilities ━━━"));
-	console.log(chalk.gray("Adding CRM, ATS, and dev tools...\n"));
-	await new Promise((r) => setTimeout(r, 1500));
-	await addAccount("HubSpot");
-	await new Promise((r) => setTimeout(r, 1000));
-	await addAccount("Ashby");
-
-	console.log(
-		chalk.gray('\nDemo prompt: "Find contacts and open job positions"\n'),
-	);
-	await runAgent(
-		"List contacts from HubSpot and show open job positions from Ashby",
-	);
-
-	// Phase 3: The break
-	console.log(chalk.bold.blue("\n\n━━━ Phase 3: Scale to Many Tools ━━━"));
-	console.log(
-		chalk.gray("Adding more systems - watch the tool count climb...\n"),
-	);
-	await new Promise((r) => setTimeout(r, 1500));
-	await addAccount("GitHub");
-	await new Promise((r) => setTimeout(r, 1000));
-	await addAccount("Zendesk");
-
-	console.log(chalk.bold.red("\n\n🚨 CONTEXT EXPLOSION"));
-	console.log(
-		chalk.gray(`Watch what happens with ${dashboard.toolCount}+ tools...\n`),
-	);
-	await runAgent("List my contacts");
-
-	console.log(chalk.bold.hex("#05C168")("\n\n✅ Demo Sequence Complete"));
-	console.log(
-		chalk.gray("Type /help for commands or any prompt to continue.\n"),
-	);
-}
 
 async function cleanupAll() {
-	// Stop sandbox
-	if (sandbox) {
-		await sandbox.stop().catch(() => {});
-		sandbox = null;
-	}
-	codeMode = false;
-
-	// Close all MCP connections
-	for (const account of dashboard.accounts.values()) {
-		if (account.client) {
-			await account.client.close().catch(() => {});
-		}
+	await codeMode.cleanup();
+	discovery.cleanup();
+	search.cleanup();
+	defense.cleanup();
+	for (const account of accounts.values()) {
+		await account.client.close().catch(() => {});
 	}
 }
 
-// Graceful shutdown on Ctrl+C or kill
 process.on("SIGINT", async () => {
-	console.log(chalk.gray("\n\nShutting down..."));
+	p.outro("Goodbye!");
 	await cleanupAll();
 	process.exit(0);
 });
@@ -1014,32 +712,40 @@ process.on("SIGTERM", async () => {
 	process.exit(0);
 });
 
-async function main() {
-	console.log(
-		chalk.bold.hex("#05C168")(
-			"\n═══════════════════════════════════════════════════════",
-		),
-	);
-	console.log(
-		chalk.bold.hex("#05C168")("   MCP Demo Agent - MCPconf London 2026"),
-	);
-	console.log(chalk.bold.hex("#05C168")("   Powered by StackOne + Claude"));
-	console.log(
-		chalk.bold.hex("#05C168")(
-			"═══════════════════════════════════════════════════════\n",
-		),
-	);
+// ---------------------------------------------------------------------------
+// CLI
+// ---------------------------------------------------------------------------
 
-	// Check for required config
-	if (!process.env.STACKONE_API_KEY) {
-		console.log(chalk.red("⚠️  STACKONE_API_KEY not set in .env"));
-	}
-	if (!process.env.ANTHROPIC_API_KEY) {
-		console.log(chalk.red("⚠️  ANTHROPIC_API_KEY not set in .env"));
-	}
-	if (AVAILABLE_ACCOUNTS.length === 0) {
-		console.log(chalk.red("⚠️  accounts.json not found. Copy accounts.example.json and fill in your account IDs."));
-	}
+function showHelp() {
+	p.note(
+		[
+			"/add <provider>  Connect a StackOne account",
+			"/accounts        List available accounts",
+			"/connected       Show connected accounts",
+			"/tools           List loaded tools by provider",
+			"/usage           Show context window usage",
+			"/code            Toggle code mode (sandbox)",
+			"/discover        Toggle discovery mode (Anthropic tool search)",
+			"/search          Toggle search mode (client-side BM25 + TF-IDF)",
+			"/defend          Toggle prompt injection defense on tool results",
+			"/reset           Disconnect all accounts",
+			"/help            Show this help",
+			"/quit            Exit",
+			"",
+			"Or type any prompt to query the agent.",
+		].join("\n"),
+		"📖 Commands",
+	);
+}
+
+async function main() {
+	p.intro("MCP Demo Agent — MCPconf London 2026");
+
+	if (!process.env.STACKONE_API_KEY) p.log.warn("STACKONE_API_KEY not set");
+	if (!process.env.ANTHROPIC_API_KEY)
+		p.log.warn("ANTHROPIC_API_KEY not set");
+	if (AVAILABLE_ACCOUNTS.length === 0)
+		p.log.warn("accounts.json not found. Copy accounts.example.json.");
 
 	showHelp();
 
@@ -1054,7 +760,7 @@ async function main() {
 
 			if (trimmed === "/quit" || trimmed === "/exit") {
 				await cleanupAll();
-				console.log(chalk.gray("Goodbye!"));
+				p.outro("Goodbye!");
 				rl.close();
 				process.exit(0);
 			}
@@ -1062,74 +768,76 @@ async function main() {
 			if (trimmed === "/help") {
 				showHelp();
 			} else if (trimmed === "/accounts") {
-				console.log(chalk.bold("\nAvailable StackOne accounts:"));
-				AVAILABLE_ACCOUNTS.forEach((a) => {
-					const accountData = dashboard.accounts.get(a.id);
-					const connected = !!accountData;
-					const status = connected ? chalk.green("✓") : chalk.gray("○");
-					const toolInfo = connected
-						? chalk.white(`${accountData.tools} tools`)
-						: chalk.gray("not connected");
-					console.log(
-						`  ${status} ${chalk.cyan(a.provider.padEnd(15))} ${toolInfo}`,
-					);
+				const lines = AVAILABLE_ACCOUNTS.map((a) => {
+					const data = accounts.get(a.id);
+					return data
+						? `  ✓ ${a.provider.padEnd(15)} ${data.tools} tools`
+						: `  ○ ${a.provider.padEnd(15)} not connected`;
 				});
-				console.log();
+				p.note(lines.join("\n"), "Available Accounts");
 			} else if (trimmed === "/connected") {
-				console.log(chalk.bold("\nConnected accounts:"));
-				if (dashboard.accounts.size === 0) {
-					console.log(chalk.gray("  None"));
+				if (accounts.size === 0) {
+					p.log.info("No accounts connected.");
 				} else {
-					for (const [_id, account] of dashboard.accounts) {
-						console.log(
-							`  ${chalk.green("✓")} ${chalk.cyan(account.name.padEnd(15))} ${chalk.gray(`${account.tools} tools`)}`,
-						);
-					}
-				}
-				console.log();
-			} else if (trimmed === "/tools") {
-				console.log(chalk.bold(`\nLoaded tools (${allTools.size}):`));
-				const byProvider = new Map<string, string[]>();
-				for (const [_key, tool] of allTools) {
-					const provider = tool.provider;
-					if (!byProvider.has(provider)) byProvider.set(provider, []);
-					byProvider.get(provider)!.push(tool.name);
-				}
-				for (const [provider, tools] of byProvider) {
-					console.log(chalk.cyan(`\n  ${provider} (${tools.length}):`));
-					console.log(
-						chalk.gray(
-							`    ${tools.slice(0, 5).join(", ")}${tools.length > 5 ? "..." : ""}`,
-						),
+					const lines = Array.from(accounts.values()).map(
+						(a) => `  ✓ ${a.name.padEnd(15)} ${a.tools} tools`,
 					);
+					p.note(lines.join("\n"), "Connected Accounts");
 				}
-				console.log();
-			} else if (trimmed === "/add-defaults") {
-				await addDefaults();
+			} else if (trimmed === "/tools") {
+				const byProvider = new Map<string, string[]>();
+				for (const [, tool] of allTools) {
+					if (!byProvider.has(tool.provider))
+						byProvider.set(tool.provider, []);
+					byProvider.get(tool.provider)!.push(tool.name);
+				}
+				const lines = Array.from(byProvider.entries()).map(
+					([provider, tools]) =>
+						`${provider} (${tools.length}): ${tools.slice(0, 5).join(", ")}${tools.length > 5 ? "..." : ""}`,
+				);
+				p.note(lines.join("\n"), `Loaded Tools (${allTools.size})`);
 			} else if (trimmed.startsWith("/add ")) {
 				const provider = trimmed
 					.slice(5)
 					.trim()
 					.replace(/^["']|["']$/g, "");
 				await addAccount(provider);
-			} else if (trimmed === "/context") {
-				await showContextUsage(true);
+			} else if (trimmed === "/usage") {
+				await showUsage(true);
 			} else if (trimmed === "/code") {
-				await toggleCodeMode();
-			} else if (trimmed === "/reset") {
+				if (discovery.isEnabled()) discovery.cleanup();
+				if (search.isEnabled()) search.cleanup();
+				await codeMode.toggle(
+					allTools,
+					accounts,
+					MCP_BASE_URL,
+					getAuthHeader(),
+					renderDashboard,
+				);
+			} else if (trimmed === "/discover") {
+				if (codeMode.isCodeMode()) await codeMode.cleanup();
+				if (search.isEnabled()) search.cleanup();
+				discovery.toggle(allTools.size, renderDashboard);
+			} else if (trimmed === "/search") {
+				if (codeMode.isCodeMode()) await codeMode.cleanup();
+				if (discovery.isEnabled()) discovery.cleanup();
+				search.toggle(allTools, renderDashboard);
+			} else if (trimmed === "/defend") {
+			await defense.toggle(renderDashboard);
+		} else if (trimmed === "/reset") {
 				await cleanupAll();
-				dashboard.toolCount = 0;
-				dashboard.tokenEstimate = 0;
-				dashboard.actualInputTokens = null;
-				dashboard.accounts.clear();
-				dashboard.lastProvider = "-";
-				dashboard.lastAction = "-";
-				dashboard.lastLatencyMs = null;
+				accounts.clear();
 				allTools.clear();
-				console.log(chalk.green("✓ Reset complete"));
+				actualInputTokens = null;
+				lastProvider = "-";
+				lastAction = "-";
+				lastLatencyMs = null;
+				lastMessages = [];
+				lastTools = [];
+				lastSystemPrompt = undefined;
+				turnTokenHistory = [];
+				p.log.success("Reset complete");
 				renderDashboard();
-			} else if (trimmed === "/demo") {
-				await runDemoSequence();
 			} else if (trimmed.length > 0) {
 				await runAgent(trimmed);
 			}
@@ -1137,11 +845,6 @@ async function main() {
 			promptLoop();
 		});
 	};
-
-	// Check for --demo flag
-	if (process.argv.includes("--demo")) {
-		await runDemoSequence();
-	}
 
 	promptLoop();
 }
