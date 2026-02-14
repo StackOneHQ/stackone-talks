@@ -6,7 +6,8 @@ import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
-export const MODEL = "claude-sonnet-4-5";
+export const MODEL = "claude-sonnet-4-20250514";
+// export const MODEL = "claude-sonnet-4-5";
 export const MCP_BASE_URL = "https://api.stackone.com/mcp";
 export const CONTEXT_WINDOW = 200_000;
 
