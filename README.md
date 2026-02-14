@@ -6,7 +6,7 @@ Conference talks, demos, and speaking materials.
 
 | Date | Event | Talk | Location |
 |------|-------|------|----------|
-| 2026-02 | MCPconference @ ContainerDays | Making (and Breaking) Agents by Adding 1,000 MCP Tools | London |
+| 2026-02 | StackOne | Making (and Breaking) Agents by Adding 1,000 MCP Tools | — |
 
 ## Blog Posts & Demos
 
@@ -20,7 +20,7 @@ Each talk lives in a subfolder named `YYYY-MM-<event>-<city>/`:
 
 ```
 stackone-talks/
-├── 2026-02-mcpconf-london/
+├── 2026-02-making-and-breaking-agents-with-1000-tools/
 │   ├── PLAN.md              — Talk plan and prep checklist
 │   ├── transcripts/         — Planning call notes
 │   ├── scripts/             — Talk script and speaker notes
