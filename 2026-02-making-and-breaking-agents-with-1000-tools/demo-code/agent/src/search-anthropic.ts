@@ -1,17 +1,17 @@
 /**
- * Anthropic Search — Anthropic Tool Search Tool (beta).
+ * Anthropic Search — Anthropic Tool Search Tool (GA as of Feb 2026).
  *
  * All tools are sent with defer_loading: true. Claude searches
  * for relevant tools server-side before calling them.
  * 845 tools → ~3-5 loaded on demand. 85% token reduction.
+ *
+ * No beta header required — graduated to GA on Feb 17, 2026.
  */
 
 import type Anthropic from "@anthropic-ai/sdk";
 import * as p from "@clack/prompts";
 
 let enabled = false;
-
-export const BETA = "advanced-tool-use-2025-11-20";
 
 export function isEnabled(): boolean {
 	return enabled;

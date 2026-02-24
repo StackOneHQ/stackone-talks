@@ -264,7 +264,6 @@ async function runAgent(prompt: string) {
 			};
 
 			const betas = [
-				...(discovery.isEnabled() ? [discovery.BETA] : []),
 				...(anthropicCodeEnabled ? [CODE_EXECUTION_BETA] : []),
 				...(builtinToolsEnabled ? [WEB_FETCH_BETA] : []),
 			];
