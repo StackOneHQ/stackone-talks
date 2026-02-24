@@ -165,16 +165,18 @@
     .warning-text { color: var(--warning); }
     .error-text { color: var(--error); }
 
-    /* Live demo cue */
-    .live-cue {
-      background: linear-gradient(135deg, var(--primary-dark), #064e34);
+    /* Demo reproduction note */
+    .demo-note {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
-      padding: 16px 32px;
+      padding: 12px 24px;
       margin-top: 32px;
-      font-size: 20px;
-      font-weight: 600;
+      font-size: 16px;
+      color: var(--text-dim);
     }
-    .live-cue::before { content: "🎬 "; }
+    .demo-note::before { content: "Try it: "; font-weight: 600; color: var(--text-secondary); }
+    .demo-note code { font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 14px; color: var(--primary-light); background: rgba(5,193,104,0.08); padding: 1px 5px; border-radius: 3px; }
 
     /* Branding */
     .brand-bar {
@@ -713,7 +715,7 @@
           <div class="dashboard-providers">Gmail(42), Trello(109), Gong(16)</div>
         </div>
       </div>
-      <div class="live-cue">SWITCH TO LIVE DEMO: /add Gmail, Trello, Gong</div>
+      <div class="demo-note">Run <code>npm start</code> in <code>demo-code/agent</code>, then type <code>/add gmail</code>, <code>/add trello</code>, <code>/add gong</code></div>
     </div>
 
     <!-- First query -->
@@ -784,7 +786,7 @@
           <div style="color: var(--error); margin-top: 12px; font-size: 14px;">🚨 CRITICAL: 69% of context consumed before the first question</div>
         </div>
       </div>
-      <div class="live-cue">SWITCH TO LIVE DEMO: Add remaining accounts, watch the count climb</div>
+      <div class="demo-note">Run <code>/add-all</code> in the agent, then <code>/usage</code> to see context consumed before any query</div>
     </div>
 
     <!-- Tool count -->
@@ -1233,7 +1235,7 @@
         </div>
       </div>
       <p style="margin-top: 24px;"><span class="error-text">This is why your security team says no.</span></p>
-      <div class="live-cue">SWITCH TO LIVE DEMO: Indirect injection attack</div>
+      <div class="demo-note">With Gmail connected, open <code>attack-email.html</code> in a browser and send the email, then ask the agent to check your inbox</div>
     </div>
 
     <!-- Problem 3: Research Evidence -->
@@ -1331,7 +1333,7 @@
         </div>
       </div>
       <p style="margin-top: 24px;"><span class="highlight">An efficient answer for the problem at hand.</span></p>
-      <div class="live-cue">SWITCH TO LIVE DEMO: Same attack, with defense</div>
+      <div class="demo-note">Toggle <code>/defend</code> in the agent, then repeat — the same email gets blocked before reaching the model</div>
     </div>
 
     <div class="slide" data-title="Recap">
