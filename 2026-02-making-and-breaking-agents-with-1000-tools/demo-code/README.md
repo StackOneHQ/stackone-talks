@@ -55,25 +55,16 @@ The ranking uses two algorithms in combination:
 
 The implementation is ~200 lines of TypeScript with zero dependencies. A minimal suffix stemmer handles plurals ("emails" → "email") and gerunds ("creating" → "creat"). Stopwords ("the", "my", "is") are stripped before indexing.
 
-### 2. Security Demo (`agent/gmail-agent/` + `agent/prompt-defense/`)
+### 2. Security Demo (built into `agent/`)
 
-Prompt injection attack + defense demo using a Gmail agent. Shows an email with hidden instructions tricking an agent, then `@stackone/prompt-defense` blocking it.
-
-```bash
-# Build the defense package
-cd agent/prompt-defense
-npm install && npm run build
-
-# Install and run the gmail agent
-cd ../gmail-agent
-npm install
-npm run run-attack
-```
+Prompt injection attack + defense demo. Shows an email with hidden instructions tricking an agent, then `/defend` mode (powered by `@stackone/defender`) blocking it.
 
 **What it demonstrates:**
 - An email with a hidden `<div style="display:none">` containing fake system instructions
 - Undefended agent follows the injection (forwards inbox data)
-- Defense layer (regex + MLP classifier) blocks the attack before it reaches the agent
+- Defense layer (Tier 1 regex + Tier 2 ONNX classifier) blocks the attack before it reaches the agent
+
+Use `/defend` in the agent to toggle defense mode, then run the Gmail attack demo.
 
 ## Talk Structure
 
