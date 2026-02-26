@@ -1,6 +1,6 @@
 # MCP Demo Agent
 
-Demo agent for the talk **"Killing Your Agent with 10,000 Tools"** (MCPconf London 2026).
+Demo agent for the talk **"Making and Breaking Agents with 1000 Tools"** (MCPconf London 2026).
 
 Shows what breaks when you connect an LLM to hundreds of MCP tools, and how to fix it with dynamic tool discovery via meta-tools.
 
