@@ -294,12 +294,25 @@ const HookScene: React.FC = () => {
 
       {/* Center block: tag + headline + subtitle */}
       <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 36, width: "100%" }}>
-        <div style={{ opacity: tagIn, transform: `translateY(${interpolate(tagIn, [0, 1], [14, 0], { extrapolateLeft: "clamp" })}px)`, display: "inline-flex", alignItems: "center", gap: 8, background: `${COLORS.danger}15`, border: `1px solid ${COLORS.danger}40`, borderRadius: 24, padding: "10px 24px" }}>
-          <span style={{ width: 9, height: 9, borderRadius: "50%", background: COLORS.danger, display: "inline-block" }} />
+        <div style={{
+          opacity: tagIn,
+          transform: `translateY(${interpolate(tagIn, [0, 1], [14, 0], { extrapolateLeft: "clamp" })}px)`,
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 10,
+          background: `rgba(239, 68, 68, 0.12)`,
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+          border: `1px solid rgba(239,68,68,0.45)`,
+          borderRadius: 24,
+          padding: "10px 28px",
+          boxShadow: `0 0 24px -4px rgba(239,68,68,0.25)`,
+        }}>
+          <span style={{ width: 9, height: 9, borderRadius: "50%", background: COLORS.danger, display: "inline-block", boxShadow: `0 0 8px 2px rgba(239,68,68,0.6)` }} />
           <span style={{ fontSize: 15, fontWeight: 700, fontFamily: FONTS.sans, color: COLORS.danger, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>Prompt injection</span>
         </div>
 
-        <div style={{ fontSize: 96, fontFamily: FONTS.sans, fontWeight: 900, color: DARK.textHeading, letterSpacing: "-0.04em", lineHeight: 0.95, textAlign: "center" }}>
+        <div style={{ fontSize: 104, fontFamily: FONTS.sans, fontWeight: 900, color: DARK.textHeading, letterSpacing: "-0.04em", lineHeight: 0.95, textAlign: "center" }}>
           <div style={{ display: "block" }}>
             <WordReveal
               text="Your AI agent"
@@ -338,17 +351,17 @@ const HookScene: React.FC = () => {
         {/* Attack chain — 3D card icons */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 44, opacity: iconIn, transform: `perspective(900px) rotateX(${interpolate(iconIn, [0, 1], [8, 0], { extrapolateLeft: "clamp" })}deg) translateY(${interpolate(iconIn, [0, 1], [20, 0], { extrapolateLeft: "clamp" })}px)`, width: "100%" }}>
           {[
-            { icon: <ProviderIcon provider="gmail" size={56} />, label: "Email inbox", bg: DARK.bgCard, border: DARK.border, labelColor: DARK.textBody, shadow: `0 14px 32px -6px rgba(0,0,0,0.40)` },
+            { icon: <ProviderIcon provider="gmail" size={56} />, label: "Email inbox", bg: "rgba(0,18,10,0.70)", border: "rgba(0,175,102,0.20)", labelColor: DARK.textBody, shadow: "0 14px 32px -6px rgba(0,0,0,0.50)" },
             { arrow: "→", color: DARK.textBody },
-            { icon: <span style={{ fontSize: 52 }}>🤖</span>, label: "AI Agent", bg: DARK.bgCard, border: DARK.border, labelColor: DARK.textBody, shadow: `0 14px 32px -6px rgba(0,0,0,0.40)` },
+            { icon: <span style={{ fontSize: 52 }}>🤖</span>, label: "AI Agent", bg: "rgba(0,18,10,0.70)", border: "rgba(0,175,102,0.20)", labelColor: DARK.textBody, shadow: "0 14px 32px -6px rgba(0,0,0,0.50)" },
             { arrow: "→", color: COLORS.danger },
-            { icon: <span style={{ fontSize: 52 }}>💀</span>, label: "Compromised", bg: COLORS.dangerLight, border: COLORS.dangerBorder, labelColor: COLORS.danger, shadow: `0 14px 32px -6px ${COLORS.danger}25` },
+            { icon: <span style={{ fontSize: 52 }}>💀</span>, label: "Compromised", bg: "rgba(60,0,0,0.75)", border: COLORS.dangerBorder, labelColor: COLORS.danger, shadow: `0 14px 32px -6px ${COLORS.danger}25` },
           ].map((item, i) =>
             "arrow" in item ? (
               <span key={i} style={{ fontSize: 36, color: item.color, fontWeight: 300, lineHeight: 1 }}>{item.arrow}</span>
             ) : (
               <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14 }}>
-                <div style={{ width: 100, height: 100, borderRadius: 26, background: item.bg, border: `1.5px solid ${item.border}`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: item.shadow }}>
+                <div style={{ width: 100, height: 100, borderRadius: 26, background: item.bg, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: `1.5px solid ${item.border}`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: item.shadow }}>
                   {item.icon}
                 </div>
                 <span style={{ fontSize: 16, fontFamily: FONTS.sans, color: item.labelColor, fontWeight: 600 }}>{item.label}</span>
