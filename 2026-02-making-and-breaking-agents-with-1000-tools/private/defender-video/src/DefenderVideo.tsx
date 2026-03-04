@@ -393,8 +393,8 @@ const AgentShell: React.FC<{
   const tiltX = interpolate(shellIn, [0, 1], [3, 0], { extrapolateLeft: "clamp" });
 
   return (
-    <div style={{ width: "100%", flex: 1, background: dark ? DARK.bgWhite : COLORS.bgWhite, borderRadius: 22, overflow: "hidden", boxShadow: `0 32px 72px -16px rgba(0,0,0,0.13)`, border: `2px solid ${borderColor}`, opacity: shellIn, transform: `perspective(1200px) rotateY(${tiltY}deg) rotateX(${tiltX}deg) scale(${interpolate(shellIn, [0, 1], [0.97, 1], { extrapolateLeft: "clamp" })}) translateY(${interpolate(shellIn, [0, 1], [24, 0], { extrapolateLeft: "clamp" })}px)` }}>
-      <div style={{ display: "flex", alignItems: "center", padding: "15px 22px", background: COLORS.terminal, gap: 8 }}>
+    <div style={{ width: "100%", flex: 1, background: dark ? "rgba(0, 15, 8, 0.72)" : COLORS.bgWhite, borderRadius: 22, overflow: "hidden", boxShadow: dark ? "0 32px 72px -16px rgba(0,0,0,0.55), inset 0 1px 0 rgba(0,175,102,0.10)" : "0 32px 72px -16px rgba(0,0,0,0.13)", border: `2px solid ${borderColor}`, opacity: shellIn, backdropFilter: dark ? "blur(16px)" : undefined, WebkitBackdropFilter: dark ? "blur(16px)" : undefined, transform: `perspective(1200px) rotateY(${tiltY}deg) rotateX(${tiltX}deg) scale(${interpolate(shellIn, [0, 1], [0.97, 1], { extrapolateLeft: "clamp" })}) translateY(${interpolate(shellIn, [0, 1], [24, 0], { extrapolateLeft: "clamp" })}px)` }}>
+      <div style={{ display: "flex", alignItems: "center", padding: "15px 22px", background: dark ? DARK.terminal : COLORS.terminal, gap: 8 }}>
         <div style={{ width: 13, height: 13, borderRadius: "50%", background: "#ff5f57" }} />
         <div style={{ width: 13, height: 13, borderRadius: "50%", background: "#febc2e" }} />
         <div style={{ width: 13, height: 13, borderRadius: "50%", background: "#28c840" }} />
@@ -570,10 +570,10 @@ const SurfaceCard: React.FC<{ s: typeof SURFACES[number]; index: number; baseFra
   const ent = entrance(frame - baseFrame - index * 7, fps, bouncy);
   const tiltY = interpolate(ent, [0, 1], [index % 2 === 0 ? -6 : 6, 0], { extrapolateLeft: "clamp" });
   return (
-    <div style={{ background: dark ? DARK.bgCard : COLORS.bgWhite, border: `1.5px solid ${dark ? DARK.border : COLORS.border}`, borderRadius: 20, padding: "22px 20px", flex: 1, transform: `perspective(800px) rotateY(${tiltY}deg) translateY(${interpolate(ent, [0, 1], [50, 0], { extrapolateLeft: "clamp" })}px) scale(${interpolate(ent, [0, 1], [0.9, 1], { extrapolateLeft: "clamp" })})`, opacity: Math.max(0, ent), boxShadow: `0 16px 36px -8px ${dark ? DARK.shadow : COLORS.shadow}`, display: "flex", flexDirection: "column", gap: 12, ...extraStyle }}>
+    <div style={{ background: dark ? "rgba(0, 18, 10, 0.68)" : COLORS.bgWhite, border: `1.5px solid ${dark ? "rgba(0,175,102,0.22)" : COLORS.border}`, borderRadius: 20, padding: "22px 20px", flex: 1, transform: `perspective(800px) rotateY(${tiltY}deg) translateY(${interpolate(ent, [0, 1], [50, 0], { extrapolateLeft: "clamp" })}px) scale(${interpolate(ent, [0, 1], [0.9, 1], { extrapolateLeft: "clamp" })})`, opacity: Math.max(0, ent), boxShadow: dark ? "0 16px 36px -8px rgba(0,0,0,0.50), inset 0 1px 0 rgba(0,175,102,0.08)" : "0 16px 36px -8px rgba(0,0,0,0.1)", backdropFilter: dark ? "blur(14px)" : undefined, WebkitBackdropFilter: dark ? "blur(14px)" : undefined, display: "flex", flexDirection: "column", gap: 12, ...extraStyle }}>
       {/* Icon + name */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 46, height: 46, borderRadius: 13, background: dark ? DARK.bg : COLORS.bgCard, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <div style={{ width: 46, height: 46, borderRadius: 13, background: dark ? "rgba(0,175,102,0.12)" : COLORS.bgCard, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
           <ProviderIcon provider={s.provider} size={30} />
         </div>
         <div style={{ fontSize: 16, fontWeight: 700, fontFamily: FONTS.sans, color: dark ? DARK.textHeading : COLORS.textDark, lineHeight: 1.25 }}>{s.name}</div>
