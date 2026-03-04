@@ -35,6 +35,50 @@ const entrance = (frame: number, fps: number, config = smooth) =>
 const fadeIn = (frame: number, fps: number, delay = 0, config = smooth) =>
   entrance(frame - delay, fps, config);
 
+// ─── Word Reveal ──────────────────────────────────────────────────────────────
+
+/**
+ * Animates each word with a spring entrance, staggered by `stagger` frames.
+ * `startFrame` is the absolute frame at which the first word starts revealing.
+ */
+const WordReveal: React.FC<{
+  text: string;
+  startFrame: number;
+  stagger?: number;
+  style?: React.CSSProperties;
+  wordStyle?: (word: string, i: number) => React.CSSProperties;
+}> = ({ text, startFrame, stagger = 4, style, wordStyle }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const words = text.split(" ");
+
+  return (
+    <span style={{ display: "inline", ...style }}>
+      {words.map((word, i) => {
+        const wordFrame = frame - startFrame - i * stagger;
+        const prog = wordFrame >= 0
+          ? spring({ frame: wordFrame, fps, config: { damping: 14, stiffness: 180 } })
+          : 0;
+        return (
+          <React.Fragment key={i}>
+            <span
+              style={{
+                display: "inline-block",
+                opacity: prog,
+                transform: `translateY(${interpolate(prog, [0, 1], [22, 0], { extrapolateLeft: "clamp" })}px) scale(${interpolate(prog, [0, 1], [0.92, 1], { extrapolateLeft: "clamp" })})`,
+                ...(wordStyle ? wordStyle(word, i) : {}),
+              }}
+            >
+              {word}
+            </span>
+            {i < words.length - 1 && <span style={{ display: "inline-block" }}>&nbsp;</span>}
+          </React.Fragment>
+        );
+      })}
+    </span>
+  );
+};
+
 // ─── Animated Background ──────────────────────────────────────────────────────
 
 const AnimatedBackground: React.FC<{ dark?: boolean }> = ({ dark = false }) => {
@@ -232,7 +276,6 @@ const HookScene: React.FC = () => {
   const { fps } = useVideoConfig();
   const logoIn = fadeIn(frame, fps, 0);
   const tagIn = fadeIn(frame, fps, 8);
-  const line1 = fadeIn(frame, fps, 18, snappy);
   const line2 = fadeIn(frame, fps, 34);
   const defenderIn = fadeIn(frame, fps, 50);
   const iconIn = fadeIn(frame, fps, 65, bouncy);
@@ -256,8 +299,27 @@ const HookScene: React.FC = () => {
           <span style={{ fontSize: 15, fontWeight: 700, fontFamily: FONTS.sans, color: COLORS.danger, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>Prompt injection</span>
         </div>
 
-        <div style={{ fontSize: 96, fontFamily: FONTS.sans, fontWeight: 900, color: DARK.textHeading, letterSpacing: "-0.04em", lineHeight: 0.95, opacity: line1, transform: `perspective(800px) rotateX(${interpolate(line1, [0, 1], [6, 0], { extrapolateLeft: "clamp" })}deg) scale(${interpolate(line1, [0, 1], [0.97, 1], { extrapolateLeft: "clamp" })}) translateY(${interpolate(line1, [0, 1], [30, 0], { extrapolateLeft: "clamp" })}px)`, textAlign: "center" }}>
-          Your AI agent<br />just got hijacked.
+        <div style={{ fontSize: 96, fontFamily: FONTS.sans, fontWeight: 900, color: DARK.textHeading, letterSpacing: "-0.04em", lineHeight: 0.95, textAlign: "center" }}>
+          <div style={{ display: "block" }}>
+            <WordReveal
+              text="Your AI agent"
+              startFrame={18}
+              stagger={5}
+              wordStyle={(word) =>
+                word === "agent" ? { color: COLORS.primary } : {}
+              }
+            />
+          </div>
+          <div style={{ display: "block" }}>
+            <WordReveal
+              text="just got hijacked."
+              startFrame={28}
+              stagger={5}
+              wordStyle={(word) =>
+                word === "hijacked." ? { color: COLORS.danger } : {}
+              }
+            />
+          </div>
         </div>
 
         <div style={{ fontSize: 30, fontFamily: FONTS.sans, fontWeight: 400, color: DARK.textBody, opacity: line2, transform: `translateY(${interpolate(line2, [0, 1], [14, 0], { extrapolateLeft: "clamp" })}px)`, textAlign: "center" }}>
@@ -867,7 +929,6 @@ const CTAScene: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const logoIn = fadeIn(frame, fps, 0, snappy);
-  const titleIn = fadeIn(frame, fps, 12);
   const cmdIn = fadeIn(frame, fps, 28, snappy);
   const badgesIn = fadeIn(frame, fps, 44);
   const mcpIn = fadeIn(frame, fps, 60, snappy);
@@ -883,8 +944,27 @@ const CTAScene: React.FC = () => {
           <StackOneLogo size={52} />
           <span style={{ fontSize: 34, fontWeight: 700, fontFamily: FONTS.sans, color: COLORS.textDark, letterSpacing: "-0.025em" }}>StackOne</span>
         </div>
-        <div style={{ fontSize: 80, fontFamily: FONTS.sans, fontWeight: 800, color: COLORS.textDark, letterSpacing: "-0.035em", lineHeight: 1.0, textAlign: "center", opacity: titleIn, transform: `perspective(800px) rotateX(${interpolate(titleIn, [0, 1], [8, 0], { extrapolateLeft: "clamp" })}deg) translateY(${interpolate(titleIn, [0, 1], [20, 0], { extrapolateLeft: "clamp" })}px)` }}>
-          Stop the attack<br />at the tool boundary.
+        <div style={{ fontSize: 80, fontFamily: FONTS.sans, fontWeight: 800, color: COLORS.textDark, letterSpacing: "-0.035em", lineHeight: 1.05, textAlign: "center" }}>
+          <div style={{ display: "block" }}>
+            <WordReveal
+              text="Stop the attack"
+              startFrame={12}
+              stagger={4}
+              wordStyle={(word) =>
+                word === "attack" ? { color: COLORS.danger } : {}
+              }
+            />
+          </div>
+          <div style={{ display: "block" }}>
+            <WordReveal
+              text="at the tool boundary."
+              startFrame={22}
+              stagger={4}
+              wordStyle={(word) =>
+                word === "boundary." ? { color: COLORS.primary } : {}
+              }
+            />
+          </div>
         </div>
       </div>
 
