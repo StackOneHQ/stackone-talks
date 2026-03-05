@@ -1037,15 +1037,12 @@ const CTAScene: React.FC = () => {
 
       {/* Group 2: npm + badges */}
       <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, width: "100%" }}>
-        <div style={{ opacity: Math.max(0, cmdIn), transform: `perspective(900px) rotateX(${interpolate(cmdIn, [0, 1], [-6, 0], { extrapolateLeft: "clamp" })}deg) scale(${interpolate(cmdIn, [0, 1], [0.97, 1], { extrapolateLeft: "clamp" })})`, background: COLORS.terminal, borderRadius: 20, padding: "24px 48px", boxShadow: `0 28px 64px -16px rgba(0,0,0,0.50), 0 0 40px -8px rgba(0,175,102,0.20), inset 0 1px 0 rgba(255,255,255,0.05)` }}>
+        <div style={{ opacity: Math.max(0, cmdIn), transform: `perspective(900px) rotateX(${interpolate(cmdIn, [0, 1], [-6, 0], { extrapolateLeft: "clamp" })}deg) scale(${interpolate(cmdIn, [0, 1], [0.97, 1], { extrapolateLeft: "clamp" })})`, background: COLORS.terminal, borderRadius: 20, padding: "22px 48px", boxShadow: `0 28px 64px -16px rgba(0,0,0,0.50), 0 0 40px -8px rgba(0,175,102,0.20), inset 0 1px 0 rgba(255,255,255,0.05)`, display: "flex", flexDirection: "column", gap: 6 }}>
+          <span style={{ fontSize: 14, fontFamily: FONTS.sans, color: DARK.textMuted, fontWeight: 500 }}>add it to your own agent (or mcp)</span>
           <span style={{ fontFamily: FONTS.mono, fontSize: 32 }}>
             <span style={{ color: DARK.textMuted }}>$ </span>
             <span style={{ color: COLORS.primary }}>npm install @stackone/defender</span>
           </span>
-        </div>
-        <div style={{ opacity: Math.max(0, badgesIn), transform: `translateY(${interpolate(badgesIn, [0, 1], [10, 0], { extrapolateLeft: "clamp" })}px)` }}>
-          <span style={{ fontSize: 13, fontWeight: 500, fontFamily: FONTS.sans, color: DARK.textBody }}>add it to your own mcp/agents: </span>
-          <span style={{ fontSize: 13, fontFamily: FONTS.mono, color: COLORS.primary }}>$ npm install @stackone/defender</span>
         </div>
       </div>
 
