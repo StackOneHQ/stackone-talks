@@ -868,15 +868,14 @@ const StatsScene: React.FC = () => {
   const chart2In = fadeIn(frame, fps, 58);
   const statsIn = fadeIn(frame, fps, 75);
 
-  const BAR_MAX_H = 180;
+  const BAR_MAX_H = 220;
 
   // F1 score data — Qualifire, xxz224, Jayavibhav benchmarks (89k samples)
   const f1Data = [
-    { label: "StackOne", sublabel: "Defender", value: 0.887, rangeMin: 0.82, rangeMax: 0.97, color: COLORS.primary, bgColor: `${COLORS.primary}18`, isHighlight: true },
-    { label: "DistilBERT", value: 0.860, color: COLORS.blue, bgColor: `${COLORS.blue}18` },
-    { label: "Meta PG v1", sublabel: "unstable*", value: 0.680, rangeMin: 0.55, rangeMax: 0.92, color: COLORS.warning, bgColor: `${COLORS.warning}18` },
-    { label: "Meta PG v2", value: 0.635, rangeMin: 0.60, rangeMax: 0.67, color: COLORS.warning, bgColor: `${COLORS.warning}18` },
-    { label: "DeBERTa", sublabel: "unstable*", value: 0.535, rangeMin: 0.33, rangeMax: 0.74, color: COLORS.danger, bgColor: COLORS.dangerLight },
+    { label: "StackOne", sublabel: "Defender", value: 0.887, color: COLORS.primary, bgColor: `${COLORS.primary}18`, isHighlight: true },
+    { label: "Meta PG v1", value: 0.675, color: COLORS.warning, bgColor: `${COLORS.warning}18` },
+    { label: "Meta PG v2", value: 0.631, color: COLORS.warning, bgColor: `${COLORS.warning}18` },
+    { label: "ProtectAI", sublabel: "DeBERTa-v3", value: 0.569, color: COLORS.danger, bgColor: COLORS.dangerLight },
   ];
 
   return (
@@ -886,20 +885,20 @@ const StatsScene: React.FC = () => {
 
       {/* Title */}
       <div style={{ position: "relative", zIndex: 1, textAlign: "center", opacity: titleIn, transform: `translateY(${interpolate(titleIn, [0, 1], [16, 0], { extrapolateLeft: "clamp" })}px)`, marginTop: 28, marginBottom: 28 }}>
-        <div style={{ fontSize: 46, fontWeight: 800, fontFamily: FONTS.sans, color: COLORS.textDark, letterSpacing: "-0.03em" }}>Benchmarks don't lie.</div>
+        <div style={{ fontSize: 46, fontWeight: 800, fontFamily: FONTS.sans, color: COLORS.textDark, letterSpacing: "-0.03em" }}>Best accuracy. Smallest model.</div>
         <div style={{ fontSize: 17, color: COLORS.textMuted, fontFamily: FONTS.sans, marginTop: 8 }}>Qualifire · xxz224 · Jayavibhav · 89k samples total</div>
       </div>
 
       {/* F1 bar chart */}
       <div style={{ position: "relative", zIndex: 1, width: "100%", opacity: Math.max(0, chart1In), transform: `perspective(900px) rotateX(${interpolate(chart1In, [0, 1], [12, 0], { extrapolateLeft: "clamp" })}deg) translateY(${interpolate(chart1In, [0, 1], [20, 0], { extrapolateLeft: "clamp" })}px)` }}>
         <div style={{ background: COLORS.bgWhite, borderRadius: 20, border: `1.5px solid ${COLORS.border}`, padding: "24px 28px", boxShadow: `0 20px 48px -12px rgba(0,0,0,0.10)` }}>
-          <div style={{ fontSize: 12, fontWeight: 700, fontFamily: FONTS.sans, color: COLORS.textMuted, letterSpacing: "0.06em", textTransform: "uppercase" as const, marginBottom: 20 }}>F1 Score (avg)</div>
-          <div style={{ display: "flex", gap: 16, alignItems: "flex-end" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, fontFamily: FONTS.sans, color: COLORS.textMuted, letterSpacing: "0.06em", textTransform: "uppercase" as const, marginBottom: 20 }}>Average F1 (%)</div>
+          <div style={{ display: "flex", gap: 20, alignItems: "flex-end" }}>
             {f1Data.map((d, i) => (
-              <AnimBar key={d.label} value={d.value} rangeMin={d.rangeMin} rangeMax={d.rangeMax} label={d.label} sublabel={d.sublabel} color={d.color} bgColor={d.bgColor} maxH={BAR_MAX_H} startFrame={14} index={i} isHighlight={d.isHighlight} />
+              <AnimBar key={d.label} value={d.value} label={d.label} sublabel={d.sublabel} color={d.color} bgColor={d.bgColor} maxH={BAR_MAX_H} startFrame={14} index={i} isHighlight={d.isHighlight} />
             ))}
           </div>
-          <div style={{ marginTop: 14, fontSize: 10, fontFamily: FONTS.sans, color: COLORS.textMuted }}>* Shaded bands show per-benchmark variance · Eval: Qualifire, xxz224, Jayavibhav datasets</div>
+          <div style={{ marginTop: 14, fontSize: 10, fontFamily: FONTS.sans, color: COLORS.textMuted }}>Eval: Qualifire, xxz224, Jayavibhav datasets · 89k samples</div>
         </div>
       </div>
 
