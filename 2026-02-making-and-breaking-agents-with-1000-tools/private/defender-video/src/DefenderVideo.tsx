@@ -1036,27 +1036,26 @@ const CTAScene: React.FC = () => {
       </div>
 
       {/* Group 2: npm + badges */}
-      <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 20, width: "100%" }}>
+      <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 16, width: "100%" }}>
         <div style={{ opacity: Math.max(0, cmdIn), transform: `perspective(900px) rotateX(${interpolate(cmdIn, [0, 1], [-6, 0], { extrapolateLeft: "clamp" })}deg) scale(${interpolate(cmdIn, [0, 1], [0.97, 1], { extrapolateLeft: "clamp" })})`, background: COLORS.terminal, borderRadius: 20, padding: "24px 48px", boxShadow: `0 28px 64px -16px rgba(0,0,0,0.50), 0 0 40px -8px rgba(0,175,102,0.20), inset 0 1px 0 rgba(255,255,255,0.05)` }}>
           <span style={{ fontFamily: FONTS.mono, fontSize: 32 }}>
             <span style={{ color: DARK.textMuted }}>$ </span>
             <span style={{ color: COLORS.primary }}>npm install @stackone/defender</span>
           </span>
         </div>
-        <div style={{ display: "flex", gap: 12, justifyContent: "center", opacity: Math.max(0, badgesIn), transform: `translateY(${interpolate(badgesIn, [0, 1], [10, 0], { extrapolateLeft: "clamp" })}px)` }}>
-          {["✓ Open source · Apache 2.0", "ONNX bundled · no extra downloads"].map((text) => (
-            <span key={text} style={{ fontSize: 15, fontWeight: 600, fontFamily: FONTS.sans, color: COLORS.primary, background: `${COLORS.primary}18`, padding: "10px 22px", borderRadius: 24, border: `1.5px solid ${COLORS.primary}35` }}>{text}</span>
-          ))}
+        <div style={{ opacity: Math.max(0, badgesIn), transform: `translateY(${interpolate(badgesIn, [0, 1], [10, 0], { extrapolateLeft: "clamp" })}px)` }}>
+          <span style={{ fontSize: 13, fontWeight: 500, fontFamily: FONTS.sans, color: DARK.textBody }}>add it to your own mcp/agents: </span>
+          <span style={{ fontSize: 13, fontFamily: FONTS.mono, color: COLORS.primary }}>$ npm install @stackone/defender</span>
         </div>
       </div>
 
       {/* Group 3: MCP callout */}
       <div style={{ position: "relative", zIndex: 1, width: "100%", opacity: Math.max(0, mcpIn), transform: `scale(${interpolate(mcpIn, [0, 1], [0.97, 1], { extrapolateLeft: "clamp" })}) translateY(${interpolate(mcpIn, [0, 1], [12, 0], { extrapolateLeft: "clamp" })}px)` }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 18, background: "rgba(0,25,14,0.75)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)", border: `2px solid rgba(0,175,102,0.40)`, boxShadow: `0 8px 32px -8px rgba(0,175,102,0.30)`, borderRadius: 22, padding: "22px 36px" }}>
-          <span style={{ fontSize: 30 }}>🛡️</span>
+          <span style={{ fontSize: 40 }}>🛡️</span>
           <div>
-            <div style={{ fontSize: 20, fontWeight: 700, fontFamily: FONTS.sans, color: DARK.textHeading, letterSpacing: "-0.01em" }}>All StackOne MCP actions protected by default</div>
-            <div style={{ fontSize: 14, color: DARK.textBody, fontFamily: FONTS.sans, marginTop: 4 }}>Zero-config — defender runs on every tool call, automatically</div>
+            <div style={{ fontSize: 24, fontWeight: 700, fontFamily: FONTS.sans, color: DARK.textHeading, letterSpacing: "-0.01em" }}>All StackOne MCP actions protected by default</div>
+            <div style={{ fontSize: 16, color: DARK.textBody, fontFamily: FONTS.sans, marginTop: 5 }}>Zero-config — defender runs on every tool call, automatically</div>
           </div>
         </div>
       </div>
@@ -1079,13 +1078,14 @@ const CTAScene: React.FC = () => {
       {/* Group 5: Links + QR */}
       <div style={{ position: "relative", zIndex: 1, display: "flex", gap: 28, width: "100%", alignItems: "center", opacity: Math.max(0, bottomIn), transform: `perspective(900px) rotateX(${interpolate(bottomIn, [0, 1], [6, 0], { extrapolateLeft: "clamp" })}deg) translateY(${interpolate(bottomIn, [0, 1], [14, 0], { extrapolateLeft: "clamp" })}px)` }}>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, background: "rgba(0,18,10,0.68)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: `1.5px solid rgba(0,175,102,0.20)`, borderRadius: 16, padding: "14px 20px", boxShadow: `0 4px 14px -4px rgba(0,0,0,0.06)` }}>
-            <StackOneLogo size={22} />
-            <div style={{ fontSize: 14, fontFamily: FONTS.mono, color: DARK.textHeading, fontWeight: 600 }}>stackone.com/platform/prompt-injection-guard</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, background: "rgba(0,18,10,0.68)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: `1.5px solid rgba(0,175,102,0.20)`, borderRadius: 16, padding: "16px 22px", boxShadow: `0 4px 14px -4px rgba(0,0,0,0.06)` }}>
+            <StackOneLogo size={24} />
+            <div style={{ fontSize: 17, fontFamily: FONTS.mono, color: DARK.textHeading, fontWeight: 600 }}>stackone.com/platform/prompt-injection-guard</div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 14, background: "rgba(0,18,10,0.68)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: `1.5px solid rgba(0,175,102,0.20)`, borderRadius: 16, padding: "14px 20px", boxShadow: `0 4px 14px -4px rgba(0,0,0,0.06)` }}>
-            <ProviderIcon provider="github" size={22} />
-            <div style={{ fontSize: 14, fontFamily: FONTS.mono, color: DARK.textHeading, fontWeight: 600 }}>github.com/stackoneHQ/defender</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, background: "rgba(0,18,10,0.68)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: `1.5px solid rgba(0,175,102,0.20)`, borderRadius: 16, padding: "16px 22px", boxShadow: `0 4px 14px -4px rgba(0,0,0,0.06)` }}>
+            <ProviderIcon provider="github" size={24} />
+            <div style={{ fontSize: 17, fontFamily: FONTS.mono, color: DARK.textHeading, fontWeight: 600 }}>github.com/stackoneHQ/defender</div>
+            <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 700, fontFamily: FONTS.sans, color: COLORS.primary, background: `${COLORS.primary}18`, border: `1px solid ${COLORS.primary}40`, borderRadius: 6, padding: "3px 9px", letterSpacing: "0.04em" }}>Open source</span>
           </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
