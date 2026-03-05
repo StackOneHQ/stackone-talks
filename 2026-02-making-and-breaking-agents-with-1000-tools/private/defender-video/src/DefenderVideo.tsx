@@ -11,6 +11,7 @@ import { TransitionSeries, linearTiming, springTiming } from "@remotion/transiti
 import { slide } from "@remotion/transitions/slide";
 import { wipe } from "@remotion/transitions/wipe";
 import { fade } from "@remotion/transitions/fade";
+import { flip } from "@remotion/transitions/flip";
 import { QRCodeSVG } from "qrcode.react";
 import { COLORS, DARK, FONTS } from "./theme";
 
@@ -1047,7 +1048,7 @@ const CTAScene: React.FC = () => {
 
 // Transition overlap in frames (18 frames = 0.6s at 30fps)
 // Scene durations are padded so net playback = 950 frames:
-// (128 + 198 + 108 + 168 + 168 + 270) - (5 × 18) = 1040 - 90 = 950
+// (128 + 198 + 108 + 168 + 168 + 280) - (24 + 18 + 22 + 18 + 18) = 1050 - 100 = 950
 const T = 18;
 
 export const DefenderVideo: React.FC = () => (
@@ -1060,7 +1061,7 @@ export const DefenderVideo: React.FC = () => (
 
       <TransitionSeries.Transition
         presentation={slide({ direction: "from-right" })}
-        timing={springTiming({ config: { damping: 200 }, durationInFrames: T })}
+        timing={springTiming({ config: { damping: 180 }, durationInFrames: 24 })}
       />
 
       {/* Scene 2: Attack */}
@@ -1079,8 +1080,8 @@ export const DefenderVideo: React.FC = () => (
       </TransitionSeries.Sequence>
 
       <TransitionSeries.Transition
-        presentation={wipe({ direction: "from-left" })}
-        timing={springTiming({ config: { damping: 200 }, durationInFrames: T })}
+        presentation={flip({ direction: "from-left" })}
+        timing={springTiming({ config: { damping: 200 }, durationInFrames: 22 })}
       />
 
       {/* Scene 4: Defense */}
@@ -1104,7 +1105,7 @@ export const DefenderVideo: React.FC = () => (
       />
 
       {/* Scene 6: CTA */}
-      <TransitionSeries.Sequence durationInFrames={270}>
+      <TransitionSeries.Sequence durationInFrames={280}>
         <CTAScene />
       </TransitionSeries.Sequence>
     </TransitionSeries>
