@@ -88,28 +88,29 @@ const AnimatedBackground: React.FC<{ dark?: boolean }> = ({ dark = false }) => {
   const dotId = `dots-${uid}`;
 
   // Aurora orbs — Lissajous orbital paths (varied freq ratios create figure-8s and ellipses)
+  // Higher frequencies + larger radii + size breathing = visibly wavy/alive
   const darkOrbs = [
-    // Large primary green — top-left orbit
-    { x: 200, y: 250, rx: 180, ry: 140, fx: 0.007, fy: 0.005, px: 0.0, py: 1.6, size: 700, color: "#00AF66", blur: 110, op: 0.22 },
+    // Large primary green — top-left orbit (faster, wider sweep)
+    { x: 200, y: 250, rx: 260, ry: 200, fx: 0.013, fy: 0.009, px: 0.0, py: 1.6, size: 720, color: "#00AF66", blur: 110, op: 0.24, bx: 0.035 },
     // Large primary green — bottom-right orbit
-    { x: 880, y: 800, rx: 150, ry: 130, fx: 0.006, fy: 0.008, px: 3.1, py: 0.8, size: 620, color: "#00AF66", blur: 100, op: 0.17 },
-    // Medium accent indigo — center
-    { x: 540, y: 440, rx: 220, ry: 160, fx: 0.005, fy: 0.007, px: 1.5, py: 2.4, size: 460, color: "#6366F1", blur: 90, op: 0.13 },
+    { x: 880, y: 800, rx: 220, ry: 190, fx: 0.011, fy: 0.015, px: 3.1, py: 0.8, size: 640, color: "#00AF66", blur: 100, op: 0.18, bx: 0.028 },
+    // Medium accent indigo — center (wide sweep)
+    { x: 540, y: 440, rx: 300, ry: 240, fx: 0.009, fy: 0.013, px: 1.5, py: 2.4, size: 480, color: "#6366F1", blur: 90, op: 0.14, bx: 0.042 },
     // Small teal accent — top-right
-    { x: 900, y: 180, rx: 100, ry: 90, fx: 0.011, fy: 0.009, px: 2.2, py: 0.4, size: 320, color: "#00D68F", blur: 80, op: 0.12 },
-    // Tiny cyan — bottom-left
-    { x: 120, y: 900, rx: 80, ry: 60, fx: 0.009, fy: 0.013, px: 4.5, py: 1.1, size: 250, color: "#22D3EE", blur: 70, op: 0.09 },
-    // Subtle large warm — far right edge
-    { x: 1000, y: 500, rx: 60, ry: 120, fx: 0.004, fy: 0.006, px: 0.9, py: 3.2, size: 500, color: "#00AF66", blur: 120, op: 0.10 },
-    // Subtle small — center-bottom
-    { x: 540, y: 950, rx: 130, ry: 70, fx: 0.008, fy: 0.010, px: 2.8, py: 0.6, size: 280, color: "#6366F1", blur: 75, op: 0.08 },
+    { x: 900, y: 180, rx: 160, ry: 140, fx: 0.019, fy: 0.016, px: 2.2, py: 0.4, size: 340, color: "#00D68F", blur: 80, op: 0.13, bx: 0.05 },
+    // Cyan — bottom-left (zippy)
+    { x: 120, y: 900, rx: 140, ry: 110, fx: 0.017, fy: 0.022, px: 4.5, py: 1.1, size: 270, color: "#22D3EE", blur: 70, op: 0.10, bx: 0.038 },
+    // Large slow — far right edge
+    { x: 1000, y: 500, rx: 100, ry: 200, fx: 0.007, fy: 0.011, px: 0.9, py: 3.2, size: 520, color: "#00AF66", blur: 120, op: 0.11, bx: 0.022 },
+    // Center-bottom
+    { x: 540, y: 950, rx: 200, ry: 120, fx: 0.015, fy: 0.018, px: 2.8, py: 0.6, size: 300, color: "#6366F1", blur: 75, op: 0.09, bx: 0.032 },
   ];
 
   const lightOrbs = [
-    { x: 180, y: 200, rx: 160, ry: 120, fx: 0.008, fy: 0.006, px: 0.0, py: 0.5, size: 680, color: "#00AF66", blur: 90, op: 0.10 },
-    { x: 900, y: 850, rx: 130, ry: 110, fx: 0.007, fy: 0.009, px: 3.1, py: 2.1, size: 560, color: "#00AF66", blur: 85, op: 0.07 },
-    { x: 540, y: 420, rx: 190, ry: 150, fx: 0.005, fy: 0.007, px: 2.5, py: 1.0, size: 420, color: "#6366F1", blur: 75, op: 0.055 },
-    { x: 860, y: 180, rx: 90, ry: 80, fx: 0.011, fy: 0.008, px: 0.8, py: 3.0, size: 300, color: "#00AF66", blur: 65, op: 0.06 },
+    { x: 180, y: 200, rx: 220, ry: 170, fx: 0.014, fy: 0.010, px: 0.0, py: 0.5, size: 700, color: "#00AF66", blur: 90, op: 0.11, bx: 0.03 },
+    { x: 900, y: 850, rx: 190, ry: 160, fx: 0.012, fy: 0.016, px: 3.1, py: 2.1, size: 580, color: "#00AF66", blur: 85, op: 0.08, bx: 0.025 },
+    { x: 540, y: 420, rx: 260, ry: 200, fx: 0.009, fy: 0.013, px: 2.5, py: 1.0, size: 440, color: "#6366F1", blur: 75, op: 0.06, bx: 0.04 },
+    { x: 860, y: 180, rx: 140, ry: 120, fx: 0.019, fy: 0.014, px: 0.8, py: 3.0, size: 320, color: "#00AF66", blur: 65, op: 0.065, bx: 0.035 },
   ];
 
   const orbs = dark ? darkOrbs : lightOrbs;
@@ -126,15 +127,18 @@ const AnimatedBackground: React.FC<{ dark?: boolean }> = ({ dark = false }) => {
       {orbs.map((o, i) => {
         const cx = o.x + Math.sin(frame * o.fx + o.px) * o.rx;
         const cy = o.y + Math.cos(frame * o.fy + o.py) * o.ry;
+        // Size "breathing" — each orb pulses ±12% at its own phase
+        const breath = 1 + Math.sin(frame * o.bx + i * 1.3) * 0.12;
+        const s = Math.round(o.size * breath);
         return (
           <div
             key={i}
             style={{
               position: "absolute",
-              left: cx - o.size / 2,
-              top: cy - o.size / 2,
-              width: o.size,
-              height: o.size,
+              left: cx - s / 2,
+              top: cy - s / 2,
+              width: s,
+              height: s,
               borderRadius: "50%",
               background: o.color,
               opacity: o.op,
@@ -402,9 +406,14 @@ const AgentShell: React.FC<{
   const defendedOpacity = defendStartFrame !== undefined
     ? interpolate(frame, [defendStartFrame + 5, defendStartFrame + 18], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 0;
 
-  // Subtle 3D tilt that settles on entrance
-  const tiltY = interpolate(shellIn, [0, 1], [-4, 0], { extrapolateLeft: "clamp" });
-  const tiltX = interpolate(shellIn, [0, 1], [3, 0], { extrapolateLeft: "clamp" });
+  // Dramatic 3D tilt on entrance that settles, then gentle idle float
+  const entranceTiltY = interpolate(shellIn, [0, 1], [-14, 0], { extrapolateLeft: "clamp" });
+  const entranceTiltX = interpolate(shellIn, [0, 1], [8, 0], { extrapolateLeft: "clamp" });
+  // Continuous idle oscillation (multiplied by shellIn so it only starts after entrance)
+  const idleTiltX = Math.sin(frame * 0.022 + 0.8) * 1.8 * shellIn;
+  const idleTiltY = Math.cos(frame * 0.016) * 2.5 * shellIn;
+  const tiltX = entranceTiltX + idleTiltX;
+  const tiltY = entranceTiltY + idleTiltY;
 
   return (
     <div style={{ width: "100%", flex: 1, background: dark ? "rgba(0, 15, 8, 0.72)" : COLORS.bgWhite, borderRadius: 22, overflow: "hidden", boxShadow: dark ? "0 32px 72px -16px rgba(0,0,0,0.55), inset 0 1px 0 rgba(0,175,102,0.10)" : "0 32px 72px -16px rgba(0,0,0,0.13)", border: `2px solid ${borderColor}`, opacity: shellIn, backdropFilter: dark ? "blur(16px)" : undefined, WebkitBackdropFilter: dark ? "blur(16px)" : undefined, transform: `perspective(1200px) rotateY(${tiltY}deg) rotateX(${tiltX}deg) scale(${interpolate(shellIn, [0, 1], [0.97, 1], { extrapolateLeft: "clamp" })}) translateY(${interpolate(shellIn, [0, 1], [24, 0], { extrapolateLeft: "clamp" })}px)` }}>
@@ -582,9 +591,11 @@ const SurfaceCard: React.FC<{ s: typeof SURFACES[number]; index: number; baseFra
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const ent = entrance(frame - baseFrame - index * 7, fps, bouncy);
-  const tiltY = interpolate(ent, [0, 1], [index % 2 === 0 ? -6 : 6, 0], { extrapolateLeft: "clamp" });
+  // Cards fan in from alternating sides with rotateX tilt for depth
+  const tiltY = interpolate(ent, [0, 1], [index % 2 === 0 ? -18 : 18, 0], { extrapolateLeft: "clamp" });
+  const tiltX = interpolate(ent, [0, 1], [-12, 0], { extrapolateLeft: "clamp" });
   return (
-    <div style={{ background: dark ? "rgba(0, 18, 10, 0.68)" : COLORS.bgWhite, border: `1.5px solid ${dark ? "rgba(0,175,102,0.22)" : COLORS.border}`, borderRadius: 20, padding: "22px 20px", flex: 1, transform: `perspective(800px) rotateY(${tiltY}deg) translateY(${interpolate(ent, [0, 1], [50, 0], { extrapolateLeft: "clamp" })}px) scale(${interpolate(ent, [0, 1], [0.9, 1], { extrapolateLeft: "clamp" })})`, opacity: Math.max(0, ent), boxShadow: dark ? "0 16px 36px -8px rgba(0,0,0,0.50), inset 0 1px 0 rgba(0,175,102,0.08)" : "0 16px 36px -8px rgba(0,0,0,0.1)", backdropFilter: dark ? "blur(14px)" : undefined, WebkitBackdropFilter: dark ? "blur(14px)" : undefined, display: "flex", flexDirection: "column", gap: 12, ...extraStyle }}>
+    <div style={{ background: dark ? "rgba(0, 18, 10, 0.68)" : COLORS.bgWhite, border: `1.5px solid ${dark ? "rgba(0,175,102,0.22)" : COLORS.border}`, borderRadius: 20, padding: "22px 20px", flex: 1, transform: `perspective(900px) rotateY(${tiltY}deg) rotateX(${tiltX}deg) translateY(${interpolate(ent, [0, 1], [60, 0], { extrapolateLeft: "clamp" })}px) scale(${interpolate(ent, [0, 1], [0.88, 1], { extrapolateLeft: "clamp" })})`, opacity: Math.max(0, ent), boxShadow: dark ? "0 16px 36px -8px rgba(0,0,0,0.50), inset 0 1px 0 rgba(0,175,102,0.08)" : "0 16px 36px -8px rgba(0,0,0,0.1)", backdropFilter: dark ? "blur(14px)" : undefined, WebkitBackdropFilter: dark ? "blur(14px)" : undefined, display: "flex", flexDirection: "column", gap: 12, ...extraStyle }}>
       {/* Icon + name */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ width: 46, height: 46, borderRadius: 13, background: dark ? "rgba(0,175,102,0.12)" : COLORS.bgCard, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
