@@ -592,7 +592,7 @@ const SurfaceCard: React.FC<{ s: typeof SURFACES[number]; index: number; baseFra
   const tiltY = interpolate(ent, [0, 1], [index % 2 === 0 ? -18 : 18, 0], { extrapolateLeft: "clamp" });
   const tiltX = interpolate(ent, [0, 1], [-12, 0], { extrapolateLeft: "clamp" });
   return (
-    <div style={{ background: dark ? "rgba(0, 18, 10, 0.68)" : COLORS.bgWhite, border: `1.5px solid ${dark ? "rgba(0,175,102,0.22)" : COLORS.border}`, borderRadius: 20, padding: "22px 20px", flex: 1, transform: `perspective(900px) rotateY(${tiltY}deg) rotateX(${tiltX}deg) translateY(${interpolate(ent, [0, 1], [60, 0], { extrapolateLeft: "clamp" })}px) scale(${interpolate(ent, [0, 1], [0.88, 1], { extrapolateLeft: "clamp" })})`, opacity: Math.max(0, ent), boxShadow: dark ? "0 16px 36px -8px rgba(0,0,0,0.50), inset 0 1px 0 rgba(0,175,102,0.08)" : "0 16px 36px -8px rgba(0,0,0,0.1)", backdropFilter: dark ? "blur(14px)" : undefined, WebkitBackdropFilter: dark ? "blur(14px)" : undefined, display: "flex", flexDirection: "column", gap: 12, ...extraStyle }}>
+    <div style={{ background: dark ? "rgba(0, 18, 10, 0.68)" : COLORS.bgWhite, border: `1.5px solid ${dark ? "rgba(0,175,102,0.22)" : COLORS.border}`, borderRadius: 20, padding: "22px 20px", flex: 1, minWidth: 0, transform: `perspective(900px) rotateY(${tiltY}deg) rotateX(${tiltX}deg) translateY(${interpolate(ent, [0, 1], [60, 0], { extrapolateLeft: "clamp" })}px) scale(${interpolate(ent, [0, 1], [0.88, 1], { extrapolateLeft: "clamp" })})`, opacity: Math.max(0, ent), boxShadow: dark ? "0 16px 36px -8px rgba(0,0,0,0.50), inset 0 1px 0 rgba(0,175,102,0.08)" : "0 16px 36px -8px rgba(0,0,0,0.1)", backdropFilter: dark ? "blur(14px)" : undefined, WebkitBackdropFilter: dark ? "blur(14px)" : undefined, display: "flex", flexDirection: "column", gap: 12, overflow: "hidden", ...extraStyle }}>
       {/* Icon + name */}
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ width: 46, height: 46, borderRadius: 13, background: dark ? "rgba(0,175,102,0.12)" : COLORS.bgCard, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -603,7 +603,7 @@ const SurfaceCard: React.FC<{ s: typeof SURFACES[number]; index: number; baseFra
       {/* Attack payload — grows to fill card middle */}
       <div style={{ flex: 1, background: `${COLORS.danger}08`, border: `1px solid ${COLORS.dangerBorder}`, borderRadius: 10, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 7 }}>
         <div style={{ fontSize: 10, fontWeight: 700, fontFamily: FONTS.sans, color: COLORS.danger, letterSpacing: "0.06em" }}>ATTACK PAYLOAD</div>
-        <div style={{ fontSize: 13, fontFamily: FONTS.mono, color: COLORS.danger, lineHeight: 1.7, whiteSpace: "pre" as const }}>{s.example}</div>
+        <div style={{ fontSize: 13, fontFamily: FONTS.mono, color: COLORS.danger, lineHeight: 1.7, whiteSpace: "pre-wrap" as const, wordBreak: "break-all" }}>{s.example}</div>
       </div>
       {/* Tip + badge */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
@@ -622,7 +622,7 @@ const AttackSurfacesScene: React.FC = () => {
   const titleIn = fadeIn(frame, fps, 0);
   const footerIn = fadeIn(frame, fps, 40);
   return (
-    <AbsoluteFill style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", padding: "52px 50px 56px", overflow: "hidden" }}>
+    <AbsoluteFill style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", padding: "52px 50px 56px", clipPath: "inset(0)" }}>
       <AnimatedBackground dark />
       <div style={{ position: "relative", zIndex: 1, width: "100%" }}><SceneHeader dark /></div>
       <div style={{ position: "relative", zIndex: 1, textAlign: "center", opacity: titleIn, transform: `translateY(${interpolate(titleIn, [0, 1], [16, 0], { extrapolateLeft: "clamp" })}px)`, marginTop: 32, marginBottom: 28 }}>
@@ -868,74 +868,120 @@ const StatsScene: React.FC = () => {
   const chart2In = fadeIn(frame, fps, 58);
   const statsIn = fadeIn(frame, fps, 75);
 
-  const BAR_MAX_H = 220;
+  // Scatter data — F1 vs model size (log scale X)
+  const scatterData = [
+    { label: "StackOne Defender", size: 22, f1: 0.887, color: COLORS.primary, r: 11, highlight: true },
+    { label: "DistilBERT", size: 1789, f1: 0.860, color: COLORS.blue, r: 8 },
+    { label: "Meta PG v1", size: 1064, f1: 0.675, color: COLORS.warning, r: 8 },
+    { label: "Meta PG v2", size: 1064, f1: 0.631, color: COLORS.warning, r: 8 },
+    { label: "ProtectAI DeBERTa-v3", size: 704, f1: 0.569, color: COLORS.danger, r: 8 },
+  ];
+  const LOG_MIN = 1.0, LOG_MAX = Math.log10(2100); // log10(10)..log10(2100)
+  const toXPct = (mb: number) => (Math.log10(mb) - LOG_MIN) / (LOG_MAX - LOG_MIN) * 100;
+  const toYPct = (f1: number) => (1 - (f1 - 0.50) / 0.45) * 100;
+  const dotProg = (i: number) => {
+    const lf = frame - 10 - i * 10;
+    return lf >= 0 ? spring({ frame: lf, fps, config: { damping: 16, stiffness: 200 } }) : 0;
+  };
 
-  // F1 score data — Qualifire, xxz224, Jayavibhav benchmarks (89k samples)
-  const f1Data = [
-    { label: "StackOne", sublabel: "Defender", value: 0.887, color: COLORS.primary, bgColor: `${COLORS.primary}18`, isHighlight: true },
-    { label: "Meta PG v1", value: 0.675, color: COLORS.warning, bgColor: `${COLORS.warning}18` },
-    { label: "Meta PG v2", value: 0.631, color: COLORS.warning, bgColor: `${COLORS.warning}18` },
-    { label: "ProtectAI", sublabel: "DeBERTa-v3", value: 0.569, color: COLORS.danger, bgColor: COLORS.dangerLight },
+  // F1 bar data — horizontal bars matching website chart
+  const f1Bars = [
+    { label: "StackOne Defender", value: 88.7, color: COLORS.primary },
+    { label: "Meta PG v1", value: 67.5, color: COLORS.warning },
+    { label: "Meta PG v2", value: 63.1, color: COLORS.warning },
+    { label: "ProtectAI DeBERTa-v3", value: 56.9, color: COLORS.danger },
   ];
 
   return (
-    <AbsoluteFill style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", padding: "52px 50px 60px" }}>
+    <AbsoluteFill style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", padding: "52px 50px 60px", overflow: "hidden" }}>
       <AnimatedBackground />
       <div style={{ position: "relative", zIndex: 1, width: "100%" }}><SceneHeader /></div>
 
       {/* Title */}
-      <div style={{ position: "relative", zIndex: 1, textAlign: "center", opacity: titleIn, transform: `translateY(${interpolate(titleIn, [0, 1], [16, 0], { extrapolateLeft: "clamp" })}px)`, marginTop: 28, marginBottom: 28 }}>
-        <div style={{ fontSize: 46, fontWeight: 800, fontFamily: FONTS.sans, color: COLORS.textDark, letterSpacing: "-0.03em" }}>Best accuracy. Smallest model.</div>
-        <div style={{ fontSize: 17, color: COLORS.textMuted, fontFamily: FONTS.sans, marginTop: 8 }}>Qualifire · xxz224 · Jayavibhav · 89k samples total</div>
+      <div style={{ position: "relative", zIndex: 1, textAlign: "center", opacity: titleIn, transform: `translateY(${interpolate(titleIn, [0, 1], [16, 0], { extrapolateLeft: "clamp" })}px)`, marginTop: 18, marginBottom: 18 }}>
+        <div style={{ fontSize: 42, fontWeight: 800, fontFamily: FONTS.sans, color: COLORS.textDark, letterSpacing: "-0.03em" }}>Best accuracy. Smallest model.</div>
+        <div style={{ fontSize: 15, color: COLORS.textMuted, fontFamily: FONTS.sans, marginTop: 6 }}>Qualifire · xxz224 · Jayavibhav · 89k samples</div>
       </div>
 
-      {/* F1 bar chart */}
-      <div style={{ position: "relative", zIndex: 1, width: "100%", opacity: Math.max(0, chart1In), transform: `perspective(900px) rotateX(${interpolate(chart1In, [0, 1], [12, 0], { extrapolateLeft: "clamp" })}deg) translateY(${interpolate(chart1In, [0, 1], [20, 0], { extrapolateLeft: "clamp" })}px)` }}>
-        <div style={{ background: COLORS.bgWhite, borderRadius: 20, border: `1.5px solid ${COLORS.border}`, padding: "24px 28px", boxShadow: `0 20px 48px -12px rgba(0,0,0,0.10)` }}>
-          <div style={{ fontSize: 12, fontWeight: 700, fontFamily: FONTS.sans, color: COLORS.textMuted, letterSpacing: "0.06em", textTransform: "uppercase" as const, marginBottom: 20 }}>Average F1 (%)</div>
-          <div style={{ display: "flex", gap: 20, alignItems: "flex-end" }}>
-            {f1Data.map((d, i) => (
-              <AnimBar key={d.label} value={d.value} label={d.label} sublabel={d.sublabel} color={d.color} bgColor={d.bgColor} maxH={BAR_MAX_H} startFrame={14} index={i} isHighlight={d.isHighlight} />
-            ))}
+      {/* Scatter chart: F1 vs model size */}
+      <div style={{ position: "relative", zIndex: 1, width: "100%", opacity: Math.max(0, chart1In), transform: `translateY(${interpolate(chart1In, [0, 1], [16, 0], { extrapolateLeft: "clamp" })}px)` }}>
+        <div style={{ background: COLORS.bgWhite, borderRadius: 18, border: `1.5px solid ${COLORS.border}`, padding: "18px 22px 28px", boxShadow: `0 16px 40px -10px rgba(0,0,0,0.08)` }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, fontFamily: FONTS.sans, color: COLORS.textMuted, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>Average F1 (%)</div>
+            <div style={{ fontSize: 11, fontFamily: FONTS.sans, color: COLORS.textMuted }}>Model Size (MB) →</div>
           </div>
-          <div style={{ marginTop: 14, fontSize: 10, fontFamily: FONTS.sans, color: COLORS.textMuted }}>Eval: Qualifire, xxz224, Jayavibhav datasets · 89k samples</div>
+          {/* Plot area */}
+          <div style={{ position: "relative", height: 190, marginLeft: 38 }}>
+            {/* Gridlines + Y-axis labels */}
+            {[0.55, 0.65, 0.75, 0.85, 0.95].map(y => (
+              <div key={y} style={{ position: "absolute", left: -38, right: 0, top: `${toYPct(y)}%`, display: "flex", alignItems: "center", pointerEvents: "none" }}>
+                <span style={{ fontSize: 10, fontFamily: FONTS.sans, color: COLORS.textMuted, width: 30, textAlign: "right", marginRight: 8, flexShrink: 0 }}>{Math.round(y * 100)}%</span>
+                <div style={{ flex: 1, height: 1, background: `${COLORS.border}` }} />
+              </div>
+            ))}
+            {/* X-axis labels */}
+            {([22, 100, 500, 1000] as number[]).map(mb => (
+              <div key={mb} style={{ position: "absolute", bottom: -20, left: `${toXPct(mb)}%`, transform: "translateX(-50%)", fontSize: 10, fontFamily: FONTS.sans, color: COLORS.textMuted }}>
+                {mb}
+              </div>
+            ))}
+            {/* Dots */}
+            {scatterData.map((d, i) => {
+              const p = dotProg(i);
+              const cx = toXPct(d.size), cy = toYPct(d.f1);
+              // Label: StackOne goes right, all others go left (they're clustered on right)
+              const goLeft = d.size > 100;
+              return (
+                <React.Fragment key={d.label}>
+                  <div style={{ position: "absolute", left: `${cx}%`, top: `${cy}%`, transform: `translate(-50%, -50%) scale(${p})`, opacity: p, zIndex: 2 }}>
+                    <div style={{ width: d.r * 2, height: d.r * 2, borderRadius: "50%", background: d.color, boxShadow: d.highlight ? `0 0 16px 5px ${d.color}55` : `0 2px 8px ${d.color}40` }} />
+                  </div>
+                  <div style={{ position: "absolute", left: `${cx}%`, top: `${cy}%`, transform: `translate(${goLeft ? "calc(-100% - 14px)" : "14px"}, -50%)`, opacity: p, pointerEvents: "none", zIndex: 3 }}>
+                    <div style={{ fontSize: d.highlight ? 12 : 10, fontWeight: d.highlight ? 700 : 500, fontFamily: FONTS.sans, color: d.color, whiteSpace: "nowrap" as const, lineHeight: 1.3 }}>
+                      {d.label}
+                      {d.highlight && <div style={{ fontSize: 11, fontWeight: 800 }}>{d.f1 * 100}% · {d.size} MB</div>}
+                    </div>
+                  </div>
+                </React.Fragment>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* Divider with logo */}
-      <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 16, opacity: Math.max(0, divIn), width: "100%", margin: "24px 0" }}>
+      {/* Divider */}
+      <div style={{ position: "relative", zIndex: 1, display: "flex", alignItems: "center", gap: 16, opacity: Math.max(0, divIn), width: "100%", margin: "16px 0" }}>
         <div style={{ flex: 1, height: 1, background: COLORS.border }} />
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <StackOneLogo size={20} />
-          <span style={{ fontSize: 14, fontFamily: FONTS.mono, color: COLORS.primary, fontWeight: 700 }}>vs alternatives</span>
+          <StackOneLogo size={18} />
+          <span style={{ fontSize: 13, fontFamily: FONTS.mono, color: COLORS.primary, fontWeight: 700 }}>vs alternatives</span>
         </div>
         <div style={{ flex: 1, height: 1, background: COLORS.border }} />
       </div>
 
-      {/* Bottom row: FP rate bars + key stats */}
+      {/* Bottom row: F1 horizontal bars + key stats */}
       <div style={{ position: "relative", zIndex: 1, display: "flex", gap: 16, width: "100%", flex: 1 }}>
-        {/* FP rate chart */}
-        <div style={{ flex: 1.4, opacity: Math.max(0, chart2In), transform: `perspective(700px) rotateY(${interpolate(chart2In, [0, 1], [-8, 0], { extrapolateLeft: "clamp" })}deg) translateX(${interpolate(chart2In, [0, 1], [-14, 0], { extrapolateLeft: "clamp" })}px)` }}>
-          <div style={{ background: COLORS.bgWhite, borderRadius: 18, border: `1.5px solid ${COLORS.border}`, padding: "20px 22px", height: "100%", boxSizing: "border-box", boxShadow: `0 16px 40px -10px rgba(0,0,0,0.08)`, display: "flex", flexDirection: "column", gap: 14 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, fontFamily: FONTS.sans, color: COLORS.textMuted, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>False Positive Rate</div>
-            <FPBar label="StackOne Defender" value={5.8} maxVal={50} color={COLORS.primary} startFrame={58} index={0} />
-            <FPBar label="Meta PG v1" value={49.9} maxVal={50} color={COLORS.danger} startFrame={58} index={1} />
-            <div style={{ fontSize: 11, fontFamily: FONTS.sans, color: COLORS.textMuted, lineHeight: 1.4, marginTop: 4 }}>
-              49 vs 423 false positives · 847 benign prompts evaluated
-            </div>
+        {/* F1 horizontal bar chart */}
+        <div style={{ flex: 1.4, opacity: Math.max(0, chart2In), transform: `translateX(${interpolate(chart2In, [0, 1], [-12, 0], { extrapolateLeft: "clamp" })}px)` }}>
+          <div style={{ background: COLORS.bgWhite, borderRadius: 18, border: `1.5px solid ${COLORS.border}`, padding: "18px 22px", height: "100%", boxSizing: "border-box" as const, boxShadow: `0 16px 40px -10px rgba(0,0,0,0.08)`, display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, fontFamily: FONTS.sans, color: COLORS.textMuted, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>Average F1 (%)</div>
+            {f1Bars.map((b, i) => (
+              <FPBar key={b.label} label={b.label} value={b.value} maxVal={100} color={b.color} startFrame={50} index={i} />
+            ))}
+            <div style={{ fontSize: 10, fontFamily: FONTS.sans, color: COLORS.textMuted, marginTop: "auto" }}>Qualifire · xxz224 · Jayavibhav · 89k samples</div>
           </div>
         </div>
 
         {/* Key stat cards */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 12, opacity: Math.max(0, statsIn), transform: `perspective(700px) rotateY(${interpolate(statsIn, [0, 1], [8, 0], { extrapolateLeft: "clamp" })}deg) translateX(${interpolate(statsIn, [0, 1], [14, 0], { extrapolateLeft: "clamp" })}px)` }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, opacity: Math.max(0, statsIn), transform: `translateX(${interpolate(statsIn, [0, 1], [12, 0], { extrapolateLeft: "clamp" })}px)` }}>
           {[
             { val: "22 MB", lbl: "48× smaller model", color: COLORS.primary },
             { val: "~4ms", lbl: "CPU latency", color: COLORS.primary },
-            { val: "57%", lbl: "Attack reduction", color: COLORS.primary },
+            { val: "8.6×", lbl: "Fewer false positives", color: COLORS.primary },
           ].map((s, i) => (
-            <div key={s.val} style={{ flex: 1, background: COLORS.bgWhite, border: `1.5px solid ${COLORS.primary}30`, borderRadius: 16, padding: "18px 20px", display: "flex", flexDirection: "column", justifyContent: "center", boxShadow: `0 8px 24px -6px ${COLORS.primary}20`, transform: `perspective(600px) rotateX(${interpolate(entrance(frame - 75 - i * 10, fps, snappy), [0, 1], [4, 0], { extrapolateLeft: "clamp" })}deg)` }}>
-              <div style={{ fontSize: 38, fontWeight: 800, fontFamily: FONTS.sans, color: s.color, letterSpacing: "-0.025em" }}>{s.val}</div>
-              <div style={{ fontSize: 15, fontFamily: FONTS.sans, color: COLORS.textBody, fontWeight: 600, marginTop: 5 }}>{s.lbl}</div>
+            <div key={s.val} style={{ flex: 1, background: COLORS.bgWhite, border: `1.5px solid ${COLORS.primary}30`, borderRadius: 16, padding: "16px 20px", display: "flex", flexDirection: "column", justifyContent: "center", boxShadow: `0 8px 24px -6px ${COLORS.primary}20` }}>
+              <div style={{ fontSize: 36, fontWeight: 800, fontFamily: FONTS.sans, color: s.color, letterSpacing: "-0.025em" }}>{s.val}</div>
+              <div style={{ fontSize: 14, fontFamily: FONTS.sans, color: COLORS.textBody, fontWeight: 600, marginTop: 4 }}>{s.lbl}</div>
             </div>
           ))}
         </div>
