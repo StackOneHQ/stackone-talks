@@ -622,11 +622,11 @@ const AttackSurfacesScene: React.FC = () => {
   const titleIn = fadeIn(frame, fps, 0);
   const footerIn = fadeIn(frame, fps, 40);
   return (
-    <AbsoluteFill style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", padding: "52px 50px 56px" }}>
+    <AbsoluteFill style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-start", padding: "52px 50px 56px", overflow: "hidden" }}>
       <AnimatedBackground dark />
       <div style={{ position: "relative", zIndex: 1, width: "100%" }}><SceneHeader dark /></div>
       <div style={{ position: "relative", zIndex: 1, textAlign: "center", opacity: titleIn, transform: `translateY(${interpolate(titleIn, [0, 1], [16, 0], { extrapolateLeft: "clamp" })}px)`, marginTop: 32, marginBottom: 28 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, fontFamily: FONTS.sans, color: COLORS.danger, letterSpacing: "0.08em", textTransform: "uppercase" as const, marginBottom: 10 }}>Any tool that reads untrusted content is a vector</div>
+        <div style={{ fontSize: 12, fontWeight: 700, fontFamily: FONTS.sans, color: COLORS.danger, letterSpacing: "0.08em", textTransform: "uppercase" as const, marginBottom: 10 }}>Any tool that reads untrusted data is an attack vector</div>
         <div style={{ fontSize: 44, fontWeight: 800, fontFamily: FONTS.sans, color: DARK.textHeading, letterSpacing: "-0.03em", lineHeight: 1.05 }}>73% of production AI deployments<br />are vulnerable</div>
         <div style={{ fontSize: 15, color: DARK.textBody, marginTop: 10, fontFamily: FONTS.sans }}>OWASP LLM01:2025 — #1 LLM threat</div>
       </div>
