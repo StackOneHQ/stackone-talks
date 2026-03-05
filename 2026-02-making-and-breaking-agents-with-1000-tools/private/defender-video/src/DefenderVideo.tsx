@@ -907,7 +907,7 @@ const StatsScene: React.FC = () => {
         <div style={{ flex: 1, height: 1, background: COLORS.border }} />
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <StackOneLogo size={20} />
-          <span style={{ fontSize: 14, fontFamily: FONTS.mono, color: COLORS.primary, fontWeight: 700 }}>vs competitors</span>
+          <span style={{ fontSize: 14, fontFamily: FONTS.mono, color: COLORS.primary, fontWeight: 700 }}>vs alternatives</span>
         </div>
         <div style={{ flex: 1, height: 1, background: COLORS.border }} />
       </div>
