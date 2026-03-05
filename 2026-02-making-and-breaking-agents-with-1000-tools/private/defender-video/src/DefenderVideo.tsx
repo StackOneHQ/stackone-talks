@@ -314,34 +314,31 @@ const HookScene: React.FC = () => {
           boxShadow: `0 0 24px -4px rgba(239,68,68,0.25)`,
         }}>
           <span style={{ width: 9, height: 9, borderRadius: "50%", background: COLORS.danger, display: "inline-block", boxShadow: `0 0 8px 2px rgba(239,68,68,0.6)` }} />
-          <span style={{ fontSize: 15, fontWeight: 700, fontFamily: FONTS.sans, color: COLORS.danger, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>Prompt injection</span>
+          <span style={{ fontSize: 15, fontWeight: 700, fontFamily: FONTS.sans, color: COLORS.danger, letterSpacing: "0.06em", textTransform: "uppercase" as const }}>MCP Tool Poisoning</span>
         </div>
 
-        <div style={{ fontSize: 104, fontFamily: FONTS.sans, fontWeight: 900, color: DARK.textHeading, letterSpacing: "-0.04em", lineHeight: 0.95, textAlign: "center" }}>
+        <div style={{ fontSize: 90, fontFamily: FONTS.sans, fontWeight: 900, color: DARK.textHeading, letterSpacing: "-0.04em", lineHeight: 0.95, textAlign: "center" }}>
           <div style={{ display: "block" }}>
             <WordReveal
-              text="Your AI agent"
+              text="Your agent reads data."
               startFrame={18}
-              stagger={5}
-              wordStyle={(word) =>
-                word === "agent" ? { color: COLORS.primary } : {}
-              }
+              stagger={4}
             />
           </div>
           <div style={{ display: "block" }}>
             <WordReveal
-              text="just got hijacked."
+              text="Attackers write data."
               startFrame={28}
-              stagger={5}
+              stagger={4}
               wordStyle={(word) =>
-                word === "hijacked." ? { color: COLORS.danger } : {}
+                word === "Attackers" ? { color: COLORS.danger } : {}
               }
             />
           </div>
         </div>
 
-        <div style={{ fontSize: 30, fontFamily: FONTS.sans, fontWeight: 400, color: DARK.textBody, opacity: line2, transform: `translateY(${interpolate(line2, [0, 1], [14, 0], { extrapolateLeft: "clamp" })}px)`, textAlign: "center" }}>
-          And it looked like a totally normal email.
+        <div style={{ fontSize: 28, fontFamily: FONTS.sans, fontWeight: 400, color: DARK.textBody, opacity: line2, transform: `translateY(${interpolate(line2, [0, 1], [14, 0], { extrapolateLeft: "clamp" })}px)`, textAlign: "center", maxWidth: 780 }}>
+          Any MCP tool that reads untrusted data is a vector. If attackers can write to it, your agent will follow their instructions.
         </div>
       </div>
 
@@ -356,7 +353,7 @@ const HookScene: React.FC = () => {
         {/* Attack chain — 3D card icons */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 44, opacity: iconIn, transform: `perspective(900px) rotateX(${interpolate(iconIn, [0, 1], [8, 0], { extrapolateLeft: "clamp" })}deg) translateY(${interpolate(iconIn, [0, 1], [20, 0], { extrapolateLeft: "clamp" })}px)`, width: "100%" }}>
           {[
-            { icon: <ProviderIcon provider="gmail" size={56} />, label: "Email inbox", bg: "rgba(0,18,10,0.70)", border: "rgba(0,175,102,0.20)", labelColor: DARK.textBody, shadow: "0 14px 32px -6px rgba(0,0,0,0.50)" },
+            { icon: <span style={{ fontSize: 52 }}>🗃️</span>, label: "MCP Tool", bg: "rgba(0,18,10,0.70)", border: "rgba(0,175,102,0.20)", labelColor: DARK.textBody, shadow: "0 14px 32px -6px rgba(0,0,0,0.50)" },
             { arrow: "→", color: DARK.textBody },
             { icon: <span style={{ fontSize: 52 }}>🤖</span>, label: "AI Agent", bg: "rgba(0,18,10,0.70)", border: "rgba(0,175,102,0.20)", labelColor: DARK.textBody, shadow: "0 14px 32px -6px rgba(0,0,0,0.50)" },
             { arrow: "→", color: COLORS.danger },
