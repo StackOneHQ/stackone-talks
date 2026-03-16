@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Circuit Lines</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a1e;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: #e0e0e0;
+  }
+  .slide {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: none;
+  }
+  .slide.active { display: block; }
+  .slide svg.slide-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .content {
+    position: absolute;
+    top: 12%; left: 12%;
+    width: 76%; height: 76%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    font-size: 2rem;
+    font-weight: 600;
+    text-align: center;
+    color: #ccc;
+  }
+  .slide-counter {
+    position: fixed;
+    bottom: 16px; right: 24px;
+    font-size: 0.8rem;
+    color: #888;
+    z-index: 100;
+    font-variant-numeric: tabular-nums;
+  }
+</style>
+</head>
+<body>
+
+<div id="deck"></div>
+<div class="slide-counter" id="counter"></div>
+
+<script>
+const TOTAL = 30;
+const GREEN = '#4A9E7E';
+const DOT_SIZE = 21;
+const DOT_R = 7;
+const STROKE = 3;
+const GAP = 7;
+const ANIM_MS = 400;
+
+// 8 positions on content area border, clockwise from top-left
+const BORDER = [
+  { x: 0.12, y: 0.12 }, // 0 top-left
+  { x: 0.50, y: 0.12 }, // 1 top-center
+  { x: 0.88, y: 0.12 }, // 2 top-right
+  { x: 0.88, y: 0.50 }, // 3 middle-right
+  { x: 0.88, y: 0.88 }, // 4 bottom-right
+  { x: 0.50, y: 0.88 }, // 5 bottom-center
+  { x: 0.12, y: 0.88 }, // 6 bottom-left
+  { x: 0.12, y: 0.50 }, // 7 middle-left
+];
+
+// Seeded RNG
+function seededRandom(seed) {
+  let s = seed;
+  return function () {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+const rand = seededRandom(42);
+
+// No two consecutive slides share the same dot position
+const slideDotIdx = [];
+for (let i = 0; i < TOTAL; i++) {
+  let idx;
+  do { idx = Math.floor(rand() * 8); } while (i > 0 && idx === slideDotIdx[i - 1]);
+  slideDotIdx.push(idx);
+}
+
+function perimDist(a, b) {
+  const cw = (b - a + 8) % 8;
+  return Math.min(cw, 8 - cw);
+}
+
+function shortestArc(from, to) {
+  if (from === to) return [from];
+  const cw = (to - from + 8) % 8;
+  const ccw = (from - to + 8) % 8;
+  const step = cw <= ccw ? 1 : -1;
+  const path = [from];
+  let cur = from;
+  while (cur !== to) {
+    cur = (cur + step + 8) % 8;
+    path.push(cur);
+  }
+  return path;
+}
+
+// Precompute corridors — exit and entry are paired at the same x-coordinate
+// so the line visually continues across the slide transition.
+const CORRIDORS = [
+  { exit: 6, enter: 0 }, // left   x=12%
+  { exit: 5, enter: 1 }, // center x=50%
+  { exit: 4, enter: 2 }, // right  x=88%
+];
+
+const transCorridors = [];
+for (let i = 0; i < TOTAL - 1; i++) {
+  const a = slideDotIdx[i], b = slideDotIdx[i + 1];
+
+  // Arrival neighbor at dot a (from previous incoming arc)
+  let arrivalNeighbor = -1;
+  if (i > 0) {
+    const prev = transCorridors[i - 1];
+    const inArc = shortestArc(prev.enter, a);
+    if (inArc.length >= 2) arrivalNeighbor = inArc[inArc.length - 2];
+  }
+
+  let best = null, bestCost = Infinity;
+  for (const c of CORRIDORS) {
+    const outArc = shortestArc(a, c.exit);
+    // Skip if first step doubles back toward where the incoming arrived from
+    if (outArc.length >= 2 && outArc[1] === arrivalNeighbor) continue;
+    const cost = perimDist(a, c.exit) + perimDist(c.enter, b);
+    if (cost < bestCost) { bestCost = cost; best = c; }
+  }
+  if (!best) {
+    bestCost = Infinity;
+    for (const c of CORRIDORS) {
+      const cost = perimDist(a, c.exit) + perimDist(c.enter, b);
+      if (cost < bestCost) { bestCost = cost; best = c; }
+    }
+  }
+  transCorridors.push(best);
+}
+
+function transitionPaths(transIdx, vw, vh) {
+  const a = slideDotIdx[transIdx], b = slideDotIdx[transIdx + 1];
+  const corr = transCorridors[transIdx];
+
+  const outArc = shortestArc(a, corr.exit);
+  const outPts = outArc.map(i => ({ x: BORDER[i].x * vw, y: BORDER[i].y * vh }));
+  outPts.push({ x: BORDER[corr.exit].x * vw, y: vh + 40 });
+
+  const inArc = shortestArc(corr.enter, b);
+  const inPts = [{ x: BORDER[corr.enter].x * vw, y: -40 }];
+  inArc.forEach(i => inPts.push({ x: BORDER[i].x * vw, y: BORDER[i].y * vh }));
+
+  return { outPts, inPts };
+}
+
+function ptsString(pts) { return pts.map(p => `${p.x},${p.y}`).join(' '); }
+
+function ptsLength(pts) {
+  let l = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const dx = pts[i].x - pts[i - 1].x, dy = pts[i].y - pts[i - 1].y;
+    l += Math.sqrt(dx * dx + dy * dy);
+  }
+  return l;
+}
+
+function trimStart(pts, amt) {
+  if (pts.length < 2 || amt <= 0) return [...pts];
+  let rem = amt, i = 0;
+  while (i < pts.length - 1) {
+    const dx = pts[i + 1].x - pts[i].x, dy = pts[i + 1].y - pts[i].y;
+    const seg = Math.sqrt(dx * dx + dy * dy);
+    if (rem >= seg) { rem -= seg; i++; } else {
+      const t = rem / seg;
+      const out = [{ x: pts[i].x + dx * t, y: pts[i].y + dy * t }];
+      for (let j = i + 1; j < pts.length; j++) out.push(pts[j]);
+      return out;
+    }
+  }
+  return [pts[pts.length - 1]];
+}
+
+function trimEnd(pts, amt) {
+  return trimStart([...pts].reverse(), amt).reverse();
+}
+
+let currentSlide = 0;
+let transitioning = false;
+const deck = document.getElementById('deck');
+const counter = document.getElementById('counter');
+
+function buildSlides() {
+  deck.innerHTML = '';
+  const vw = window.innerWidth, vh = window.innerHeight;
+
+  for (let i = 0; i < TOTAL; i++) {
+    const slide = document.createElement('div');
+    slide.className = 'slide' + (i === currentSlide ? ' active' : '');
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'slide-svg');
+    svg.setAttribute('viewBox', `0 0 ${vw} ${vh}`);
+    svg.setAttribute('preserveAspectRatio', 'none');
+
+    const idx = slideDotIdx[i];
+    const cx = BORDER[idx].x * vw, cy = BORDER[idx].y * vh;
+
+    // Dot
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    dot.setAttribute('x', cx - DOT_SIZE / 2);
+    dot.setAttribute('y', cy - DOT_SIZE / 2);
+    dot.setAttribute('width', DOT_SIZE);
+    dot.setAttribute('height', DOT_SIZE);
+    dot.setAttribute('rx', DOT_R);
+    dot.setAttribute('ry', DOT_R);
+    dot.setAttribute('fill', GREEN);
+    svg.appendChild(dot);
+
+    // Incoming line (transition i-1 → i)
+    if (i > 0) {
+      const { inPts } = transitionPaths(i - 1, vw, vh);
+      const pts = trimEnd(inPts, GAP + DOT_SIZE / 2);
+      if (pts.length >= 2) svg.appendChild(makeLine(pts, 'incoming-line'));
+    }
+
+    // Outgoing line (transition i → i+1)
+    if (i < TOTAL - 1) {
+      const { outPts } = transitionPaths(i, vw, vh);
+      const pts = trimStart(outPts, GAP + DOT_SIZE / 2);
+      if (pts.length >= 2) svg.appendChild(makeLine(pts, 'outgoing-line'));
+    }
+
+    slide.appendChild(svg);
+
+    const content = document.createElement('div');
+    content.className = 'content';
+    content.textContent = `Slide ${i + 1}`;
+    slide.appendChild(content);
+    deck.appendChild(slide);
+  }
+  updateCounter();
+}
+
+function makeLine(pts, cls) {
+  const len = ptsLength(pts);
+  const pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+  pl.setAttribute('points', ptsString(pts));
+  pl.setAttribute('fill', 'none');
+  pl.setAttribute('stroke', GREEN);
+  pl.setAttribute('stroke-width', STROKE);
+  pl.setAttribute('stroke-linecap', 'round');
+  pl.setAttribute('stroke-linejoin', 'round');
+  pl.setAttribute('stroke-dasharray', len);
+  pl.setAttribute('stroke-dashoffset', len);
+  pl.setAttribute('class', cls);
+  pl.dataset.length = len;
+  return pl;
+}
+
+function updateCounter() {
+  counter.textContent = `${currentSlide + 1} / ${TOTAL}`;
+}
+
+function getSlide(i) { return deck.querySelectorAll('.slide')[i]; }
+
+function animLine(el, mode) {
+  return new Promise(resolve => {
+    if (!el) return resolve();
+    const len = parseFloat(el.dataset.length);
+    if (mode === 'draw') {
+      // Force reflow so the browser registers the "before" state
+      // (needed when the parent slide just went from display:none to block)
+      el.getBoundingClientRect();
+      el.style.transition = `stroke-dashoffset ${ANIM_MS}ms ease-out`;
+      el.setAttribute('stroke-dashoffset', '0');
+      setTimeout(resolve, ANIM_MS);
+    } else if (mode === 'undraw') {
+      el.getBoundingClientRect();
+      el.style.transition = `stroke-dashoffset ${ANIM_MS}ms ease-in`;
+      el.setAttribute('stroke-dashoffset', len);
+      setTimeout(resolve, ANIM_MS);
+    } else if (mode === 'reset-drawn') {
+      el.style.transition = 'none';
+      el.setAttribute('stroke-dashoffset', '0');
+      resolve();
+    } else {
+      el.style.transition = 'none';
+      el.setAttribute('stroke-dashoffset', len);
+      resolve();
+    }
+  });
+}
+
+async function goForward() {
+  if (transitioning || currentSlide >= TOTAL - 1) return;
+  transitioning = true;
+
+  const curr = getSlide(currentSlide);
+  const next = getSlide(currentSlide + 1);
+
+  // Animate outgoing line on current slide
+  await animLine(curr.querySelector('.outgoing-line'), 'draw');
+
+  // Switch
+  curr.classList.remove('active');
+  next.classList.add('active');
+  currentSlide++;
+  updateCounter();
+
+  // Animate incoming line on new slide
+  await animLine(next.querySelector('.incoming-line'), 'draw');
+
+  transitioning = false;
+}
+
+async function goBackward() {
+  if (transitioning || currentSlide <= 0) return;
+  transitioning = true;
+
+  const curr = getSlide(currentSlide);
+  const target = getSlide(currentSlide - 1);
+
+  // Retract incoming line on current slide (retracts from dot toward top)
+  await animLine(curr.querySelector('.incoming-line'), 'undraw');
+
+  // Switch
+  curr.classList.remove('active');
+  target.classList.add('active');
+  currentSlide--;
+  updateCounter();
+
+  // Retract outgoing line on previous slide (retracts from bottom toward dot)
+  await animLine(target.querySelector('.outgoing-line'), 'undraw');
+
+  transitioning = false;
+}
+
+// Instant (no animation) navigation
+function jumpForward() {
+  if (transitioning || currentSlide >= TOTAL - 1) return;
+  const curr = getSlide(currentSlide);
+  const next = getSlide(currentSlide + 1);
+
+  // Instantly draw outgoing on current
+  animLine(curr.querySelector('.outgoing-line'), 'reset-drawn');
+  curr.classList.remove('active');
+  next.classList.add('active');
+  currentSlide++;
+  // Instantly draw incoming on new slide
+  animLine(next.querySelector('.incoming-line'), 'reset-drawn');
+  updateCounter();
+}
+
+function jumpBackward() {
+  if (transitioning || currentSlide <= 0) return;
+  const curr = getSlide(currentSlide);
+  const target = getSlide(currentSlide - 1);
+
+  animLine(curr.querySelector('.incoming-line'), 'reset');
+  curr.classList.remove('active');
+  target.classList.add('active');
+  currentSlide--;
+  animLine(target.querySelector('.outgoing-line'), 'reset');
+  updateCounter();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') {
+    e.preventDefault(); goForward();
+  } else if (e.key === 'ArrowLeft') {
+    e.preventDefault(); goBackward();
+  } else if (e.key === 'ArrowDown') {
+    e.preventDefault(); jumpForward();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault(); jumpBackward();
+  }
+});
+
+document.addEventListener('click', e => {
+  e.clientX < window.innerWidth / 3 ? goBackward() : goForward();
+});
+
+buildSlides();
+window.addEventListener('resize', buildSlides);
+</script>
+</body>
+</html>
