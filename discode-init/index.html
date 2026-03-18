@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discode</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a1e;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'JetBrains Mono', monospace;
+    color: #e0e0e0;
+  }
+  .slide {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: none;
+  }
+  .slide.active { display: block; }
+  .slide svg.slide-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .content {
+    position: absolute;
+    top: 16%; left: 16%;
+    width: 68%; height: 68%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 2;
+    font-size: 2.4rem;
+    font-weight: 600;
+    text-align: left;
+    color: #ccc;
+  }
+  .title-slide .title {
+    font-size: 3.6rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #e0e0e0;
+    margin-bottom: 2.5rem;
+  }
+  .title-slide .title span {
+    color: #4A9E7E;
+  }
+  .title-slide .subtitle {
+    font-size: 1.4rem;
+    font-weight: 400;
+    color: #888;
+    line-height: 1.6;
+  }
+  .title-slide .subtitle .author {
+    display: block;
+    margin-bottom: 0.3rem;
+  }
+  .title-slide .subtitle .affiliation {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .title-slide .subtitle .stackone-logo {
+    height: 1.3em;
+    vertical-align: middle;
+    margin: 0 0.25em;
+  }
+  /* Section label */
+  .section-slide .content {
+    align-items: center;
+    justify-content: center;
+  }
+  .section-label {
+    font-size: 3.2rem;
+    font-weight: 700;
+    color: #4A9E7E;
+  }
+
+  /* Terminal */
+  .term {
+    background: #111114;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 1.5rem 2rem;
+    width: 50%;
+    font-size: 1.4rem;
+    font-weight: 400;
+    line-height: 1.8;
+    color: #aaa;
+    overflow: hidden;
+  }
+  .term .prompt { color: #4A9E7E; }
+  .term .cmd { color: #e0e0e0; }
+  .term .dim { color: #555; }
+  .term .warn { color: #e8a735; }
+  .term .err { color: #e05252; }
+  .term .ok { color: #4A9E7E; }
+
+  /* Slide heading */
+  .slide-heading {
+    font-size: 2.6rem;
+    font-weight: 700;
+    color: #e0e0e0;
+    margin-bottom: 2rem;
+    padding-left: 1.2rem;
+    border-left: 4px solid #4A9E7E;
+  }
+  .slide-heading span { color: #4A9E7E; }
+
+  /* Pipeline flow */
+  .pipeline {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 1.6rem;
+    font-weight: 600;
+    flex-wrap: wrap;
+  }
+  .pipeline .step {
+    background: #111114;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 0.8rem 1.4rem;
+    color: #ccc;
+  }
+  .pipeline .arrow { color: #4A9E7E; font-size: 1.8rem; }
+
+  /* Method boxes */
+  .methods {
+    display: flex;
+    gap: 1.5rem;
+    width: 100%;
+  }
+  .methods .method {
+    flex: 1;
+    background: #111114;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  .methods .method h3 {
+    font-size: 1.4rem;
+    color: #4A9E7E;
+    margin-bottom: 0.8rem;
+    font-weight: 600;
+  }
+  .methods .method p {
+    font-size: 1rem;
+    color: #888;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+
+  /* Table */
+  .results-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1.2rem;
+    font-weight: 400;
+  }
+  .results-table th {
+    text-align: left;
+    color: #4A9E7E;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid #333;
+    font-weight: 600;
+  }
+  .results-table td {
+    padding: 0.6rem 1rem;
+    color: #aaa;
+    border-bottom: 1px solid #222;
+  }
+  .results-table tr.highlight td {
+    color: #4A9E7E;
+    font-weight: 600;
+  }
+  .results-table .dim {
+    color: #555;
+  }
+
+  /* Big quote */
+  .big-quote {
+    font-size: 2.8rem;
+    font-weight: 700;
+    color: #e0e0e0;
+    line-height: 1.3;
+    font-style: italic;
+  }
+  .big-quote span { color: #4A9E7E; font-style: normal; }
+
+  /* Demo slide */
+  .demo-label {
+    font-size: 5rem;
+    font-weight: 700;
+    color: #4A9E7E;
+    letter-spacing: 0.2em;
+  }
+  .demo-sub {
+    font-size: 1.4rem;
+    font-weight: 400;
+    color: #666;
+    margin-top: 1rem;
+  }
+
+  .slide-counter {
+    position: fixed;
+    bottom: 16px; right: 24px;
+    font-size: 0.8rem;
+    color: #888;
+    z-index: 100;
+    font-variant-numeric: tabular-nums;
+  }
+</style>
+</head>
+<body>
+
+<div id="deck"></div>
+<div class="slide-counter" id="counter"></div>
+
+<script>
+const TOTAL = 21;
+const GREEN = '#4A9E7E';
+const DOT_SIZE = 21;
+const DOT_R = 7;
+const STROKE = 3;
+const GAP = 7;
+const ANIM_MS = 400;
+
+// 8 positions on content area border, clockwise from top-left
+const BORDER = [
+  { x: 0.12, y: 0.12 }, // 0 top-left
+  { x: 0.50, y: 0.12 }, // 1 top-center
+  { x: 0.88, y: 0.12 }, // 2 top-right
+  { x: 0.88, y: 0.50 }, // 3 middle-right
+  { x: 0.88, y: 0.88 }, // 4 bottom-right
+  { x: 0.50, y: 0.88 }, // 5 bottom-center
+  { x: 0.12, y: 0.88 }, // 6 bottom-left
+  { x: 0.12, y: 0.50 }, // 7 middle-left
+];
+
+// Seeded RNG
+function seededRandom(seed) {
+  let s = seed;
+  return function () {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+const rand = seededRandom(42);
+
+// No two consecutive slides share the same dot position
+const slideDotIdx = [];
+for (let i = 0; i < TOTAL; i++) {
+  let idx;
+  do { idx = Math.floor(rand() * 8); } while (i > 0 && idx === slideDotIdx[i - 1]);
+  slideDotIdx.push(idx);
+}
+
+function perimDist(a, b) {
+  const cw = (b - a + 8) % 8;
+  return Math.min(cw, 8 - cw);
+}
+
+function shortestArc(from, to) {
+  if (from === to) return [from];
+  const cw = (to - from + 8) % 8;
+  const ccw = (from - to + 8) % 8;
+  const step = cw <= ccw ? 1 : -1;
+  const path = [from];
+  let cur = from;
+  while (cur !== to) {
+    cur = (cur + step + 8) % 8;
+    path.push(cur);
+  }
+  return path;
+}
+
+// Precompute corridors — exit and entry are paired at the same x-coordinate
+// so the line visually continues across the slide transition.
+const CORRIDORS = [
+  { exit: 6, enter: 0 }, // left   x=12%
+  { exit: 5, enter: 1 }, // center x=50%
+  { exit: 4, enter: 2 }, // right  x=88%
+];
+
+const transCorridors = [];
+for (let i = 0; i < TOTAL - 1; i++) {
+  const a = slideDotIdx[i], b = slideDotIdx[i + 1];
+
+  // Arrival neighbor at dot a (from previous incoming arc)
+  let arrivalNeighbor = -1;
+  if (i > 0) {
+    const prev = transCorridors[i - 1];
+    const inArc = shortestArc(prev.enter, a);
+    if (inArc.length >= 2) arrivalNeighbor = inArc[inArc.length - 2];
+  }
+
+  let best = null, bestCost = Infinity;
+  for (const c of CORRIDORS) {
+    const outArc = shortestArc(a, c.exit);
+    // Skip if first step doubles back toward where the incoming arrived from
+    if (outArc.length >= 2 && outArc[1] === arrivalNeighbor) continue;
+    const cost = perimDist(a, c.exit) + perimDist(c.enter, b);
+    if (cost < bestCost) { bestCost = cost; best = c; }
+  }
+  if (!best) {
+    bestCost = Infinity;
+    for (const c of CORRIDORS) {
+      const cost = perimDist(a, c.exit) + perimDist(c.enter, b);
+      if (cost < bestCost) { bestCost = cost; best = c; }
+    }
+  }
+  transCorridors.push(best);
+}
+
+function transitionPaths(transIdx, vw, vh) {
+  const a = slideDotIdx[transIdx], b = slideDotIdx[transIdx + 1];
+  const corr = transCorridors[transIdx];
+
+  const outArc = shortestArc(a, corr.exit);
+  const outPts = outArc.map(i => ({ x: BORDER[i].x * vw, y: BORDER[i].y * vh }));
+  outPts.push({ x: BORDER[corr.exit].x * vw, y: vh + 40 });
+
+  const inArc = shortestArc(corr.enter, b);
+  const inPts = [{ x: BORDER[corr.enter].x * vw, y: -40 }];
+  inArc.forEach(i => inPts.push({ x: BORDER[i].x * vw, y: BORDER[i].y * vh }));
+
+  return { outPts, inPts };
+}
+
+function ptsString(pts) { return pts.map(p => `${p.x},${p.y}`).join(' '); }
+
+function ptsLength(pts) {
+  let l = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const dx = pts[i].x - pts[i - 1].x, dy = pts[i].y - pts[i - 1].y;
+    l += Math.sqrt(dx * dx + dy * dy);
+  }
+  return l;
+}
+
+function trimStart(pts, amt) {
+  if (pts.length < 2 || amt <= 0) return [...pts];
+  let rem = amt, i = 0;
+  while (i < pts.length - 1) {
+    const dx = pts[i + 1].x - pts[i].x, dy = pts[i + 1].y - pts[i].y;
+    const seg = Math.sqrt(dx * dx + dy * dy);
+    if (rem >= seg) { rem -= seg; i++; } else {
+      const t = rem / seg;
+      const out = [{ x: pts[i].x + dx * t, y: pts[i].y + dy * t }];
+      for (let j = i + 1; j < pts.length; j++) out.push(pts[j]);
+      return out;
+    }
+  }
+  return [pts[pts.length - 1]];
+}
+
+function trimEnd(pts, amt) {
+  return trimStart([...pts].reverse(), amt).reverse();
+}
+
+let currentSlide = 0;
+let transitioning = false;
+const deck = document.getElementById('deck');
+const counter = document.getElementById('counter');
+
+function buildSlides() {
+  deck.innerHTML = '';
+  const vw = window.innerWidth, vh = window.innerHeight;
+
+  for (let i = 0; i < TOTAL; i++) {
+    const slide = document.createElement('div');
+    slide.className = 'slide' + (i === currentSlide ? ' active' : '');
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'slide-svg');
+    svg.setAttribute('viewBox', `0 0 ${vw} ${vh}`);
+    svg.setAttribute('preserveAspectRatio', 'none');
+
+    const idx = slideDotIdx[i];
+    const cx = BORDER[idx].x * vw, cy = BORDER[idx].y * vh;
+
+    // Dot
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    dot.setAttribute('x', cx - DOT_SIZE / 2);
+    dot.setAttribute('y', cy - DOT_SIZE / 2);
+    dot.setAttribute('width', DOT_SIZE);
+    dot.setAttribute('height', DOT_SIZE);
+    dot.setAttribute('rx', DOT_R);
+    dot.setAttribute('ry', DOT_R);
+    dot.setAttribute('fill', GREEN);
+    svg.appendChild(dot);
+
+    // Incoming line (transition i-1 → i)
+    if (i > 0) {
+      const { inPts } = transitionPaths(i - 1, vw, vh);
+      const pts = trimEnd(inPts, GAP + DOT_SIZE / 2);
+      if (pts.length >= 2) svg.appendChild(makeLine(pts, 'incoming-line'));
+    }
+
+    // Outgoing line (transition i → i+1)
+    if (i < TOTAL - 1) {
+      const { outPts } = transitionPaths(i, vw, vh);
+      const pts = trimStart(outPts, GAP + DOT_SIZE / 2);
+      if (pts.length >= 2) svg.appendChild(makeLine(pts, 'outgoing-line'));
+    }
+
+    slide.appendChild(svg);
+
+    const content = document.createElement('div');
+    content.className = 'content';
+    if (SLIDE_HTML[i]) {
+      if (SLIDE_HTML[i].cls) slide.classList.add(SLIDE_HTML[i].cls);
+      content.innerHTML = SLIDE_HTML[i].html;
+    } else {
+      content.textContent = `Slide ${i + 1}`;
+    }
+    slide.appendChild(content);
+    deck.appendChild(slide);
+  }
+  updateCounter();
+}
+
+function makeLine(pts, cls) {
+  const len = ptsLength(pts);
+  const pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+  pl.setAttribute('points', ptsString(pts));
+  pl.setAttribute('fill', 'none');
+  pl.setAttribute('stroke', GREEN);
+  pl.setAttribute('stroke-width', STROKE);
+  pl.setAttribute('stroke-linecap', 'round');
+  pl.setAttribute('stroke-linejoin', 'round');
+  pl.setAttribute('stroke-dasharray', len);
+  pl.setAttribute('stroke-dashoffset', len);
+  pl.setAttribute('class', cls);
+  pl.dataset.length = len;
+  return pl;
+}
+
+function updateCounter() {
+  counter.textContent = `${currentSlide + 1} / ${TOTAL}`;
+}
+
+function getSlide(i) { return deck.querySelectorAll('.slide')[i]; }
+
+function animLine(el, mode) {
+  return new Promise(resolve => {
+    if (!el) return resolve();
+    const len = parseFloat(el.dataset.length);
+    if (mode === 'draw') {
+      // Force reflow so the browser registers the "before" state
+      // (needed when the parent slide just went from display:none to block)
+      el.getBoundingClientRect();
+      el.style.transition = `stroke-dashoffset ${ANIM_MS}ms ease-out`;
+      el.setAttribute('stroke-dashoffset', '0');
+      setTimeout(resolve, ANIM_MS);
+    } else if (mode === 'undraw') {
+      el.getBoundingClientRect();
+      el.style.transition = `stroke-dashoffset ${ANIM_MS}ms ease-in`;
+      el.setAttribute('stroke-dashoffset', len);
+      setTimeout(resolve, ANIM_MS);
+    } else if (mode === 'reset-drawn') {
+      el.style.transition = 'none';
+      el.setAttribute('stroke-dashoffset', '0');
+      resolve();
+    } else {
+      el.style.transition = 'none';
+      el.setAttribute('stroke-dashoffset', len);
+      resolve();
+    }
+  });
+}
+
+async function goForward() {
+  if (transitioning || currentSlide >= TOTAL - 1) return;
+  transitioning = true;
+
+  const curr = getSlide(currentSlide);
+  const next = getSlide(currentSlide + 1);
+
+  // Animate outgoing line on current slide
+  await animLine(curr.querySelector('.outgoing-line'), 'draw');
+
+  // Switch
+  curr.classList.remove('active');
+  next.classList.add('active');
+  currentSlide++;
+  updateCounter();
+
+  // Animate incoming line on new slide
+  await animLine(next.querySelector('.incoming-line'), 'draw');
+
+  transitioning = false;
+}
+
+async function goBackward() {
+  if (transitioning || currentSlide <= 0) return;
+  transitioning = true;
+
+  const curr = getSlide(currentSlide);
+  const target = getSlide(currentSlide - 1);
+
+  // Retract incoming line on current slide (retracts from dot toward top)
+  await animLine(curr.querySelector('.incoming-line'), 'undraw');
+
+  // Switch
+  curr.classList.remove('active');
+  target.classList.add('active');
+  currentSlide--;
+  updateCounter();
+
+  // Retract outgoing line on previous slide (retracts from bottom toward dot)
+  await animLine(target.querySelector('.outgoing-line'), 'undraw');
+
+  transitioning = false;
+}
+
+// Instant (no animation) navigation
+function jumpForward() {
+  if (transitioning || currentSlide >= TOTAL - 1) return;
+  const curr = getSlide(currentSlide);
+  const next = getSlide(currentSlide + 1);
+
+  // Instantly draw outgoing on current
+  animLine(curr.querySelector('.outgoing-line'), 'reset-drawn');
+  curr.classList.remove('active');
+  next.classList.add('active');
+  currentSlide++;
+  // Instantly draw incoming on new slide
+  animLine(next.querySelector('.incoming-line'), 'reset-drawn');
+  updateCounter();
+}
+
+function jumpBackward() {
+  if (transitioning || currentSlide <= 0) return;
+  const curr = getSlide(currentSlide);
+  const target = getSlide(currentSlide - 1);
+
+  animLine(curr.querySelector('.incoming-line'), 'reset');
+  curr.classList.remove('active');
+  target.classList.add('active');
+  currentSlide--;
+  animLine(target.querySelector('.outgoing-line'), 'reset');
+  updateCounter();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') {
+    e.preventDefault(); goForward();
+  } else if (e.key === 'ArrowLeft') {
+    e.preventDefault(); goBackward();
+  } else if (e.key === 'ArrowDown') {
+    e.preventDefault(); jumpForward();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault(); jumpBackward();
+  }
+});
+
+// Click navigation disabled — interferes with text selection and demo interaction
+
+// --- slide content ---
+const SLIDE_HTML = {
+
+  // 1. Title
+  0: {
+    cls: 'title-slide',
+    html: `<div class="title"><span>Discode</span>: Stop Wasting Tokens on Tool Schemas and Responses</div>
+<div class="subtitle"><span class="author">Will Leeney PhD</span><span class="affiliation">AI Research Engineering @<img class="stackone-logo" src="https://www.stackone.com/favicon.svg" alt="StackOne"> StackOne</span></div>`
+  },
+
+  // 2. StackOne
+  1: {
+    html: `<div class="slide-heading"><img src="https://www.stackone.com/favicon.svg" style="height:1.1em;vertical-align:middle;margin-right:0.4em">StackOne</div>
+<div style="font-size:1.8rem;font-weight:600;color:#e0e0e0;margin-bottom:1.2rem"><span style="color:#4A9E7E">200+</span> connectors. <span style="color:#4A9E7E">11,000+</span> actions. All via MCP.</div>
+<div class="term" style="margin-bottom:1.5rem">
+<div><span class="dim"># each connected account = full tool set</span></div>
+<div>&nbsp;</div>
+<div><span class="prompt">salesforce</span>    <span class="dim">&rarr;</span> <span class="cmd">370 tools</span></div>
+<div><span class="prompt">workday</span>       <span class="dim">&rarr;</span> <span class="cmd">186 tools</span></div>
+<div><span class="prompt">oracle fusion</span> <span class="dim">&rarr;</span> <span class="cmd">1,506 tools</span></div>
+<div>&nbsp;</div>
+<div><span class="dim">a handful of accounts gets you to</span> <span class="warn">1,000+ tools</span> <span class="dim">fast</span></div>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:1.2rem;align-items:center">
+  <img src="https://stackone-logos.com/api/hubspot/filled/svg" style="height:2.2rem" title="HubSpot">
+  <img src="https://stackone-logos.com/api/salesforce/filled/svg" style="height:2.2rem" title="Salesforce">
+  <img src="https://stackone-logos.com/api/greenhouse/filled/svg" style="height:2.2rem" title="Greenhouse">
+  <img src="https://stackone-logos.com/api/workday/filled/svg" style="height:2.2rem" title="Workday">
+  <img src="https://stackone-logos.com/api/bamboohr/filled/svg" style="height:2.2rem" title="BambooHR">
+  <img src="https://stackone-logos.com/api/ashby/filled/svg" style="height:2.2rem" title="Ashby">
+  <img src="https://stackone-logos.com/api/jira/filled/svg" style="height:2.2rem" title="Jira">
+  <img src="https://stackone-logos.com/api/slack/filled/svg" style="height:2.2rem" title="Slack">
+  <img src="https://stackone-logos.com/api/notion/filled/svg" style="height:2.2rem" title="Notion">
+  <img src="https://stackone-logos.com/api/gmail/filled/svg" style="height:2.2rem" title="Gmail">
+  <img src="https://stackone-logos.com/api/zendesk-sell/filled/svg" style="height:2.2rem" title="Zendesk">
+  <img src="https://stackone-logos.com/api/github/filled/svg" style="height:2.2rem" title="GitHub">
+  <img src="https://stackone-logos.com/api/trello/filled/svg" style="height:2.2rem" title="Trello">
+  <img src="https://stackone-logos.com/api/gong/filled/svg" style="height:2.2rem" title="Gong">
+</div>`
+  },
+
+  // 3. Normal tool calling
+  2: {
+    html: `<div class="slide-heading">Normal <span>Tool Calling</span></div>
+<div class="term">
+<div><span class="prompt">$</span> <span class="cmd">bun run few "List all the conversations in slack"</span></div>
+<div>&nbsp;</div>
+<div><span class="dim">3 accounts (HubSpot, Slack, Jira)</span></div>
+<div><span class="dim">238 tools &bull; 508 KB</span></div>
+<div>&nbsp;</div>
+<div><span class="ok">&#10003; Claude picks the right tool</span></div>
+</div>`
+  },
+
+  // 4. Tool Schema Bloat
+  3: {
+    html: `<div class="slide-heading">Tool Schema <span>Bloat</span></div>
+<div class="term">
+<div><span class="prompt">$</span> <span class="cmd">bun run all "List all the conversations in slack"</span></div>
+<div>&nbsp;</div>
+<div><span class="dim">20 accounts &bull;</span> <span class="warn">1,058 tools &bull; 2.5 MB</span></div>
+<div>&nbsp;</div>
+<div><span class="err">&#10007; 502 Bad Gateway — too many tools for the API</span></div>
+</div>
+<div style="font-size:1.3rem;font-weight:400;color:#aaa;margin-top:1.5rem;line-height:1.7">
+Enterprise wants <span style="color:#e8a735">everything available</span>. One agent across all your systems.<br>
+Salesforce + Jira + Workday + Slack + GitHub + Gmail + ...
+</div>`
+  },
+
+  // 5. Building Tool Search
+  4: {
+    html: `<div class="slide-heading">Building <span>Tool Search</span></div>
+<div class="term">
+<div><span class="dim"># don't preload. dynamically fetch what you need.</span></div>
+<div>&nbsp;</div>
+<div><span class="err">before:</span>  <span class="dim">load 1,247 tools &rarr; system prompt &rarr;</span> <span class="err">680k tokens</span></div>
+<div>&nbsp;</div>
+<div><span class="ok">after:</span>   <span class="dim">agent query &rarr;</span> <span class="cmd">search index</span> <span class="dim">&rarr;</span> <span class="cmd">top-k tools</span> <span class="dim">&rarr;</span> <span class="ok">call</span></div>
+</div>`
+  },
+
+  // 6. Search Methods
+  5: {
+    html: `<div class="slide-heading">Search <span>Methods</span></div>
+<div class="methods" style="margin-bottom:1.5rem">
+  <div class="method"><h3>BM25</h3><p>keyword matching<br>fast, no training<br><span style="color:#555;font-size:0.85rem">what Claude Code uses</span></p></div>
+  <div class="method"><h3>Semantic</h3><p>embedding similarity<br>understands intent<br><span style="color:#555;font-size:0.85rem">semantic router</span></p></div>
+  <div class="method"><h3>LLM</h3><p>model re-ranking<br>highest accuracy<br><span style="color:#555;font-size:0.85rem">slow + expensive</span></p></div>
+</div>
+<div class="methods">
+  <div class="method"><h3>Baseline Embedding</h3><p>MiniLM-L6-v2 cosine<br>simple nearest-neighbour<br><span style="color:#555;font-size:0.85rem">original StackOne</span></p></div>
+  <div class="method"><h3>Action Search</h3><p>+ verb synonyms<br>+ domain context<br><span style="color:#555;font-size:0.85rem">StackOne enriched</span></p></div>
+  <div class="method"><h3>Tool2Vec</h3><p>synthetic ideal query<br>per tool offline<br><span style="color:#555;font-size:0.85rem">UC Berkeley</span></p></div>
+  <div class="method"><h3>Toolshed RAG</h3><p>LLM query expansion<br>+ cross-encoder rerank<br><span style="color:#555;font-size:0.85rem">accurate but slow</span></p></div>
+</div>`
+  },
+
+  // 7. Benchmark Dataset — mock connectors
+  6: {
+    html: `<div class="slide-heading">Benchmark <span>Dataset</span></div>
+<div class="term">
+<div><span class="prompt">$</span> <span class="cmd">cd ~/Documents/mock-connectors</span></div>
+<div><span class="prompt">$</span> <span class="cmd">bun run generate --connectors 100</span></div>
+<div>&nbsp;</div>
+<div><span class="ok">&#10003;</span> generated 100+ mock connectors</div>
+<div><span class="ok">&#10003;</span> 10,000+ tools with schemas</div>
+<div>&nbsp;</div>
+<div><span class="dim">&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;</span></div>
+<div>&nbsp;</div>
+<div><span class="prompt">query:</span>    <span class="cmd">"find all open tickets assigned to me"</span></div>
+<div><span class="prompt">expected:</span> <span class="ok">jira_search_issues</span></div>
+</div>`
+  },
+
+  // 8. Baseline Results
+  7: {
+    html: `<div class="slide-heading">Baseline <span>Results</span></div>
+<table class="results-table">
+  <tr><th>Method</th><th>Hit@1</th><th>Hit@3</th><th>MRR</th><th>p50</th></tr>
+  <tr><td>Semantic Router</td><td>62.7%</td><td>82.3%</td><td>0.736</td><td>2.7ms</td></tr>
+  <tr><td>Action Search (+synonyms)</td><td>59.0%</td><td>80.7%</td><td>0.712</td><td>3.1ms</td></tr>
+  <tr><td>Toolshed RAG</td><td>57.4%</td><td>79.5%</td><td>0.704</td><td>53.6ms</td></tr>
+  <tr><td>Baseline Embedding</td><td>55.0%</td><td>79.1%</td><td>0.689</td><td>2.7ms</td></tr>
+  <tr><td>Tool2Vec</td><td>53.8%</td><td>76.3%</td><td>0.674</td><td>2.7ms</td></tr>
+  <tr><td>bge-base-en-v1.5</td><td>52.2%</td><td>85.5%</td><td>0.691</td><td>10.5ms</td></tr>
+  <tr><td>BM-25</td><td>36.5%</td><td>63.5%</td><td>0.537</td><td>0.5ms</td></tr>
+  <tr><td class="dim">LLM Direct</td><td class="dim">&mdash;</td><td class="dim">&mdash;</td><td class="dim">&mdash;</td><td class="dim">~2,500ms</td></tr>
+</table>`
+  },
+
+  // 9. Fine-Tuning — architecture diagram
+  8: {
+    html: `<div class="slide-heading">Fine-<span>Tuning</span></div>
+<div style="display:flex;align-items:stretch;gap:32px;width:100%;justify-content:center">
+  <div style="display:flex;flex-direction:column;justify-content:center;flex-shrink:0">
+    <div style="background:#111114;border:2px solid #4A9E7E;border-radius:12px;padding:24px 28px;text-align:center;min-width:180px">
+      <p style="font-size:1.5rem;font-weight:600;color:#4A9E7E;margin-bottom:8px">100+ Connectors</p>
+      <p style="font-size:1.05rem;color:#888;font-weight:400">mock providers<br>with tool schemas</p>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center;flex-shrink:0;gap:4px">
+    <span style="font-size:1rem;color:#888;text-align:center">LLM generates</span>
+    <span style="font-size:2.4rem;color:#4A9E7E;text-align:center">&rarr;</span>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center;flex-shrink:0">
+    <div style="background:#111114;border:1px solid #333;border-radius:10px;padding:20px 24px">
+      <p style="font-size:1.3rem;font-weight:600;color:#4A9E7E;margin-bottom:10px">Query-Tool Pairs</p>
+      <p style="font-size:1rem;font-family:'JetBrains Mono',monospace;color:#888;line-height:1.7">"find open tickets" &rarr; jira_search<br>"send email" &rarr; gmail_send<br>"list PRs" &rarr; github_list_pulls</p>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center;flex-shrink:0;gap:4px">
+    <span style="font-size:1rem;color:#888;text-align:center">contrastive</span>
+    <span style="font-size:2.4rem;color:#4A9E7E;text-align:center">&rarr;</span>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center;flex-shrink:0">
+    <div style="background:#111114;border:2px solid #e8a735;border-radius:12px;padding:24px 28px;text-align:center;min-width:180px">
+      <p style="font-size:1.5rem;font-weight:600;color:#e8a735;margin-bottom:8px">Fine-Tune</p>
+      <p style="font-size:1.05rem;color:#888;font-weight:400">MiniLM + bge<br>on Modal GPU</p>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center;flex-shrink:0">
+    <span style="font-size:2.4rem;color:#4A9E7E;text-align:center">&rarr;</span>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center;flex-shrink:0">
+    <div style="background:#111114;border:2px solid #4A9E7E;border-radius:12px;padding:24px 28px;text-align:center;min-width:180px">
+      <p style="font-size:1.5rem;font-weight:600;color:#4A9E7E;margin-bottom:8px">Deploy &#10003;</p>
+      <p style="font-size:1.05rem;color:#888;font-weight:400">inference endpoint<br>~3ms p50</p>
+    </div>
+  </div>
+</div>`
+  },
+
+  // 10. Fine-Tuned Results
+  9: {
+    html: `<div class="slide-heading">Fine-Tuned <span>Results</span></div>
+<table class="results-table">
+  <tr><th>Method</th><th>Hit@1</th><th>Hit@3</th><th>MRR</th><th>p50</th></tr>
+  <tr class="highlight"><td>Fine-Tuned MiniLM</td><td>92.8%</td><td>98.8%</td><td>0.957</td><td>~3ms</td></tr>
+  <tr><td>Fine-Tuned bge</td><td>90.0%</td><td>98.8%</td><td>0.943</td><td>10.9ms</td></tr>
+  <tr><td class="dim">Semantic Router</td><td class="dim">62.7%</td><td class="dim">82.3%</td><td class="dim">0.736</td><td class="dim">2.7ms</td></tr>
+  <tr><td class="dim">Baseline Embedding</td><td class="dim">55.0%</td><td class="dim">79.1%</td><td class="dim">0.689</td><td class="dim">2.7ms</td></tr>
+  <tr><td class="dim">BM-25</td><td class="dim">36.5%</td><td class="dim">63.5%</td><td class="dim">0.537</td><td class="dim">0.5ms</td></tr>
+</table>`
+  },
+
+  // 11. DEMO — tool search
+  10: {
+    html: `<div class="slide-heading">DEMO: <span>Tool Search</span></div>
+<div class="term">
+<div><span class="prompt">$</span> <span class="cmd">bun run search "List all the conversations in slack"</span></div>
+<div>&nbsp;</div>
+<div><span class="dim">MiniLM routes in</span> <span class="ok">&lt;5ms</span></div>
+<div><span class="dim">sends 2-5 tools (4 KB) to Claude</span></div>
+<div>&nbsp;</div>
+<div><span class="ok">&#10003; Correct answer every time</span></div>
+</div>`
+  },
+
+  // 12. Response Bloat
+  11: {
+    html: `<div class="slide-heading">Response <span>Bloat</span></div>
+<div class="term">
+<div><span class="prompt">$</span> <span class="cmd">bun run call_tool "list all jira issues in ENG"</span></div>
+<div>&nbsp;</div>
+<div><span class="warn">&gt;200k tokens</span> <span class="dim">in a single response</span></div>
+<div><span class="err">&#10007; context_length_exceeded</span></div>
+</div>`
+  },
+
+  // 13. Code Mode — architecture
+  12: {
+    html: `<div class="slide-heading">Introducing <span>Discode</span></div>
+<p style="font-size:1.1rem;color:#e05252;font-weight:600;margin-bottom:1rem">Regular XML tool calls</p>
+<div style="display:flex;align-items:center;gap:24px;width:100%;justify-content:center;margin-bottom:2.5rem">
+  <div style="background:#111114;border:2px solid #e05252;border-radius:12px;padding:18px 24px;text-align:center;min-width:150px">
+    <p style="font-size:1.4rem;font-weight:600;color:#e05252">Agent</p>
+    <p style="font-size:1rem;color:#888;font-weight:400">tool_use XML</p>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+    <span style="font-size:0.9rem;color:#888">tool_call</span>
+    <span style="font-size:2.2rem;color:#e05252">&rarr;</span>
+  </div>
+  <div style="background:#111114;border:1px solid #333;border-radius:10px;padding:18px 24px;text-align:center;min-width:150px">
+    <p style="font-size:1.2rem;font-weight:600;color:#ccc">MCP Server</p>
+    <p style="font-size:1rem;color:#888;font-weight:400">execute tool</p>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+    <span style="font-size:0.9rem;color:#888">call</span>
+    <span style="font-size:2.2rem;color:#e05252">&rarr;</span>
+  </div>
+  <div style="background:#111114;border:1px solid #333;border-radius:10px;padding:18px 24px;text-align:center;min-width:150px">
+    <p style="font-size:1.2rem;font-weight:600;color:#ccc">API</p>
+    <p style="font-size:1rem;color:#888;font-weight:400">Jira, GitHub, ...</p>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+    <span style="font-size:0.9rem;color:#e05252">full JSON</span>
+    <span style="font-size:2.2rem;color:#e05252">&rarr;</span>
+  </div>
+  <div style="background:#111114;border:2px solid #e05252;border-radius:12px;padding:18px 24px;text-align:center;min-width:180px">
+    <p style="font-size:1.2rem;font-weight:600;color:#e05252">LLM Context</p>
+    <p style="font-size:1.05rem;color:#e05252;font-weight:600">~420k tokens</p>
+    <div style="background:#e0525233;height:6px;border-radius:3px;margin-top:8px"></div>
+  </div>
+</div>
+<p style="font-size:1.1rem;color:#4A9E7E;font-weight:600;margin-bottom:1rem">Discode</p>
+<div style="display:flex;align-items:stretch;gap:24px;width:100%;justify-content:center">
+  <div style="display:flex;flex-direction:column;justify-content:center;flex-shrink:0">
+    <div style="background:#111114;border:2px solid #4A9E7E;border-radius:12px;padding:18px 24px;text-align:center;min-width:150px">
+      <p style="font-size:1.4rem;font-weight:600;color:#4A9E7E;margin-bottom:6px">Agent</p>
+      <p style="font-size:1rem;color:#888;font-weight:400">writes code to<br>call tools + filter</p>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center;flex-shrink:0;gap:3px">
+    <span style="font-size:0.9rem;color:#888;text-align:center">generates</span>
+    <span style="font-size:2.2rem;color:#4A9E7E;text-align:center">&rarr;</span>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center;flex-shrink:0">
+    <div style="background:#111114;border:1px solid #333;border-radius:10px;padding:14px 18px">
+      <p style="font-size:1.05rem;color:#4A9E7E;margin-bottom:6px;font-weight:600">generated code</p>
+      <p style="font-size:0.85rem;font-family:'JetBrains Mono',monospace;color:#888;line-height:1.6">const issues = await<br>&nbsp; jira_search_issues({<br>&nbsp;&nbsp;&nbsp; status: "open" });<br>return issues.map(i =&gt;<br>&nbsp; ({ key: i.key, summary: i.summary }));</p>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center;flex-shrink:0;gap:3px">
+    <span style="font-size:0.9rem;color:#888;text-align:center">execute</span>
+    <span style="font-size:2.2rem;color:#4A9E7E;text-align:center">&rarr;</span>
+  </div>
+  <div style="border:2px dashed #e8a735;border-radius:12px;padding:16px;min-width:160px;background:rgba(232,167,53,0.03)">
+    <p style="font-size:1.15rem;color:#e8a735;font-weight:600;margin-bottom:10px;text-align:center">Sandbox (tsx)</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;max-width:150px;margin-left:auto;margin-right:auto">
+      <div style="background:#111114;border:1px solid #4A9E7E;border-radius:6px;padding:8px 14px;text-align:center">
+        <p style="font-size:1rem;color:#4A9E7E;font-weight:600">MCP client</p>
+      </div>
+      <div style="background:#111114;border:1px solid #4A9E7E;border-radius:6px;padding:8px 14px;text-align:center">
+        <p style="font-size:1rem;color:#4A9E7E;font-weight:600">Real API</p>
+      </div>
+    </div>
+    <p style="font-size:0.95rem;color:#4A9E7E;text-align:center;font-weight:600">Filtered before<br>reaching LLM</p>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center;flex-shrink:0;gap:3px">
+    <span style="font-size:2.2rem;color:#4A9E7E;text-align:center">&rarr;</span>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center;flex-shrink:0">
+    <div style="background:#111114;border:2px solid #4A9E7E;border-radius:12px;padding:18px 24px;text-align:center;min-width:150px">
+      <p style="font-size:1.2rem;font-weight:600;color:#4A9E7E;margin-bottom:6px">LLM Context</p>
+      <p style="font-size:1.05rem;color:#4A9E7E;font-weight:600">~2k tokens</p>
+      <div style="background:#4A9E7E55;height:6px;width:20%;border-radius:3px;margin-top:8px"></div>
+    </div>
+  </div>
+</div>`
+  },
+
+  // 14. Benchmarking Discode
+  13: {
+    html: `<div class="slide-heading">Benchmarking <span>Discode</span></div>
+<table class="results-table">
+  <tr><th>Metric</th><th>Discode</th><th>Naive</th><th>Ratio</th></tr>
+  <tr class="highlight"><td>Pass rate</td><td>98.6% (136/138)</td><td>82.6% (114/138)</td><td>1.19x</td></tr>
+  <tr><td>Total tokens</td><td>1.9M</td><td class="err">9.1M</td><td>4.7x fewer</td></tr>
+  <tr><td>Avg latency</td><td>20.7s</td><td class="err">234.4s</td><td>11.3x faster</td></tr>
+</table>`
+  },
+
+  // 15. Dynamic Truncation
+  14: {
+    html: `<div class="slide-heading">Dynamic <span>Truncation</span></div>
+<div style="display:flex;align-items:stretch;gap:32px;width:100%;justify-content:center">
+  <div style="display:flex;flex-direction:column;justify-content:center;flex-shrink:0">
+    <div style="background:#111114;border:2px solid #e05252;border-radius:12px;padding:24px 28px;text-align:center;min-width:200px">
+      <p style="font-size:1.4rem;font-weight:600;color:#e05252;margin-bottom:8px">Raw Response</p>
+      <p style="font-size:1.15rem;color:#e05252;font-weight:600">~420k tokens</p>
+      <div style="background:#e0525233;height:8px;border-radius:4px;margin-top:10px"></div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center;flex-shrink:0">
+    <span style="font-size:2.4rem;color:#e8a735;text-align:center">&rarr;</span>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center;flex-shrink:0">
+    <div style="background:#111114;border:1px solid #333;border-radius:10px;padding:24px 28px;text-align:center;min-width:210px">
+      <p style="font-size:1.4rem;font-weight:600;color:#ccc;margin-bottom:8px">LLM Filter Code</p>
+      <p style="font-size:1.05rem;color:#888;font-weight:400">LLM generates code<br>to extract relevant fields</p>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center;flex-shrink:0">
+    <span style="font-size:2.4rem;color:#e8a735;text-align:center">&rarr;</span>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center;flex-shrink:0">
+    <div style="background:#111114;border:2px solid #e8a735;border-radius:12px;padding:24px 28px;text-align:center;min-width:200px">
+      <p style="font-size:1.4rem;font-weight:600;color:#e8a735;margin-bottom:8px">Truncation</p>
+      <p style="font-size:1.05rem;color:#888;font-weight:400">execute filter code<br>on raw response</p>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center;flex-shrink:0">
+    <span style="font-size:2.4rem;color:#4A9E7E;text-align:center">&rarr;</span>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center;flex-shrink:0">
+    <div style="background:#111114;border:2px solid #4A9E7E;border-radius:12px;padding:24px 28px;text-align:center;min-width:200px">
+      <p style="font-size:1.4rem;font-weight:600;color:#4A9E7E;margin-bottom:8px">Response &#10003;</p>
+      <p style="font-size:1.15rem;color:#4A9E7E;font-weight:600">~8k tokens</p>
+      <div style="background:#4A9E7E55;height:8px;width:18%;border-radius:4px;margin-top:10px"></div>
+    </div>
+  </div>
+</div>`
+  },
+
+  // 16. Discode
+  15: {
+    html: `<div class="slide-heading"><span>Discode</span></div>
+<div class="methods" style="margin-bottom:1.5rem">
+  <div class="method"><h3>XML Tool Use</h3><p>standard MCP flow<br>full response in context<br><span style="color:#555;font-size:0.85rem">default behaviour</span></p></div>
+  <div class="method"><h3>Code Mode</h3><p>LLM writes code<br>sandbox executes + filters<br><span style="color:#555;font-size:0.85rem">discode approach</span></p></div>
+</div>
+<div class="methods">
+  <div class="method"><h3>Observation Masking</h3><p>mask prior tool outputs<br>reason from state<br><span style="color:#555;font-size:0.85rem">reduce context growth</span></p></div>
+  <div class="method"><h3>Selective Context</h3><p>entropy-based pruning<br>drop low-info sentences<br><span style="color:#555;font-size:0.85rem">modest compression</span></p></div>
+  <div class="method"><h3>LLMLingua-2</h3><p>token-level classifier<br>predict which tokens to keep<br><span style="color:#555;font-size:0.85rem">XLM-RoBERTa</span></p></div>
+</div>`
+  },
+
+  // 17. MCP Atlas + more benchmarks
+  16: {
+    html: `<div class="slide-heading">MCP <span>Atlas</span></div>
+<table class="results-table">
+  <tr><th>Compressor</th><th>Pass Rate</th><th>Coverage</th><th>Ctx Reduction</th><th>Tokens</th></tr>
+  <tr class="highlight"><td>Dynamic Truncation</td><td>79.5%</td><td>84.6%</td><td>37.3%</td><td>8.1M</td></tr>
+  <tr><td>Observation Masking</td><td>78.0%</td><td>84.1%</td><td>0.0%</td><td>12.2M</td></tr>
+  <tr><td>Selective Context</td><td>73.5%</td><td>80.3%</td><td>18.9%</td><td>19.5M</td></tr>
+  <tr><td>No Compression</td><td>71.0%</td><td>73.9%</td><td>0.0%</td><td>11.1M</td></tr>
+  <tr><td class="dim">LLMLingua-2</td><td class="dim">67.5%</td><td class="dim">78.3%</td><td class="dim">22.4%</td><td class="dim">26.1M</td></tr>
+</table>`
+  },
+
+  // 18. MCP Primitives
+  17: {
+    html: `<div class="slide-heading">MCP <span>Primitives</span></div>
+<div class="methods">
+  <div class="method"><h3>listServers</h3><p>discover available<br>MCP servers<br><span style="color:#555;font-size:0.85rem">what's connected?</span></p></div>
+  <div class="method"><h3>searchTools</h3><p>find relevant tools<br>by query<br><span style="color:#555;font-size:0.85rem">semantic search</span></p></div>
+  <div class="method"><h3>getInputSchema</h3><p>fetch schema<br>on demand<br><span style="color:#555;font-size:0.85rem">only when needed</span></p></div>
+</div>`
+  },
+
+  // 19. Shipping It
+  18: {
+    html: `<div class="slide-heading">Shipping <span>It</span></div>
+<div class="methods" style="margin-bottom:1.5rem">
+  <div class="method"><h3>Cloudflare Workers</h3><p>edge runtime<br>global, fast</p></div>
+  <div class="method"><h3>Credential Injection</h3><p>secure auth<br>zero user setup</p></div>
+  <div class="method"><h3>No Downloads</h3><p>instant access<br>MCP native</p></div>
+</div>
+<div class="term" style="font-size:0.95rem">
+<div><span class="dim"># we just wanted an MCP that works at scale</span></div>
+<div><span class="dim"># no SDK installs. no credential files. just connect.</span></div>
+</div>`
+  },
+
+  // 20. DEMO — full discode
+  19: {
+    html: `<div class="demo-label" style="text-align:center;margin-bottom:0.5rem">DEMO</div>
+<div class="demo-sub" style="text-align:center;margin-bottom:2rem">full Discode end-to-end</div>
+<div class="term" style="width:40%;margin:0 auto;font-size:1rem;line-height:1.7;padding:1rem 1.4rem">
+<div><span class="prompt">$</span> <span class="cmd">./scripts/copy-mcp-config.sh</span></div>
+<div><span class="dim"># copies MCP server config to clipboard</span></div>
+<div>&nbsp;</div>
+<div><span class="prompt">$</span> <span class="cmd">./scripts/copy-api-key.sh</span></div>
+<div><span class="dim"># copies STACKONE_API_KEY to clipboard</span></div>
+</div>`
+  },
+
+  // 21. Thanks
+  20: {
+    html: `<div class="slide-heading" style="text-align:center;border-left:none;padding-left:0"><span>Thanks</span></div>
+<div style="font-size:1.2rem;color:#888;font-weight:400;text-align:center;margin-bottom:1.5rem">Will Leeney &middot; <span style="color:#4A9E7E">@StackOne</span></div>
+<div style="display:flex;gap:3rem;width:100%;justify-content:center;align-items:flex-start">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:0.8rem">
+    <img src="qr-discode.png" style="width:240px;height:240px;border-radius:8px;background:#fff;padding:6px">
+    <span style="font-size:1.1rem;color:#4A9E7E;font-weight:600">discode.stackone.com</span>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:0.8rem">
+    <img src="qr-linkedin.png" style="width:240px;height:240px;border-radius:8px;background:#fff;padding:6px">
+    <span style="font-size:1.1rem;color:#4A9E7E;font-weight:600">LinkedIn</span>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:0.8rem">
+    <img src="qr-website.png" style="width:240px;height:240px;border-radius:8px;background:#fff;padding:6px">
+    <span style="font-size:1.1rem;color:#4A9E7E;font-weight:600">willleeney.com</span>
+  </div>
+</div>`
+  },
+};
+
+buildSlides();
+window.addEventListener('resize', buildSlides);
+</script>
+</body>
+</html>
