@@ -1,0 +1,23 @@
+{
+  "enabledPlugins": {
+    "code-simplifier@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "stackone-animation-studio@stackone-claude-marketplace": true,
+    "stackone-natural-writing@stackone-claude-marketplace": true,
+    "stackone-branding@stackone-claude-marketplace": true
+  },
+  "extraKnownMarketplaces": {
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
+      }
+    }
+  },
+  "alwaysThinkingEnabled": true,
+  "skipDangerousModePermissionPrompt": true,
+  "feedbackSurveyState": {
+    "lastShownTime": 1753979546717
+  },
+  "mcpServers": {}
+}

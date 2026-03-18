@@ -1,0 +1,64 @@
+1. Title — Discode
+2. StackOne - intergration infra for connectors exposed as MCP (terminal -> stackone -> list of integrations) (see Guims slide)
+3. Definition of Tool Schema Bloat - terminal with loads of tools 
+4. Demo with blowing the context live (terminal with the commands I'm meant to run)
+5. Performance "I want everything available and fast" - why? enterprise use-case or lazy
+6. Building tool search (don't preload, dynamically fetch what you want)
+7. Search flow — animated pipeline: query → search → top-k → call
+8. Search methods — BM25 / semantic / LLMs
+9. benchmarking
+10. Mock connectors — terminal showing mock setup - example query to tool example 
+11. baseline results - comparison table 
+12. Fine-tuning — training data + Modal boxes
+13. Fine-tuned results — animated embedding scatter + table
+14. DEMO — tool search working
+15. Sick it works...until the response ... 
+
+
+
+
+
+16. Section — Response Bloat
+17. Response Bloat — terminal showing 420k token JSON response blowing context
+18. Code Mode — architecture flow: Agent → search → write code → Sandbox → MCP client → API → filter
+19. DEMO — code mode in action
+20. Benchmarking Code Mode — terminal with test harness setup
+21. Code Mode Results — table with raw JSON vs Code Mode (mock connectors)
+22. Dynamic Summarisation — side-by-side: raw JSON (red, 420k) vs Code Mode (green, small bar)
+
+
+
+23. Shipping It — Cloudflare Workers / Credential Injection / No Downloads boxes
+24. DEMO — Discode end-to-end
+25. Thanks — placeholder for QR codes + social links
+
+
+
+
+<!--
+┌──────────────┬─────────────────┬─────────────────┬──────────────┐
+│    Metric    │     Discode     │      Naive      │    Ratio     │
+├──────────────┼─────────────────┼─────────────────┼──────────────┤
+│ Pass rate    │ 98.6% (136/138) │ 82.6% (114/138) │ 1.19x        │
+├──────────────┼─────────────────┼─────────────────┼──────────────┤
+│ Total tokens │ 1.9M            │ 9.1M            │ 4.7x fewer   │
+├──────────────┼─────────────────┼─────────────────┼──────────────┤
+│ Avg latency  │ 20.7s           │ 234.4s          │ 11.3x faster │
+└──────────────┴─────────────────┴─────────────────┴──────────────┘-->
+
+
+
+<!--
+  ┌─────────────────────┬───────────┬──────────┬───────────────┬──────────────┐
+  │     Compressor      │ Pass Rate │ Coverage │ Ctx Reduction │ Total Tokens │
+  ├─────────────────────┼───────────┼──────────┼───────────────┼──────────────┤
+  │ Discode Dynamic     │ 79.5%     │ 84.6%    │ 37.3%         │ 8.1M         │
+  ├─────────────────────┼───────────┼──────────┼───────────────┼──────────────┤
+  │ Observation Masking │ 78.0%     │ 84.1%    │ 0.0%          │ 12.2M        │
+  ├─────────────────────┼───────────┼──────────┼───────────────┼──────────────┤
+  │ Selective Context   │ 73.5%     │ 80.3%    │ 18.9%         │ 19.5M        │
+  ├─────────────────────┼───────────┼──────────┼───────────────┼──────────────┤
+  │ No Compression      │ 71.0%     │ 73.9%    │ 0.0%          │ 11.1M        │
+  ├─────────────────────┼───────────┼──────────┼───────────────┼──────────────┤
+  │ LLMLingua-2         │ 67.5%     │ 78.3%    │ 22.4%         │ 26.1M        │
+  └─────────────────────┴───────────┴──────────┴───────────────┴──────────────┘-->
