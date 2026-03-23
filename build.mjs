@@ -27,20 +27,30 @@ const publicDir = "public";
 rmSync(publicDir, { recursive: true, force: true });
 mkdirSync(publicDir, { recursive: true });
 
-// Copy each talk's slides.html → public/<talk-dir>/index.html
+// Copy each talk's directory contents → public/<talk-dir>/
 for (const talk of talks) {
-  const src = join(talk.dir, "slides.html");
   const dest = join(publicDir, talk.dir);
   mkdirSync(dest, { recursive: true });
-  copyFileSync(src, join(dest, "index.html"));
-  console.log(`Copied ${src} → ${join(dest, "index.html")}`);
 
-  // Copy assets if they exist
-  const assetsDir = join(talk.dir, "assets");
-  if (existsSync(assetsDir)) {
-    cpSync(assetsDir, join(dest, "assets"), { recursive: true });
-    console.log(`Copied assets for ${talk.dir}`);
+  // Copy all files from the talk directory
+  const entries = readdirSync(talk.dir);
+  for (const entry of entries) {
+    const srcPath = join(talk.dir, entry);
+    const destPath = join(dest, entry);
+    if (statSync(srcPath).isDirectory()) {
+      cpSync(srcPath, destPath, { recursive: true });
+    } else {
+      copyFileSync(srcPath, destPath);
+    }
   }
+
+  // Rename slides.html to index.html for serving
+  const slidesPath = join(dest, "slides.html");
+  const indexPath = join(dest, "index.html");
+  if (existsSync(slidesPath) && !existsSync(indexPath)) {
+    copyFileSync(slidesPath, indexPath);
+  }
+  console.log(`Copied ${talk.dir}/ → ${dest}/ (${entries.length} files)`);
 }
 
 // Generate landing page
