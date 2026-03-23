@@ -6,6 +6,7 @@ Conference talks, demos, and speaking materials.
 
 | Date | Event | Talk | Location |
 |------|-------|------|----------|
+| 2026-03 | SaaStock Local London | The Agent IS the Product: Reinventing Software Categories in the Age of AI | London |
 | 2026-02 | StackOne | Making (and Breaking) Agents by Adding 1,000 MCP Tools | — |
 
 ## Blog Posts & Demos
