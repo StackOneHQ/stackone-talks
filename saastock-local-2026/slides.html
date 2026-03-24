@@ -1073,6 +1073,8 @@ function drawAccuracyArrows() {
 
   const container = svg.parentElement;
   const cr = container.getBoundingClientRect();
+  // Skip if slide is hidden (display:none gives 0 dimensions)
+  if (cr.width === 0 || cr.height === 0) return;
 
   function rel(el) {
     const r = el.getBoundingClientRect();
