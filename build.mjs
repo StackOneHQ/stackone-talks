@@ -139,4 +139,12 @@ ${talkListHtml}
 
 writeFileSync(join(publicDir, "index.html"), indexHtml);
 console.log(`Generated landing page at ${join(publicDir, "index.html")}`);
+
+// Generate redirects for old date-prefixed slugs
+const redirects = [
+  "/2026-02-making-and-breaking-agents-with-1000-tools/* /making-and-breaking-agents-with-1000-tools/:splat 301",
+].join("\n");
+writeFileSync(join(publicDir, "_redirects"), redirects);
+console.log(`Generated _redirects`);
+
 console.log(`Build complete: ${talks.length} talk(s)`);
