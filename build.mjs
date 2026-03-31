@@ -19,7 +19,7 @@ const talks = readdirSync(".")
     const name = dir.replace(/^\d{4}-\d{2}-/, "").replace(/-/g, " ");
     return { dir, title: name, event: "", date: dir.slice(0, 7) };
   })
-  .sort((a, b) => b.dir.localeCompare(a.dir)); // newest first
+  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // newest first
 
 const publicDir = "public";
 

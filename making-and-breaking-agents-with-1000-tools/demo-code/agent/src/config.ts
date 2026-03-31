@@ -10,6 +10,9 @@ export const MODEL = "claude-sonnet-4-5";
 export const MCP_BASE_URL = "https://api.stackone.com/mcp";
 export const CONTEXT_WINDOW = 200_000;
 
+/** Cloudflare's official Code Mode MCP — search + execute tools in authenticated Dynamic Worker isolates */
+export const CLOUDFLARE_CODE_MODE_URL = "https://mcp.cloudflare.com/mcp";
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /** Load provider list from providers.json (returns [] if missing). */
