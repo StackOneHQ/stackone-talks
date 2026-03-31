@@ -76,8 +76,8 @@ function buildCurrentTools(): { tools: any[]; systemPrompt?: string } {
 	let tools: any[] = [];
 	let systemPrompt: string | undefined;
 	if (codeMode.isCodeMode()) {
-		tools = [codeMode.buildExecuteCodeTool()];
-		systemPrompt = codeMode.buildSystemPrompt(allTools);
+		tools = codeMode.buildCodeModeTools();
+		systemPrompt = codeMode.buildSystemPrompt();
 	} else if (discovery.isEnabled()) {
 		tools = discovery.wrapTools(buildAnthropicTools(allTools));
 	} else if (search.isEnabled()) {
@@ -234,14 +234,14 @@ async function runAgent(prompt: string) {
 		const sandbox = codeMode.getSandbox();
 		if (!sandbox || !sandbox.isRunning()) {
 			p.log.step("Sandbox not ready, setting up...");
-			await codeMode.setupSandbox(allTools, MCP_BASE_URL, getAuthHeader());
+			await codeMode.setup(allTools, MCP_BASE_URL, getAuthHeader());
 		}
 	}
 
 	const { tools, systemPrompt } = buildCurrentTools();
 
 	// Log what mode we're in
-	if (codeMode.isCodeMode()) p.log.info("Code mode: 1 tool in context");
+	if (codeMode.isCodeMode()) p.log.info(`Code mode: 2 tools (search + execute), ${allTools.size} tools indexed`);
 	else if (discovery.isEnabled()) p.log.info(`Anthropic search: ${allTools.size} tools deferred`);
 	else if (search.isEnabled()) p.log.info(`Search mode: 2 meta-tools (${allTools.size} indexed)`);
 	else if (allTools.size > 100) p.log.warn(`Loading ${tools.length} tool definitions into context...`);
@@ -292,7 +292,7 @@ async function runAgent(prompt: string) {
 					const handled =
 						await search.handleToolUse(block, execTool)
 						?? await codeMode.handleToolUse(block, () =>
-							codeMode.setupSandbox(allTools, MCP_BASE_URL, getAuthHeader()),
+							codeMode.setup(allTools, MCP_BASE_URL, getAuthHeader()),
 						)
 						?? await handleDefaultToolUse(block);
 
