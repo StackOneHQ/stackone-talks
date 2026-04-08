@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lattice — Usage Report · 7 April 2026</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:         #1a1a1e;
+      --surface:    #111114;
+      --text:       #e0e0e0;
+      --text-muted: #ccc;
+      --text-dim:   #888;
+      --text-faint: #555;
+      --accent:     #4A9E7E;
+      --warning:    #e8a735;
+      --danger:     #e05252;
+      --border:     #333;
+      --border-dim: #222;
+    }
+
+    body {
+      background: var(--bg);
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text);
+    }
+
+    .slide {
+      position: absolute; top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      display: none;
+    }
+    .slide.active { display: block; }
+
+    .slide svg.slide-svg {
+      position: absolute; top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none; z-index: 1;
+    }
+
+    .content {
+      position: absolute;
+      top: 14%; left: 14%;
+      width: 72%; height: 72%;
+      display: flex; flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      z-index: 2;
+    }
+
+    /* ── Typography ── */
+    .slide-heading {
+      font-size: 2.4rem; font-weight: 700;
+      color: var(--text); margin-bottom: 2rem;
+      padding-left: 1.2rem;
+      border-left: 4px solid var(--accent);
+      line-height: 1.2;
+    }
+    .slide-heading span { color: var(--accent); }
+
+    .shift-tag {
+      display: inline-block;
+      font-size: 0.85rem; font-weight: 600;
+      color: var(--bg); background: var(--accent);
+      padding: 0.2rem 0.8rem; border-radius: 4px;
+      margin-bottom: 1.4rem; letter-spacing: 0.05em;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px; padding: 1.4rem 1.6rem;
+    }
+
+    .glow-card {
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      box-shadow: 0 0 18px #4A9E7E28;
+      padding: 1.4rem 1.6rem;
+    }
+
+    .warn-card {
+      background: #1c1810;
+      border: 1px solid #e8a73540;
+      border-radius: 8px;
+      padding: 1.4rem 1.6rem;
+    }
+
+    /* ── Stat row ── */
+    .stats-row {
+      display: flex; gap: 1.4rem; width: 100%;
+    }
+
+    .stat-box {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem 1.4rem;
+    }
+
+    .stat-label {
+      font-size: 0.75rem; color: var(--text-faint);
+      text-transform: uppercase; letter-spacing: 0.07em;
+      margin-bottom: 0.5rem;
+    }
+
+    .stat-num {
+      font-size: 2.6rem; font-weight: 700;
+      color: var(--text); letter-spacing: -0.04em;
+      line-height: 1;
+    }
+    .stat-num.accent { color: var(--accent); }
+
+    .stat-sub {
+      font-size: 0.8rem; color: var(--text-dim);
+      margin-top: 0.4rem;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.75rem; font-weight: 600;
+      padding: 0.15rem 0.6rem; border-radius: 3px;
+      margin-top: 0.6rem;
+    }
+    .badge-green { color: var(--accent); background: #4A9E7E18; border: 1px solid #4A9E7E44; }
+    .badge-gray  { color: var(--text-dim); background: #222; border: 1px solid var(--border); }
+    .badge-warn  { color: var(--warning); background: #e8a73514; border: 1px solid #e8a73540; }
+
+    /* ── Progress bar ── */
+    .progress-wrap { width: 100%; margin: 1.2rem 0; }
+    .progress-track {
+      height: 6px; background: #222;
+      border-radius: 999px; overflow: visible;
+      position: relative;
+    }
+    .progress-fill {
+      height: 6px; width: 5px;
+      background: var(--accent);
+      border-radius: 999px;
+    }
+    .progress-labels {
+      display: flex; justify-content: space-between;
+      margin-top: 8px; font-size: 0.75rem;
+    }
+    .progress-labels .pct { color: var(--accent); font-weight: 600; }
+    .progress-labels .total { color: var(--text-faint); }
+
+    /* ── Bar chart ── */
+    .chart-wrap {
+      display: flex; gap: 14px;
+      height: 110px;
+      align-items: flex-end;
+      width: 100%;
+    }
+    .chart-col {
+      flex: 1; display: flex;
+      flex-direction: column; align-items: center;
+      height: 100%; justify-content: flex-end;
+    }
+    .bar-val {
+      font-size: 0.7rem; font-weight: 600;
+      color: var(--text-faint); margin-bottom: 5px;
+    }
+    .bar-val.hi { color: var(--accent); }
+    .bar {
+      width: 100%; background: #2a2a30;
+      border-radius: 3px 3px 0 0;
+    }
+    .bar.hi { background: var(--accent); }
+    .bar-date {
+      font-size: 0.65rem; color: var(--text-faint);
+      margin-top: 6px; text-align: center;
+      white-space: nowrap;
+    }
+    .bar-date.hi { color: var(--text-dim); }
+
+    /* ── Two-col layout ── */
+    .two-col { display: flex; gap: 1.4rem; width: 100%; }
+    .col { flex: 1; display: flex; flex-direction: column; gap: 0.6rem; }
+
+    /* ── Table-style rows ── */
+    .data-row {
+      display: flex; justify-content: space-between;
+      align-items: center; padding: 0.55rem 0;
+      border-bottom: 1px solid var(--border-dim);
+      font-size: 0.9rem;
+    }
+    .data-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .data-row:first-child { padding-top: 0; }
+    .data-key { color: var(--text-dim); }
+    .data-val { color: var(--text); font-weight: 600; }
+
+    /* ── Connector list ── */
+    .conn-row {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--border-dim);
+      font-size: 0.9rem;
+    }
+    .conn-row:first-child { padding-top: 0; }
+    .conn-row:last-child { border-bottom: none; }
+    .conn-left { display: flex; align-items: center; gap: 0.6rem; color: var(--text-muted); }
+    .conn-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+
+    /* ── Footer ── */
+    .footer-logo {
+      position: fixed; bottom: 14px; left: 24px;
+      z-index: 100; display: flex; align-items: center; gap: 0.4rem;
+    }
+    .footer-logo span { font-size: 0.8rem; color: var(--text-faint); font-weight: 600; letter-spacing: 0.03em; }
+    .footer-url {
+      position: fixed; bottom: 16px; left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.75rem; color: #333; z-index: 100; letter-spacing: 0.02em;
+    }
+    .slide-counter {
+      position: fixed; bottom: 16px; right: 24px;
+      font-size: 0.8rem; color: var(--text-faint);
+      z-index: 100; font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 1 — Title
+══════════════════════════════════════════════ -->
+<div class="slide active" id="slide-0">
+  <svg class="slide-svg"></svg>
+  <div class="content" style="justify-content:center; gap:0;">
+
+    <div style="font-size:0.85rem; font-weight:600; color:var(--accent); letter-spacing:0.1em; text-transform:uppercase; margin-bottom:1.4rem;">
+      StackOne &rarr; Lattice
+    </div>
+
+    <div style="font-size:3.2rem; font-weight:700; line-height:1.15; color:var(--text); margin-bottom:1rem; letter-spacing:-0.03em;">
+      Usage <span style="color:var(--accent);">Report</span>
+    </div>
+
+    <div style="font-size:1.2rem; color:var(--text-dim); line-height:1.6; margin-bottom:2.4rem;">
+      Week ending 7 April 2026
+    </div>
+
+    <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+      <span class="badge badge-green">Falcon API</span>
+      <span class="badge badge-gray">1 Apr 2026 – 31 Mar 2027</span>
+      <span class="badge badge-gray">$25,000 minimum · $0.0003 / unit</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 2 — Commitment status
+══════════════════════════════════════════════ -->
+<div class="slide" id="slide-1">
+  <svg class="slide-svg"></svg>
+  <div class="content" style="justify-content:center; gap:1.4rem;">
+
+    <div class="shift-tag">COMMITMENT STATUS</div>
+
+    <div class="slide-heading" style="margin-bottom:0;">
+      You're <span>nowhere near</span> overage.
+    </div>
+
+    <div class="glow-card" style="width:100%; margin-top:0.6rem;">
+      <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:1rem;">
+        <div style="font-size:2.2rem; font-weight:700; letter-spacing:-0.04em;">
+          120 <span style="font-size:1rem; font-weight:400; color:var(--text-dim);">units in contract period</span>
+        </div>
+        <div style="font-size:0.85rem; color:var(--text-dim);">of 83,333,333 committed (Apr 1–3 data)</div>
+      </div>
+
+      <div class="progress-track">
+        <div class="progress-fill"></div>
+      </div>
+      <div class="progress-labels">
+        <span class="pct">&lt;0.01% consumed</span>
+        <span class="total">83.3M units = $25,000 prepaid</span>
+      </div>
+    </div>
+
+    <div style="font-size:0.85rem; color:var(--text-faint); line-height:1.65;">
+      Your $25,000 is already paid and covers up to 83,333,333 units. You've consumed $0.04 of that bucket.<br>
+      Overage ($0.003/unit) only kicks in if you exceed 83.3M units in the contract year.
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 3 — This week
+══════════════════════════════════════════════ -->
+<div class="slide" id="slide-2">
+  <svg class="slide-svg"></svg>
+  <div class="content" style="justify-content:center; gap:1.2rem;">
+
+    <div class="shift-tag">FIRST WEEK OF CONTRACT · W/E 5 APRIL</div>
+    <div class="slide-heading" style="margin-bottom:0.4rem;">
+      131 calls &mdash; <span>strong start.</span>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-label">Production calls</div>
+        <div class="stat-num accent">99</div>
+        <div class="stat-sub">custom actions</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Test calls</div>
+        <div class="stat-num">32</div>
+        <div class="stat-sub">connection setup</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">In-contract units</div>
+        <div class="stat-num accent">120</div>
+        <div class="stat-sub">Apr 1–3 (contract start)</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Active accounts</div>
+        <div class="stat-num">25</div>
+        <div class="stat-sub">of 41 total</div>
+      </div>
+    </div>
+
+    <div class="card" style="width:100%;">
+      <div style="font-size:0.75rem; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.07em; margin-bottom:0.8rem;">Active connectors</div>
+      <div style="display:flex; gap:0.8rem;">
+        <span class="badge badge-green">GitHub</span>
+        <span class="badge badge-green">Jira</span>
+        <span class="badge badge-green">Notion</span>
+        <span class="badge badge-green">Google Docs</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 4 — Weekly trend
+══════════════════════════════════════════════ -->
+<div class="slide" id="slide-3">
+  <svg class="slide-svg"></svg>
+  <div class="content" style="justify-content:center; gap:1.6rem;">
+
+    <div class="shift-tag">WEEKLY TREND</div>
+    <div class="slide-heading" style="margin-bottom:0.2rem;">
+      Usage is <span>ramping up.</span>
+    </div>
+
+    <div class="card" style="width:100%; padding-top:1.6rem; padding-bottom:1.4rem;">
+      <div class="chart-wrap">
+
+        <!-- w/e 8 Feb: 9 calls → 8px -->
+        <div class="chart-col">
+          <div class="bar-val">9</div>
+          <div class="bar" style="height:8px;"></div>
+          <div class="bar-date">8 Feb</div>
+        </div>
+
+        <!-- w/e 15 Feb: 8 calls → 7px -->
+        <div class="chart-col">
+          <div class="bar-val">8</div>
+          <div class="bar" style="height:7px;"></div>
+          <div class="bar-date">15 Feb</div>
+        </div>
+
+        <!-- w/e 22 Mar: 42 calls → 35px -->
+        <div class="chart-col">
+          <div class="bar-val">42</div>
+          <div class="bar" style="height:35px;"></div>
+          <div class="bar-date">22 Mar</div>
+        </div>
+
+        <!-- w/e 29 Mar: 60 calls → 50px -->
+        <div class="chart-col">
+          <div class="bar-val">60</div>
+          <div class="bar" style="height:50px;"></div>
+          <div class="bar-date">29 Mar</div>
+        </div>
+
+        <!-- w/e 5 Apr: 131 calls → 100% = 100px (current) -->
+        <div class="chart-col">
+          <div class="bar-val hi">131</div>
+          <div class="bar hi" style="height:100px;"></div>
+          <div class="bar-date hi">5 Apr ←</div>
+        </div>
+
+      </div>
+    </div>
+
+    <div style="font-size:0.8rem; color:var(--text-faint); line-height:1.6;">
+      Feb–Mar activity was pre-contract (org created 29 Jan). Contract started 1 Apr 2026 &mdash; the ramp is a strong signal heading into the committed term.
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 5 — Cost estimate
+══════════════════════════════════════════════ -->
+<div class="slide" id="slide-4">
+  <svg class="slide-svg"></svg>
+  <div class="content" style="justify-content:center; gap:1.4rem;">
+
+    <div class="shift-tag">PRICING · Q00133</div>
+    <div class="slide-heading" style="margin-bottom:0.2rem;">
+      $25k prepaid. <span>~$0.04 consumed.</span>
+    </div>
+
+    <div class="two-col" style="width:100%;">
+
+      <div class="glow-card" style="flex:1;">
+        <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-faint); margin-bottom:0.8rem;">Consumed of prepaid bucket</div>
+        <div style="font-size:2.4rem; font-weight:700; letter-spacing:-0.04em; color:var(--accent);">~$0.04</div>
+        <div style="font-size:0.8rem; color:var(--text-dim); margin-top:0.5rem;">120 units &times; $0.0003 (contract period)</div>
+      </div>
+
+      <div class="card" style="flex:1;">
+        <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-faint); margin-bottom:0.8rem;">Remaining in bucket</div>
+        <div style="font-size:2.4rem; font-weight:700; letter-spacing:-0.04em;">$24,999<span style="font-size:1rem; font-weight:400;">.96</span></div>
+        <div style="font-size:0.8rem; color:var(--text-dim); margin-top:0.5rem;">83,333,213 units remaining</div>
+      </div>
+
+    </div>
+
+    <div class="card" style="width:100%;">
+      <div class="data-row">
+        <span class="data-key">0 – 100M units</span>
+        <span class="data-val">$0.0003 / unit &nbsp;<span style="color:var(--text-faint); font-weight:400; font-size:0.8rem;">← you are here</span></span>
+      </div>
+      <div class="data-row">
+        <span class="data-key">100M+ units</span>
+        <span class="data-val" style="color:var(--accent);">$0.0002 / unit &nbsp;<span style="font-weight:400; font-size:0.8rem;">(cheaper at scale)</span></span>
+      </div>
+      <div class="data-row">
+        <span class="data-key">Overage (uncommitted)</span>
+        <span class="data-val" style="color:var(--warning);">$0.003 / unit &nbsp;<span style="font-weight:400; font-size:0.8rem;">(10× committed rate)</span></span>
+      </div>
+      <div class="data-row">
+        <span class="data-key">A2A calls</span>
+        <span class="data-val">$0.10 / unit &nbsp;<span style="color:var(--text-faint); font-weight:400; font-size:0.8rem;">(agent-to-agent, separate meter)</span></span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 6 — One to watch
+══════════════════════════════════════════════ -->
+<div class="slide" id="slide-5">
+  <svg class="slide-svg"></svg>
+  <div class="content" style="justify-content:center; gap:1.4rem;">
+
+    <div class="shift-tag" style="background:var(--warning); color:#1a1a1e;">ONE TO WATCH</div>
+    <div class="slide-heading" style="border-color:var(--warning); margin-bottom:0.2rem;">
+      <span style="color:var(--warning);">74%</span> error rate on calls to date.
+    </div>
+
+    <div class="warn-card" style="width:100%;">
+      <div style="display:flex; align-items:center; gap:0.7rem; margin-bottom:0.8rem;">
+        <div style="width:7px; height:7px; border-radius:50%; background:var(--warning); flex-shrink:0;"></div>
+        <div style="font-size:0.85rem; font-weight:600; color:var(--warning);">185 of 250 calls returned errors</div>
+      </div>
+      <div style="font-size:0.85rem; color:var(--text-dim); line-height:1.65;">
+        This is common during connector setup and testing &mdash; test calls frequently return errors
+        as expected behaviour. Worth reviewing to confirm integrations are returning the
+        responses you expect. Get in touch if you'd like us to look at specific connectors.
+      </div>
+    </div>
+
+    <div class="card" style="width:100%;">
+      <div class="data-row">
+        <span class="data-key">Total calls to date</span>
+        <span class="data-val">250</span>
+      </div>
+      <div class="data-row">
+        <span class="data-key">Success</span>
+        <span class="data-val" style="color:var(--accent);">65 (26%)</span>
+      </div>
+      <div class="data-row">
+        <span class="data-key">Errors</span>
+        <span class="data-val" style="color:var(--warning);">185 (74%)</span>
+      </div>
+      <div class="data-row">
+        <span class="data-key">Note</span>
+        <span class="data-val" style="font-weight:400; color:var(--text-dim);">All errors are on Falcon engine. Not billed differently.</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 7 — Notes / closing
+══════════════════════════════════════════════ -->
+<div class="slide" id="slide-6">
+  <svg class="slide-svg"></svg>
+  <div class="content" style="justify-content:center; gap:1.4rem;">
+
+    <div class="slide-heading" style="font-size:1.8rem;">
+      Questions? <span>Let's talk.</span>
+    </div>
+
+    <div class="card" style="width:100%;">
+      <div class="data-row">
+        <span class="data-key">Coverage</span>
+        <span class="data-val" style="font-weight:400; color:var(--text-dim);">Falcon engine only. Auth &amp; token refresh excluded.</span>
+      </div>
+      <div class="data-row">
+        <span class="data-key">Data source</span>
+        <span class="data-val" style="font-weight:400; color:var(--text-dim);">StackOne internal analytics, updated daily</span>
+      </div>
+      <div class="data-row">
+        <span class="data-key">Next update</span>
+        <span class="data-val">Week ending 14 April 2026</span>
+      </div>
+      <div class="data-row">
+        <span class="data-key">Roadmap note</span>
+        <span class="data-val" style="font-weight:400; color:var(--text-dim);">Self-serve billing data in dashboard coming soon</span>
+      </div>
+    </div>
+
+    <div style="font-size:0.8rem; color:var(--text-faint); line-height:1.7;">
+      Contract ref: Q00133 · Start: 1 Apr 2026 · End: 31 Mar 2027<br>
+      Auth / account linking, token refresh: not billed, not counted.<br>
+      A2A metered separately at $0.10/unit. StackOne Defender: optional, pricing TBC.
+    </div>
+
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════
+     FIXED FOOTER
+══════════════════════════════════════════════ -->
+<div class="footer-logo">
+  <span>StackOne</span>
+</div>
+<div class="footer-url">Lattice · Confidential</div>
+<div class="slide-counter" id="counter">1 / 7</div>
+
+
+<!-- ══════════════════════════════════════════════
+     NAVIGATION
+══════════════════════════════════════════════ -->
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  function go(n) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(n, slides.length - 1));
+    slides[current].classList.add('active');
+    counter.textContent = `${current + 1} / ${slides.length}`;
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') go(current + 1);
+    if (e.key === 'ArrowLeft') go(current - 1);
+  });
+
+  // Click right half to advance, left half to go back
+  document.addEventListener('click', e => {
+    if (e.clientX > window.innerWidth / 2) go(current + 1);
+    else go(current - 1);
+  });
+</script>
+
+</body>
+</html>
