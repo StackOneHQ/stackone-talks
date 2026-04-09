@@ -3,3 +3,4 @@ public/
 .wrangler/
 private/
 .env
+.superpowers/
