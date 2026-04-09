@@ -202,14 +202,14 @@ body {
   gap: 0;
 }
 .proto-left h1 {
-  font-size: clamp(1.8rem, 3.2vw, 3.6rem);
+  font-size: clamp(2.2rem, 4vw, 4.5rem);
   font-weight: 700;
   line-height: 1.15;
   color: #e8e8e8;
 }
 .proto-left p {
   margin-top: 1em;
-  font-size: clamp(0.6rem, 0.9vw, 0.82rem);
+  font-size: clamp(0.75rem, 1.1vw, 1rem);
   color: #555;
   line-height: 1.7;
 }
@@ -230,13 +230,13 @@ body {
   gap: 0.4em;
 }
 .proto-pill .pill-name {
-  font-size: clamp(0.7rem, 1.1vw, 1rem);
+  font-size: clamp(0.9rem, 1.4vw, 1.3rem);
   font-weight: 700;
   letter-spacing: 0.04em;
   color: #555;
 }
 .proto-pill .pill-desc {
-  font-size: clamp(0.48rem, 0.68vw, 0.6rem);
+  font-size: clamp(0.6rem, 0.85vw, 0.78rem);
   color: #333;
   line-height: 1.4;
   font-weight: 400;
@@ -282,7 +282,7 @@ body {
 }
 .code-body {
   padding: clamp(12px, 1.6vw, 20px);
-  font-size: clamp(0.5rem, 0.8vw, 0.72rem);
+  font-size: clamp(0.65rem, 1vw, 0.9rem);
   line-height: 1.85;
   color: #7d8590;
 }
@@ -302,7 +302,7 @@ body {
   gap: 4vh;
 }
 .engine-top h1 {
-  font-size: clamp(1.8rem, 3.2vw, 3.6rem);
+  font-size: clamp(2.2rem, 4vw, 4.5rem);
   font-weight: 700;
   color: #e8e8e8;
   line-height: 1.15;
@@ -319,7 +319,7 @@ body {
   padding: clamp(16px, 2vw, 26px);
 }
 .ec-name {
-  font-size: clamp(0.8rem, 1.2vw, 1.1rem);
+  font-size: clamp(1rem, 1.5vw, 1.4rem);
   font-weight: 700;
   color: #4A9E7E;
   letter-spacing: 0.04em;
@@ -337,7 +337,7 @@ body {
   flex: 0 0 40%;
 }
 .perms-left h1 {
-  font-size: clamp(1.8rem, 3.2vw, 3.6rem);
+  font-size: clamp(2.2rem, 4vw, 4.5rem);
   font-weight: 700;
   line-height: 1.15;
   color: #e8e8e8;
@@ -357,7 +357,7 @@ body {
 }
 .flow-step.hi { background: #141f1a; border-color: #1e3828; }
 .fs-label {
-  font-size: clamp(0.52rem, 0.72vw, 0.62rem);
+  font-size: clamp(0.62rem, 0.9vw, 0.78rem);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -366,7 +366,7 @@ body {
 }
 .flow-step.hi .fs-label { color: #4A9E7E; }
 .fs-body {
-  font-size: clamp(0.75rem, 1.1vw, 1rem);
+  font-size: clamp(0.95rem, 1.4vw, 1.25rem);
   font-weight: 600;
   color: #777;
   line-height: 1.4;
@@ -402,7 +402,7 @@ body {
   flex: 0 0 40%;
 }
 .def-left h1 {
-  font-size: clamp(1.8rem, 3.2vw, 3.6rem);
+  font-size: clamp(2.2rem, 4vw, 4.5rem);
   font-weight: 700;
   line-height: 1.15;
   color: #e8e8e8;
@@ -410,7 +410,7 @@ body {
 .def-left h1 .dim { color: #666; }
 .def-left p {
   margin-top: 1.2em;
-  font-size: clamp(0.75rem, 1.1vw, 1rem);
+  font-size: clamp(0.9rem, 1.3vw, 1.2rem);
   color: #555;
   line-height: 1.65;
 }
@@ -431,11 +431,12 @@ body {
   margin-bottom: clamp(14px, 2.4vh, 28px);
 }
 .b-name {
-  font-size: clamp(0.7rem, 1vw, 0.9rem);
+  font-size: clamp(0.85rem, 1.2vw, 1.1rem);
   font-weight: 600;
-  width: 9em;
+  width: 11em;
   flex-shrink: 0;
   color: #444;
+  white-space: nowrap;
 }
 .b-name.hi { color: #4A9E7E; }
 .b-track {
@@ -454,13 +455,21 @@ body {
 }
 .b-bar.hi { background: #4A9E7E; }
 .b-score {
-  font-size: clamp(0.7rem, 1vw, 0.9rem);
+  font-size: clamp(0.85rem, 1.2vw, 1.1rem);
   font-weight: 700;
   width: 3em;
+  flex-shrink: 0;
   text-align: right;
   color: #333;
 }
 .b-score.hi { color: #4A9E7E; }
+.b-badge-col {
+  width: 4.5em;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
 .b-badge {
   font-size: clamp(0.5rem, 0.68vw, 0.6rem);
   background: #4A9E7E;
@@ -469,7 +478,6 @@ body {
   padding: 2px 6px;
   font-weight: 700;
   letter-spacing: 0.06em;
-  flex-shrink: 0;
 }
 </style>
 </head>
@@ -657,22 +665,25 @@ body {
       <div class="b-name hi">StackOne Defender</div>
       <div class="b-track"><div class="b-bar hi" data-width="88"></div></div>
       <div class="b-score hi">0.88</div>
-      <div class="b-badge">BEST</div>
+      <div class="b-badge-col"><div class="b-badge">BEST</div></div>
     </div>
     <div class="brow">
       <div class="b-name">LLM Moderation</div>
       <div class="b-track"><div class="b-bar" data-width="82"></div></div>
       <div class="b-score">0.82</div>
+      <div class="b-badge-col"></div>
     </div>
     <div class="brow">
       <div class="b-name">Gateway Proxy</div>
       <div class="b-track"><div class="b-bar" data-width="65"></div></div>
       <div class="b-score">0.65</div>
+      <div class="b-badge-col"></div>
     </div>
     <div class="brow">
       <div class="b-name">Regex Patterns</div>
       <div class="b-track"><div class="b-bar" data-width="40"></div></div>
       <div class="b-score">0.40</div>
+      <div class="b-badge-col"></div>
     </div>
   </div>
 </div>
