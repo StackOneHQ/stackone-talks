@@ -3,19 +3,20 @@ title: "Reflexion: Language Agents with Verbal Reinforcement Learning"
 authors:
   - "Noah Shinn"
   - "Federico Cassano"
-  - "Edward Berman"
   - "Ashwin Gopinath"
   - "Karthik Narasimhan"
   - "Shunyu Yao"
 date: 2023-03-20
 tags: [paper, arxiv, ai-agents, self-reflection, memory, reinforcement-learning]
-source: http://arxiv.org/abs/2303.11366v4
-abstract: "Large language models (LLMs) have been increasingly used to interact with external environments as goal-driven agents. However, it remains challenging for these language agents to quickly and efficiently learn from trial-and-error as traditional reinforcement learning methods require extensive training samples and expensive model fine-tuning. We propose Reflexion, a novel framework to reinforce language agents not by updating weights, but instead through linguistic feedback."
+source: https://arxiv.org/abs/2303.11366
+abstract: "Large language models (LLMs) have been increasingly used to interact with external environments (e.g., games, compilers, APIs) as goal-driven agents. However, it remains challenging for these language agents to quickly and efficiently learn from trial-and-error as traditional reinforcement learning methods require extensive training samples and expensive model fine-tuning. We propose Reflexion, a novel framework to reinforce language agents not by updating weights, but instead through linguistic feedback. Concretely, Reflexion agents verbally reflect on task feedback signals, then maintain their own reflective text in an episodic memory buffer to induce better decision-making in subsequent trials."
 ---
 
 ## Summary
 
 Reflexion proposes a fundamentally different approach to improving language agents: instead of updating model weights (as in traditional RL), agents improve through verbal self-reflection. After each attempt at a task, the agent generates a natural language critique of what went wrong, stores it in an episodic memory buffer, and uses these reflections to make better decisions in subsequent attempts. This achieves the benefits of reinforcement learning without any gradient updates.
+
+The framework is both simple and powerful. The reflection step converts sparse, uninformative reward signals (pass/fail on a test suite) into rich, actionable natural language guidance ("I forgot to handle the edge case where the list is empty"). This semantic compression of experience is something that gradient-based RL cannot achieve, and it allows rapid improvement with very few trials.
 
 ## Key Contributions
 
@@ -37,8 +38,9 @@ The reflection step is the key innovation -- it converts sparse, uninformative r
 
 ## Connections
 
-- Builds directly on [[react-synergizing-reasoning-and-acting]] as the base agent framework, adding self-reflection on top
-- The self-reflection mechanism is incorporated into [[lats-language-agent-tree-search]] as part of its backtracking strategy
-- The episodic memory parallels the memory stream in [[generative-agents-interactive-simulacra-human-behavior]], but focused on task performance rather than social simulation
-- The iterative improvement loop is similar to [[voyager-open-ended-embodied-agent-large-language-models]]'s self-verification mechanism
-- Could enhance agents in [[autogen-enabling-next-gen-llm-applications-multi-agent]] by giving individual agents the ability to learn from conversation failures
+Related work in this vault:
+- [[react-synergizing-reasoning-and-acting]] -- Builds directly on ReAct as the base agent framework, adding self-reflection on top
+- [[lats-language-agent-tree-search]] -- The self-reflection mechanism is incorporated into LATS as part of its backtracking strategy
+- [[generative-agents-simulacra]] -- The episodic memory parallels the memory stream in Generative Agents, but focused on task performance rather than social simulation
+- [[voyager-open-ended-embodied-agent]] -- The iterative improvement loop is similar to Voyager's self-verification mechanism
+- [[autogen-multi-agent-conversation]] -- Could enhance AutoGen agents by giving individual agents the ability to learn from conversation failures

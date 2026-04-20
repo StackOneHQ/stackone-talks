@@ -11,13 +11,15 @@ authors:
   - "Thomas Scialom"
 date: 2023-02-09
 tags: [paper, arxiv, ai-agents, tool-use, self-supervised, api-calls]
-source: http://arxiv.org/abs/2302.04761v1
-abstract: "Language models (LMs) exhibit remarkable abilities to solve new tasks from just a few examples or textual instructions, especially at scale. They also, paradoxically, struggle with basic functionality, such as arithmetic or factual lookup, where much simpler and smaller models excel. In this paper, we show that LMs can teach themselves to use external tools via simple APIs and achieve the best of both worlds."
+source: https://arxiv.org/abs/2302.04761
+abstract: "Language models (LMs) exhibit remarkable abilities to solve new tasks from just a few examples or textual instructions, especially at scale. They also, paradoxically, struggle with basic functionality, such as arithmetic or factual lookup, where much simpler and smaller models excel. In this paper, we show that LMs can teach themselves to use external tools via simple APIs and achieve the best of both worlds. We introduce Toolformer, a model trained to decide which APIs to call, when to call them, what arguments to pass, and how to best incorporate the results into future token prediction. This is done in a self-supervised way, requiring nothing more than a handful of demonstrations for each API."
 ---
 
 ## Summary
 
 Toolformer demonstrates that language models can be trained to autonomously decide when and how to call external APIs, without requiring extensive human annotation of tool-use examples. The model learns in a self-supervised manner to insert API calls into text when doing so improves prediction quality. This bridges the gap between LLMs' strong language abilities and their weakness at tasks like arithmetic and factual retrieval.
+
+The key insight is elegant: by sampling potential API calls, executing them, and filtering for those that actually reduce perplexity on subsequent tokens, the model generates its own high-quality training data. This self-supervised pipeline means scaling to new tools requires only a handful of demonstrations rather than thousands of annotated examples.
 
 ## Key Contributions
 
@@ -36,8 +38,9 @@ Toolformer demonstrates that language models can be trained to autonomously deci
 
 ## Connections
 
-- Contrasts with [[toolkengpt-augmenting-frozen-language-models-massive-tools]] which uses tool embeddings instead of fine-tuning
-- The self-supervised tool learning complements [[react-synergizing-reasoning-and-acting]] which uses prompting rather than training for tool use
-- Relevant to [[autogen-enabling-next-gen-llm-applications-multi-agent]] where agents are equipped with tool-calling capabilities
-- [[voyager-open-ended-embodied-agent-large-language-models]] applies similar tool-use principles in an embodied setting (Minecraft)
-- [[rewoo-decoupling-reasoning-from-observations]] addresses the efficiency cost of interleaved tool calling
+Related work in this vault:
+- [[toolkengpt-tool-embeddings]] -- Contrasting approach that uses tool embeddings instead of fine-tuning, keeping the base model frozen
+- [[react-synergizing-reasoning-and-acting]] -- Uses prompting rather than training for tool use; complementary approach to the same problem
+- [[autogen-multi-agent-conversation]] -- Multi-agent framework where agents are equipped with tool-calling capabilities
+- [[voyager-open-ended-embodied-agent]] -- Applies tool-use and code generation principles in an embodied Minecraft setting
+- [[rewoo-decoupling-reasoning-observing]] -- Addresses the efficiency cost of interleaved tool calling by decoupling planning from execution

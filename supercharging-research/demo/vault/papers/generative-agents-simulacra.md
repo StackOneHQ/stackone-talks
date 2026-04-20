@@ -9,13 +9,15 @@ authors:
   - "Michael S. Bernstein"
 date: 2023-04-07
 tags: [paper, arxiv, ai-agents, memory, simulation, agent-architecture, social-agents]
-source: http://arxiv.org/abs/2304.03442v2
-abstract: "Believable proxies of human behavior can empower interactive applications ranging from immersive environments to rehearsal spaces for interpersonal communication to prototyping tools. In this paper, we introduce generative agents -- computational software agents that simulate believable human behavior."
+source: https://arxiv.org/abs/2304.03442
+abstract: "Believable proxies of human behavior can empower interactive applications ranging from immersive environments to rehearsal spaces for interpersonal communication to prototyping tools. In this paper, we introduce generative agents -- computational software agents that simulate believable human behavior. Generative agents wake up, cook breakfast, and head to work; artists paint, while authors write; they form opinions, notice each other, and initiate conversations; they remember and reflect on days past as they plan the next day. To enable generative agents, we describe an architecture that extends a large language model to store a complete record of the agent's experiences using natural language, synthesize those memories over time into higher-level reflections, and retrieve them dynamically to plan behavior."
 ---
 
 ## Summary
 
 This paper introduces generative agents -- software entities that simulate believable human behavior using LLMs as their cognitive backbone. Set in a Sims-inspired sandbox town of 25 agents, the system demonstrates that LLMs can power agents with coherent daily routines, social relationships, memory, and planning. The architecture is notable for its memory system: agents maintain a complete stream of experiences in natural language, synthesize memories into higher-level reflections, and dynamically retrieve relevant memories to plan actions.
+
+The most striking result is emergent social behavior: starting from a single seed -- one agent wanting to throw a Valentine's Day party -- agents autonomously spread invitations through social networks, coordinate logistics, form new relationships, and show up at the right time and place. None of this was explicitly programmed; it emerged from the memory and planning architecture.
 
 ## Key Contributions
 
@@ -34,8 +36,10 @@ Each agent maintains:
 
 ## Connections
 
-- The memory architecture is foundational for agent memory systems, influencing [[reflexion-language-agents-verbal-reinforcement]] which uses episodic memory buffers
-- The planning component relates to [[lats-language-agent-tree-search]] and [[tree-of-thoughts-deliberate-problem-solving]] but operates at a longer time horizon (daily plans vs. immediate decisions)
-- The multi-agent social dynamics complement the multi-agent framework in [[autogen-enabling-next-gen-llm-applications-multi-agent]]
-- The skill and experience accumulation parallels [[voyager-open-ended-embodied-agent-large-language-models]]'s skill library
-- Unlike [[react-synergizing-reasoning-and-acting]] which focuses on task completion, generative agents focus on open-ended believable behavior
+Related work in this vault:
+- [[reflexion-verbal-reinforcement]] -- The memory architecture is foundational; Reflexion uses episodic memory buffers with a similar philosophy
+- [[lats-language-agent-tree-search]] -- The planning component relates to LATS but operates at a longer time horizon (daily plans vs. immediate decisions)
+- [[tree-of-thoughts-deliberate-problem-solving]] -- Both involve structured planning, though ToT focuses on reasoning search rather than social behavior
+- [[autogen-multi-agent-conversation]] -- The multi-agent social dynamics complement AutoGen's multi-agent framework
+- [[voyager-open-ended-embodied-agent]] -- The skill and experience accumulation parallels Voyager's skill library
+- [[react-synergizing-reasoning-and-acting]] -- Unlike ReAct which focuses on task completion, generative agents focus on open-ended believable behavior

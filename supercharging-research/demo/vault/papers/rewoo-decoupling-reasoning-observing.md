@@ -9,13 +9,15 @@ authors:
   - "Dongkuan Xu"
 date: 2023-05-23
 tags: [paper, arxiv, ai-agents, efficiency, tool-use, planning, token-efficiency]
-source: http://arxiv.org/abs/2305.18323v1
-abstract: "Augmented Language Models (ALMs) blend the reasoning capabilities of Large Language Models (LLMs) with tools that allow for knowledge retrieval and action execution. Existing ALM systems trigger LLM thought processes while pulling observations from these tools in an interleaved fashion. This study proposes ReWOO (Reasoning WithOut Observation) that detaches the reasoning process from external observations, significantly reducing token consumption."
+source: https://arxiv.org/abs/2305.18323
+abstract: "Augmented Language Models (ALMs) blend the reasoning capabilities of Large Language Models (LLMs) with tools that allow for knowledge retrieval and action execution. Existing ALM systems trigger LLM thought processes while pulling observations from these tools in an interleaved fashion. This approach, though effective, often results in excessive token consumption due to the extended prompt lengths that arise from increasing the number of tool calls. This study proposes ReWOO (Reasoning WithOut Observation) that detaches the reasoning process from external observations, thus significantly reducing token consumption. Our approach utilizes a Planner to generate a blueprint of interconnected plans, a Worker to execute tools based on these plans, and a Solver to synthesize responses based on tool outputs."
 ---
 
 ## Summary
 
 ReWOO addresses a critical efficiency problem in tool-augmented language models: the interleaved reasoning-observation pattern (as in ReAct) requires the LLM to process increasingly long prompts at each step, since all previous thoughts, actions, and observations accumulate in context. ReWOO decouples the reasoning phase from the observation phase -- the model first generates a complete plan of all tool calls upfront, then executes them in parallel, and finally synthesizes the results. This achieves 5x token efficiency while maintaining or improving accuracy.
+
+The insight is practical and important: for many tasks, the agent can anticipate what information it will need and plan all retrievals in advance. The interleaved pattern is necessary only when later decisions truly depend on earlier observations -- and even then, ReWOO handles dependencies through placeholder variables in its planning language.
 
 ## Key Contributions
 
@@ -35,8 +37,10 @@ This is in contrast to ReAct where each thought-action-observation cycle require
 
 ## Connections
 
-- Directly addresses the efficiency limitations of [[react-synergizing-reasoning-and-acting]]'s interleaved approach
-- The upfront planning parallels [[lats-language-agent-tree-search]] which also plans ahead, though LATS uses tree search rather than linear planning
-- Relevant to scaling tool use in [[toolformer-language-models-teach-themselves-tools]] and [[toolkengpt-augmenting-frozen-language-models-massive-tools]] where many tool calls can be expensive
-- The model distillation results are relevant to deploying agents in [[autogen-enabling-next-gen-llm-applications-multi-agent]] at lower cost
-- [[tree-of-thoughts-deliberate-problem-solving]] similarly generates plans upfront but focuses on reasoning rather than tool use
+Related work in this vault:
+- [[react-synergizing-reasoning-and-acting]] -- Directly addresses the efficiency limitations of ReAct's interleaved approach
+- [[lats-language-agent-tree-search]] -- The upfront planning parallels LATS, though LATS uses tree search rather than linear planning
+- [[toolformer-language-models-teach-themselves]] -- Relevant to scaling tool use where many tool calls can be expensive
+- [[toolkengpt-tool-embeddings]] -- Both address efficiency of tool-augmented LMs from different angles
+- [[autogen-multi-agent-conversation]] -- The model distillation results are relevant to deploying agents at lower cost
+- [[tree-of-thoughts-deliberate-problem-solving]] -- ToT similarly generates plans upfront but focuses on reasoning rather than tool use

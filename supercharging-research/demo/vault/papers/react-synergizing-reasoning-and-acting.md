@@ -18,7 +18,7 @@ abstract: "While large language models (LLMs) have demonstrated impressive capab
 
 ReAct introduces a paradigm for interleaving reasoning traces and task-specific actions in large language models. Rather than treating reasoning (chain-of-thought) and acting (tool use, environment interaction) as separate capabilities, ReAct combines them: the model reasons about what to do next, acts on that reasoning, observes the result, and reasons again. This creates a tight feedback loop between internal deliberation and external information gathering.
 
-The approach is evaluated on diverse benchmarks including question answering (HotpotQA), fact verification (FEVER), and interactive decision making tasks (ALFWorld, WebShop). Across all settings, the synergy between reasoning and acting yields improvements over approaches that use either capability in isolation.
+The approach is remarkably simple -- it works purely through prompting with a few in-context examples demonstrating the interleaved Thought-Action-Observation format. No fine-tuning is required. Yet this simple change yields significant improvements across diverse tasks, from knowledge-intensive QA to interactive decision-making in simulated environments.
 
 ## Key Contributions
 
@@ -31,14 +31,14 @@ The approach is evaluated on diverse benchmarks including question answering (Ho
 
 ReAct prompts the LLM with a few in-context examples that demonstrate the interleaved format: Thought (internal reasoning) -> Action (API call or environment action) -> Observation (result from the environment). The model learns to alternate between these modes. No fine-tuning is required; the approach works purely through prompting.
 
-The key insight is that reasoning traces help the model maintain working memory, track progress, and handle exceptions, while actions let it gather real information rather than hallucinating.
+The key insight is that reasoning traces help the model maintain working memory, track progress, and handle exceptions, while actions let it gather real information rather than hallucinating. The synergy between these two capabilities is greater than the sum of its parts.
 
 ## Connections
 
 Related work in this vault:
-- [[reflexion-verbal-reinforcement]] -- builds self-reflection on top of ReAct-style trajectories, enabling agents to learn from failures
-- [[lats-language-agent-tree-search]] -- extends the reasoning-acting paradigm with Monte Carlo Tree Search over ReAct-style traces
-- [[tree-of-thoughts-deliberate-problem-solving]] -- explores a complementary approach to structured reasoning without external actions
-- [[toolformer-language-models-teach-themselves]] -- focuses on learning when and how to call tools via self-supervised training rather than prompting
-- [[toolkengpt-tool-embeddings]] -- addresses tool use at the model architecture level with tool embeddings
-- [[rewoo-decoupling-reasoning-observing]] -- proposes an alternative that decouples the reasoning and observation phases for efficiency
+- [[reflexion-verbal-reinforcement]] -- Builds self-reflection on top of ReAct-style trajectories, enabling agents to learn from failures
+- [[lats-language-agent-tree-search]] -- Extends ReAct by adding tree search over reasoning-action trajectories via MCTS
+- [[tree-of-thoughts-deliberate-problem-solving]] -- Explores a complementary approach to structured reasoning without external actions
+- [[toolformer-language-models-teach-themselves]] -- Addresses tool use through training rather than prompting, a complementary approach
+- [[toolkengpt-tool-embeddings]] -- Represents tools as token embeddings, another architectural approach to the tool-use problem
+- [[rewoo-decoupling-reasoning-observing]] -- Proposes decoupling the reasoning and observation phases for improved efficiency
