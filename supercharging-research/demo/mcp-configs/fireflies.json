@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "fireflies": {
+      "command": "npx",
+      "args": ["@anthropic/mcp-server-fireflies"],
+      "env": {
+        "FIREFLIES_API_KEY": "${FIREFLIES_API_KEY}"
+      }
+    }
+  }
+}
