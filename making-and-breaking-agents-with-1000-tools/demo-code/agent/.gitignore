@@ -1,0 +1,5 @@
+.env
+providers.json
+email-draft.md
+node_modules/
+dist/

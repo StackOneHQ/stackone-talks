@@ -1,0 +1,27 @@
+{
+  "name": "mcp-demo-agent",
+  "version": "1.0.0",
+  "description": "Demo agent showing MCP tool scaling problems and solutions",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0",
+    "@clack/prompts": "^0.9.0",
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "@orama/orama": "^3.1.18",
+    "@stackone/defender": "^0.3.1",
+    "chalk": "^5.3.0",
+    "dotenv": "^16.4.5",
+    "nanoid": "^5.0.9"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "overrides": {
+    "nanoid": "^5.0.9"
+  }
+}

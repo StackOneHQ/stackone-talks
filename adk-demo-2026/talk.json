@@ -1,0 +1,11 @@
+{
+  "title": "Building Advanced Agents That Can Act with StackOne and ADK",
+  "subtitle": "From zero to production-grade in 4 steps",
+  "speaker": "Romain Sestier",
+  "role": "Co-founder & CEO @ StackOne",
+  "event": "AI Demo Day",
+  "date": "2026-04",
+  "slides": 12,
+  "tags": ["agents", "ADK", "StackOne", "demo", "ecommerce", "security"],
+  "description": "A demo-focused talk showcasing how to build an ecommerce assistant agent using Google ADK + StackOne. Progressive upgrades from V0 (no tools) to V3+ (code mode + Defender), demonstrating Connect, Optimize, and Secure pillars."
+}

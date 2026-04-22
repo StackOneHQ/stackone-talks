@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StackOne — Conference Booth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #1a1a1e;
+  width: 100vw; height: 100vh;
+  overflow: hidden;
+  font-family: 'JetBrains Mono', monospace;
+  color: #e0e0e0;
+}
+
+/* ── Slide system ── */
+.slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  opacity: 0;
+  transition: opacity 0.7s ease;
+  pointer-events: none;
+  padding: 6vh 7vw;
+}
+.slide.active { opacity: 1; pointer-events: auto; }
+
+/* ── Shared: StackOne watermark ── */
+.so-mark {
+  position: fixed;
+  bottom: 3.5vh;
+  left: 5vw;
+  display: flex;
+  align-items: center;
+  gap: 0.7em;
+  z-index: 200;
+  opacity: 0.35;
+}
+.so-mark svg { height: 2.2vh; width: auto; }
+.so-mark span {
+  font-size: clamp(0.5rem, 0.75vw, 0.65rem);
+  color: #555;
+  letter-spacing: 0.05em;
+}
+
+/* ── Progress bar ── */
+#progress-bar {
+  position: fixed;
+  bottom: 0; left: 0;
+  height: 2px;
+  background: #4A9E7E;
+  width: 0%;
+  z-index: 200;
+  transition: width linear;
+}
+
+/* ── Progress dots ── */
+#dots {
+  position: fixed;
+  bottom: 2.8vh;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 7px;
+  z-index: 200;
+}
+.dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: #2a2a34;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.dot.active { background: #4A9E7E; }
+
+/* ════════════════════════════════════════
+   SLIDE 1 — CONNECTORS
+════════════════════════════════════════ */
+.s-connectors {
+  flex-direction: column;
+  justify-content: center;
+  gap: 3.5vh;
+}
+.conn-headline h1 {
+  font-size: clamp(2.2rem, 4.8vw, 5.5rem);
+  font-weight: 700;
+  color: #e8e8e8;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+.conn-headline h2 {
+  font-size: clamp(1.8rem, 4vw, 4.5rem);
+  font-weight: 700;
+  color: #666;
+  line-height: 1.05;
+  margin-top: 0.1em;
+}
+.logo-wall {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: clamp(5px, 0.9vw, 11px);
+}
+.lc {
+  aspect-ratio: 1;
+  border-radius: clamp(8px, 1.1vw, 13px);
+  overflow: hidden;
+  background: #f5f5f5;
+}
+.lc img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* ════════════════════════════════════════
+   SLIDE 2 — BUILD YOUR OWN
+════════════════════════════════════════ */
+.s-build {
+  flex-direction: row;
+  align-items: center;
+  gap: 5vw;
+}
+.build-left {
+  flex: 0 0 36%;
+}
+.build-left h1 {
+  font-size: clamp(1.8rem, 3.4vw, 3.9rem);
+  font-weight: 700;
+  line-height: 1.15;
+  color: #e8e8e8;
+}
+.build-left h1 .dim { color: #666; }
+.build-left p {
+  margin-top: 1.4em;
+  font-size: clamp(0.65rem, 1vw, 0.9rem);
+  color: #555;
+  line-height: 1.75;
+  font-weight: 400;
+}
+.build-right {
+  flex: 1;
+  background: #0d1117;
+  border-radius: 10px;
+  border: 1px solid #21262d;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.term-bar {
+  background: #161b22;
+  padding: clamp(7px, 1vh, 12px) clamp(10px, 1.2vw, 16px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 1px solid #21262d;
+  flex-shrink: 0;
+}
+.term-dot { width: 9px; height: 9px; border-radius: 50%; }
+.term-title {
+  margin-left: 6px;
+  font-size: clamp(0.5rem, 0.7vw, 0.62rem);
+  color: #3d444d;
+  letter-spacing: 0.05em;
+}
+.term-body {
+  padding: clamp(12px, 1.6vw, 22px);
+  font-size: clamp(0.52rem, 0.82vw, 0.75rem);
+  line-height: 1.85;
+  color: #7d8590;
+  flex: 1;
+  min-height: 40vh;
+}
+.t-prompt { color: #4A9E7E; }
+.t-key { color: #79c0ff; }
+.t-val { color: #a5d6ff; }
+.t-ok { color: #3fb950; }
+.t-dim { color: #3d444d; }
+.t-blank { display: block; height: 0.4em; }
+#cursor {
+  display: inline-block;
+  width: 0.5em; height: 1em;
+  background: #4A9E7E;
+  vertical-align: middle;
+  margin-left: 1px;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ════════════════════════════════════════
+   SLIDE 3 — ANY PROTOCOL
+════════════════════════════════════════ */
+.s-protocol {
+  flex-direction: row;
+  align-items: center;
+  gap: 5vw;
+}
+.proto-left {
+  flex: 0 0 34%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.proto-left h1 {
+  font-size: clamp(2.2rem, 4vw, 4.5rem);
+  font-weight: 700;
+  line-height: 1.15;
+  color: #e8e8e8;
+}
+.proto-left p {
+  margin-top: 1em;
+  font-size: clamp(0.75rem, 1.1vw, 1rem);
+  color: #555;
+  line-height: 1.7;
+}
+.proto-pills {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(6px, 0.9vw, 12px);
+  margin-top: 1.6em;
+}
+.proto-pill {
+  padding: clamp(10px, 1.3vw, 18px) clamp(10px, 1.2vw, 16px);
+  border-radius: 8px;
+  border: 1px solid #2a2a34;
+  color: #444;
+  background: #1a1a1e;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4em;
+}
+.proto-pill .pill-name {
+  font-size: clamp(0.9rem, 1.4vw, 1.3rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #555;
+}
+.proto-pill .pill-desc {
+  font-size: clamp(0.6rem, 0.85vw, 0.78rem);
+  color: #333;
+  line-height: 1.4;
+  font-weight: 400;
+}
+.proto-pill.hi {
+  background: #141f1a;
+  border-color: #1e3028;
+}
+.proto-pill.hi .pill-name { color: #4A9E7E; }
+.proto-pill.hi .pill-desc { color: #2d5a47; }
+.proto-right {
+  flex: 1;
+  background: #0d1117;
+  border-radius: 10px;
+  border: 1px solid #21262d;
+  overflow: hidden;
+}
+.code-bar {
+  background: #161b22;
+  padding: clamp(7px, 1vh, 12px) clamp(10px, 1.2vw, 16px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #21262d;
+}
+.code-bar-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.code-bar-file {
+  font-size: clamp(0.5rem, 0.7vw, 0.62rem);
+  color: #3d444d;
+}
+.code-lang {
+  font-size: clamp(0.45rem, 0.62vw, 0.55rem);
+  color: #3d444d;
+  background: #1e1e22;
+  border: 1px solid #2a2a34;
+  border-radius: 3px;
+  padding: 1px 5px;
+  letter-spacing: 0.04em;
+}
+.code-body {
+  padding: clamp(12px, 1.6vw, 20px);
+  font-size: clamp(0.65rem, 1vw, 0.9rem);
+  line-height: 1.85;
+  color: #7d8590;
+}
+.c-kw { color: #ff7b72; }
+.c-fn { color: #d2a8ff; }
+.c-str { color: #a5d6ff; }
+.c-cm { color: #3d444d; }
+.c-num { color: #79c0ff; }
+.c-obj { color: #ffa657; }
+
+/* ════════════════════════════════════════
+   SLIDE 4 — EXECUTION ENGINE
+════════════════════════════════════════ */
+.s-engine {
+  flex-direction: column;
+  justify-content: center;
+  gap: 4vh;
+}
+.engine-top h1 {
+  font-size: clamp(2.2rem, 4vw, 4.5rem);
+  font-weight: 700;
+  color: #e8e8e8;
+  line-height: 1.15;
+}
+.engine-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(10px, 1.4vw, 18px);
+}
+.ec {
+  background: #1e1e22;
+  border: 1px solid #2a2a34;
+  border-radius: 10px;
+  padding: clamp(16px, 2vw, 26px);
+}
+.ec-name {
+  font-size: clamp(1rem, 1.5vw, 1.4rem);
+  font-weight: 700;
+  color: #4A9E7E;
+  letter-spacing: 0.04em;
+}
+
+/* ════════════════════════════════════════
+   SLIDE 5 — PERMISSIONS
+════════════════════════════════════════ */
+.s-perms {
+  flex-direction: row;
+  align-items: center;
+  gap: 6vw;
+}
+.perms-left {
+  flex: 0 0 40%;
+}
+.perms-left h1 {
+  font-size: clamp(2.2rem, 4vw, 4.5rem);
+  font-weight: 700;
+  line-height: 1.15;
+  color: #e8e8e8;
+}
+.perms-left h1 .dim { color: #666; }
+.perms-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.6vh, 18px);
+}
+.flow-step {
+  background: #1e1e22;
+  border: 1px solid #2a2a34;
+  border-radius: 10px;
+  padding: clamp(14px, 2vw, 24px);
+}
+.flow-step.hi { background: #141f1a; border-color: #1e3828; }
+.fs-label {
+  font-size: clamp(0.62rem, 0.9vw, 0.78rem);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 0.5em;
+  color: #333;
+}
+.flow-step.hi .fs-label { color: #4A9E7E; }
+.fs-body {
+  font-size: clamp(0.95rem, 1.4vw, 1.25rem);
+  font-weight: 600;
+  color: #777;
+  line-height: 1.4;
+}
+.flow-step.hi .fs-body { color: #ccc; }
+.fs-tag {
+  display: inline-block;
+  background: #111;
+  border: 1px solid #2a2a34;
+  border-radius: 4px;
+  padding: 1px 7px;
+  color: #4A9E7E;
+  font-size: 0.85em;
+}
+.fs-allowed { color: #3fb950; display: block; margin-top: 0.4em; }
+.fs-denied  { color: #f85149; display: block; }
+.flow-arrow {
+  text-align: center;
+  color: #2a2a34;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+/* ════════════════════════════════════════
+   SLIDE 6 — DEFENDER
+════════════════════════════════════════ */
+.s-defender {
+  flex-direction: row;
+  align-items: center;
+  gap: 6vw;
+}
+.def-left {
+  flex: 0 0 40%;
+}
+.def-left h1 {
+  font-size: clamp(2.2rem, 4vw, 4.5rem);
+  font-weight: 700;
+  line-height: 1.15;
+  color: #e8e8e8;
+}
+.def-left h1 .dim { color: #666; }
+.def-left p {
+  margin-top: 1.2em;
+  font-size: clamp(0.9rem, 1.3vw, 1.2rem);
+  color: #555;
+  line-height: 1.65;
+}
+.def-right {
+  flex: 1;
+}
+.chart-label {
+  font-size: clamp(0.52rem, 0.75vw, 0.65rem);
+  color: #3d444d;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 2.5vh;
+}
+.brow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: clamp(14px, 2.4vh, 28px);
+}
+.b-name {
+  font-size: clamp(0.85rem, 1.2vw, 1.1rem);
+  font-weight: 600;
+  width: 11em;
+  flex-shrink: 0;
+  color: #444;
+  white-space: nowrap;
+}
+.b-name.hi { color: #4A9E7E; }
+.b-track {
+  flex: 1;
+  background: #1e1e22;
+  border-radius: 5px;
+  height: clamp(10px, 1.6vh, 18px);
+  overflow: hidden;
+}
+.b-bar {
+  height: 100%;
+  border-radius: 5px;
+  background: #2a2a34;
+  width: 0%;
+  transition: width 1.2s ease;
+}
+.b-bar.hi { background: #4A9E7E; }
+.b-score {
+  font-size: clamp(0.85rem, 1.2vw, 1.1rem);
+  font-weight: 700;
+  width: 3em;
+  flex-shrink: 0;
+  text-align: right;
+  color: #333;
+}
+.b-score.hi { color: #4A9E7E; }
+.b-badge-col {
+  width: 4.5em;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+.b-badge {
+  font-size: clamp(0.5rem, 0.68vw, 0.6rem);
+  background: #4A9E7E;
+  color: #0a1a14;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     SLIDE 1: CONNECTORS
+══════════════════════════════════════ -->
+<div class="slide s-connectors active" data-slide="0">
+  <div class="conn-headline">
+    <h1>200+ AI Agent Connectors.</h1>
+    <h2>13,000+ Actions.</h2>
+  </div>
+  <div class="logo-wall">
+    <!-- Row 1 -->
+    <div class="lc"><img src="https://stackone-logos.com/api/salesforce/squared/svg" alt="Salesforce"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/workday/squared/svg" alt="Workday"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/hubspot/squared/svg" alt="HubSpot"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/bamboohr/squared/svg" alt="BambooHR"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/slack/squared/svg" alt="Slack"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/github/squared/svg" alt="GitHub"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/greenhouse/squared/svg" alt="Greenhouse"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/jira/squared/svg" alt="Jira"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/okta/squared/svg" alt="Okta"></div>
+    <!-- Row 2 -->
+    <div class="lc"><img src="https://stackone-logos.com/api/hibob/squared/svg" alt="HiBob"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/rippling/squared/svg" alt="Rippling"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/lever/squared/svg" alt="Lever"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/notion/squared/svg" alt="Notion"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/confluence/squared/svg" alt="Confluence"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/ashby/squared/svg" alt="Ashby"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/gusto/squared/svg" alt="Gusto"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/gitlab/squared/svg" alt="GitLab"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/intercom/squared/svg" alt="Intercom"></div>
+    <!-- Row 3 -->
+    <div class="lc"><img src="https://stackone-logos.com/api/adp/squared/svg" alt="ADP"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/sap/squared/svg" alt="SAP"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/servicenow/squared/svg" alt="ServiceNow"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/google/squared/svg" alt="Google"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/linear/squared/svg" alt="Linear"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/netsuite/squared/svg" alt="NetSuite"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/freshdesk/squared/svg" alt="Freshdesk"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/pipedrive/squared/svg" alt="Pipedrive"></div>
+    <div class="lc"><img src="https://stackone-logos.com/api/oracle/squared/svg" alt="Oracle"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SLIDE 2: BUILD YOUR OWN
+══════════════════════════════════════ -->
+<div class="slide s-build" data-slide="1">
+  <div class="build-left">
+    <h1>Extend Any Connector.<br><span class="dim">Build Your Own.</span></h1>
+    <p>SOAP, OData, XML-RPC, proprietary APIs — doesn't matter. AI Builder creates production-ready connectors from any enterprise system in minutes, not months.</p>
+  </div>
+  <div class="build-right">
+    <div class="term-bar">
+      <div class="term-dot" style="background:#ff5f57"></div>
+      <div class="term-dot" style="background:#febc2e"></div>
+      <div class="term-dot" style="background:#28c840"></div>
+      <span class="term-title">ai-builder — connector-builder</span>
+    </div>
+    <div class="term-body" id="term-output"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SLIDE 3: ANY PROTOCOL
+══════════════════════════════════════ -->
+<div class="slide s-protocol" data-slide="2">
+  <div class="proto-left">
+    <h1>Connect Using<br>Any Protocol.</h1>
+    <p>Your frameworks. Your agents. Your systems. Four ways to connect them all to StackOne.</p>
+    <div class="proto-pills">
+      <div class="proto-pill hi">
+        <span class="pill-name">MCP</span>
+        <span class="pill-desc">Model Context Protocol — native tool calling for any MCP-compatible agent</span>
+      </div>
+      <div class="proto-pill">
+        <span class="pill-name">A2A</span>
+        <span class="pill-desc">Agent-to-Agent — direct agent communication across frameworks</span>
+      </div>
+      <div class="proto-pill">
+        <span class="pill-name">AI Action SDK</span>
+        <span class="pill-desc">Typed functions for OpenAI, Vercel AI, Anthropic, LangChain & more</span>
+      </div>
+      <div class="proto-pill">
+        <span class="pill-name">REST API</span>
+        <span class="pill-desc">Direct HTTP access — any language, any stack, any environment</span>
+      </div>
+    </div>
+  </div>
+  <div class="proto-right">
+    <div class="code-bar">
+      <div class="code-bar-left">
+        <div class="term-dot" style="background:#ff5f57"></div>
+        <div class="term-dot" style="background:#febc2e"></div>
+        <div class="term-dot" style="background:#28c840"></div>
+        <span class="code-bar-file" style="margin-left:8px">agent.ts</span>
+      </div>
+      <span class="code-lang">TypeScript · MCP</span>
+    </div>
+    <div class="code-body"><pre style="white-space:pre-wrap"><span class="c-cm">// Connect your agent to 200+ tools via MCP</span>
+<span class="c-kw">import</span> { <span class="c-obj">Agent</span>, <span class="c-obj">MCPServerStreamableHttp</span>, <span class="c-fn">run</span> } <span class="c-kw">from</span> <span class="c-str">"@openai/agents"</span>;
+
+<span class="c-kw">const</span> <span class="c-obj">authToken</span> = <span class="c-obj">Buffer</span>.<span class="c-fn">from</span>(
+  <span class="c-str">`<span class="c-obj">${process.env.STACKONE_API_KEY}</span>:`</span>
+).<span class="c-fn">toString</span>(<span class="c-str">"base64"</span>);
+
+<span class="c-kw">const</span> <span class="c-obj">stackoneMcp</span> = <span class="c-kw">new</span> <span class="c-fn">MCPServerStreamableHttp</span>({
+  url: <span class="c-str">"https://api.stackone.com/mcp?x-account-id=&lt;account_id&gt;"</span>,
+  requestInit: {
+    headers: { <span class="c-obj">Authorization</span>: <span class="c-str">`Basic <span class="c-obj">${authToken}</span>`</span> },
+  },
+});
+
+<span class="c-kw">await</span> <span class="c-obj">stackoneMcp</span>.<span class="c-fn">connect</span>();
+
+<span class="c-kw">const</span> <span class="c-obj">agent</span> = <span class="c-kw">new</span> <span class="c-fn">Agent</span>({
+  name: <span class="c-str">"HR Agent"</span>,
+  instructions: <span class="c-str">"Help users manage HR tasks."</span>,
+  mcpServers: [<span class="c-obj">stackoneMcp</span>],
+});
+
+<span class="c-kw">await</span> <span class="c-fn">run</span>(<span class="c-obj">agent</span>, <span class="c-str">"Schedule onboarding for new hire Alice"</span>);</pre></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SLIDE 4: EXECUTION ENGINE
+══════════════════════════════════════ -->
+<div class="slide s-engine" data-slide="3">
+  <div class="engine-top">
+    <h1>Powered by StackOne's<br>Execution Engine.</h1>
+  </div>
+  <div class="engine-grid">
+    <div class="ec"><div class="ec-name">Integrations-as-Code</div></div>
+    <div class="ec"><div class="ec-name">Multi-Tenancy</div></div>
+    <div class="ec"><div class="ec-name">Rate Limit Handling</div></div>
+    <div class="ec"><div class="ec-name">Managed Authentication</div></div>
+    <div class="ec"><div class="ec-name">Low-Latency Transformations</div></div>
+    <div class="ec"><div class="ec-name">Multi-Protocol</div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SLIDE 5: PERMISSIONS
+══════════════════════════════════════ -->
+<div class="slide s-perms" data-slide="4">
+  <div class="perms-left">
+    <h1>Enforce Agent<br>Permissions<br><span class="dim">&amp; Governance.</span></h1>
+  </div>
+  <div class="perms-right">
+    <div class="flow-step">
+      <div class="fs-label">Tool Request</div>
+      <div class="fs-body">Agent calls <span class="fs-tag">get_document()</span> via StackOne</div>
+    </div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step hi">
+      <div class="fs-label">Permission Check</div>
+      <div class="fs-body">
+        <span class="fs-allowed">✓ &nbsp;report_Q4.pdf</span>
+        <span class="fs-denied">✗ &nbsp;roadmap.docx</span>
+      </div>
+    </div>
+    <div class="flow-arrow">↓</div>
+    <div class="flow-step">
+      <div class="fs-label">Scoped Response</div>
+      <div class="fs-body">Filtered result + full audit trail</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SLIDE 6: DEFENDER
+══════════════════════════════════════ -->
+<div class="slide s-defender" data-slide="5">
+  <div class="def-left">
+    <h1>Defend Against<br><span class="dim">Prompt Injection.</span></h1>
+    <p>The #1 OWASP LLM risk — detected and neutralised before it reaches your agent.</p>
+  </div>
+  <div class="def-right">
+    <div class="chart-label">F1 Score — Detection Accuracy</div>
+    <div class="brow">
+      <div class="b-name hi">StackOne Defender</div>
+      <div class="b-track"><div class="b-bar hi" data-width="88"></div></div>
+      <div class="b-score hi">0.88</div>
+      <div class="b-badge-col"><div class="b-badge">BEST</div></div>
+    </div>
+    <div class="brow">
+      <div class="b-name">LLM Moderation</div>
+      <div class="b-track"><div class="b-bar" data-width="82"></div></div>
+      <div class="b-score">0.82</div>
+      <div class="b-badge-col"></div>
+    </div>
+    <div class="brow">
+      <div class="b-name">Gateway Proxy</div>
+      <div class="b-track"><div class="b-bar" data-width="65"></div></div>
+      <div class="b-score">0.65</div>
+      <div class="b-badge-col"></div>
+    </div>
+    <div class="brow">
+      <div class="b-name">Regex Patterns</div>
+      <div class="b-track"><div class="b-bar" data-width="40"></div></div>
+      <div class="b-score">0.40</div>
+      <div class="b-badge-col"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     FIXED ELEMENTS
+══════════════════════════════════════ -->
+<div class="so-mark">
+  <svg viewBox="0 0 935 119" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#c)"><path d="M66.668 39.556H133.335V.667H101.49C82.258.667 66.668.667 66.668 21.059V39.556Z" fill="url(#a)"/><path d="M133.335 78.444H66.668v38.889h31.844C117.744 117.333 133.335 117.333 133.335 96.94V78.444Z" fill="url(#b)"/><path d="M133.333.667H66.889H0L0 78.445h66.889V39.563l-.01-1.647C66.762 17.378 83.378.667 103.916.667h29.417Z" fill="#00AF66"/><path d="M66.668 117.333h66.444H200.001V39.556H133.112v38.881l.01 1.648C133.239 100.622 116.623 117.333 96.085 117.333H66.668Z" fill="#00AF66"/></g><path d="M315.323 34.638C314.874 30.113 312.948 26.596 309.544 24.09 306.14 21.584 301.521 20.331 295.685 20.331c-3.965 0-7.312.561-10.043 1.683-2.731 1.085-4.825 2.6-6.284 4.545-1.421 1.945-2.132 4.152-2.132 6.621-.075 2.057.355 3.853 1.29 5.386.973 1.534 2.301 2.862 3.984 3.984 1.683 1.085 3.628 2.039 5.835 2.862 2.207.785 4.564 1.459 7.07 2.02l10.324 2.469c5.012 1.122 9.613 2.618 13.802 4.488 4.19 1.87 7.818 4.171 10.885 6.901 3.067 2.731 5.443 5.948 7.126 9.651 1.721 3.703 2.6 7.949 2.637 12.736-.037 7.033-1.833 13.13-5.386 18.292-3.516 5.124-8.604 9.107-15.262 11.95-6.62 2.805-14.607 4.208-23.958 4.208-9.276 0-17.356-1.421-24.238-4.264-6.846-2.843-12.195-7.051-16.047-12.624-3.816-5.611-5.817-12.55-6.004-20.816h23.509c.262 3.853 1.366 7.07 3.311 9.651 1.982 2.543 4.619 4.47 7.911 5.779 3.329 1.272 7.088 1.908 11.278 1.908 4.114 0 7.686-.599 10.716-1.796 3.067-1.197 5.443-2.861 7.126-4.994 1.683-2.132 2.525-4.582 2.525-7.35 0-2.581-.767-4.75-2.301-6.508-1.496-1.758-3.703-3.254-6.62-4.489-2.881-1.234-6.415-2.356-10.605-3.366L283.622 66.115c-9.688-2.356-17.337-6.041-22.948-11.053-5.611-5.012-8.397-11.764-8.36-20.255-.037-6.957 1.814-13.036 5.555-18.235 3.778-5.2 8.958-9.258 15.542-12.176C280.994 1.479 288.475.02 296.854.02c8.528 0 15.972 1.459 22.331 4.376 6.396 2.918 11.371 6.977 14.924 12.176 3.554 5.2 5.387 11.222 5.499 18.067h-24.285ZM392.432 30.318v17.955h-51.9V30.318h51.9ZM352.315 9.67h23.902V90.017c0 2.207.336 3.928 1.01 5.162.673 1.197 1.608 2.039 2.805 2.525 1.234.486 2.656.729 4.264.729 1.122 0 2.244-.094 3.367-.281 1.122-.224 1.982-.393 2.581-.505l3.759 17.786c-1.197.374-2.88.804-5.05 1.29-2.169.524-4.807.842-7.911.954-5.761.225-10.81-.542-15.149-2.3-4.302-1.758-7.65-4.489-10.044-8.192-2.394-3.703-3.572-8.379-3.534-14.027V9.67ZM423.097 118.127c-5.499 0-10.399-.954-14.7-2.861-4.302-1.945-7.706-4.807-10.212-8.585-2.469-3.815-3.703-8.566-3.703-14.252 0-4.788.879-8.809 2.637-12.063 1.758-3.254 4.152-5.873 7.182-7.855 3.03-1.982 6.471-3.478 10.324-4.488 3.89-1.01 7.967-1.72 12.231-2.132 5.013-.524 9.052-1.01 12.12-1.459 3.067-.486 5.292-1.197 6.676-2.132 1.384-.935 2.076-2.319 2.076-4.152v-.336c0-3.553-1.122-6.303-3.366-8.248-2.207-1.945-5.349-2.918-9.426-2.918-4.302 0-7.724.954-10.268 2.862-2.544 1.87-4.227 4.227-5.05 7.07l-22.106-1.796c1.122-5.236 3.329-9.762 6.621-13.578 3.291-3.853 7.537-6.808 12.736-8.865 5.237-2.095 11.296-3.142 18.179-3.142 4.788 0 9.37.561 13.746 1.683 4.414 1.122 8.323 2.862 11.727 5.218 3.441 2.357 6.153 5.387 8.136 9.09 1.982 3.666 2.973 8.061 2.973 13.186V116.5H448.963v-11.951h-.674c-1.384 2.693-3.235 5.068-5.554 7.126-2.319 2.02-5.106 3.609-8.36 4.769-3.255 1.122-7.014 1.683-11.278 1.683ZM429.942 101.631c3.516 0 6.621-.692 9.314-2.076 2.693-1.421 4.807-3.329 6.34-5.723 1.534-2.394 2.301-5.106 2.301-8.136V76.551c-.748.487-1.777.935-3.086 1.347-1.272.374-2.712.73-4.32 1.066-1.608.299-3.216.58-4.825.842-1.608.224-3.067.43-4.376.617-2.806.411-5.256 1.066-7.35 1.964-2.095.897-3.722 2.113-4.882 3.647-1.16 1.496-1.74 3.366-1.74 5.61 0 3.254 1.178 5.742 3.535 7.462 2.394 1.683 5.423 2.525 9.089 2.525ZM519.633 118.183c-8.828 0-16.421-1.87-22.78-5.611-6.321-3.778-11.184-9.015-14.588-15.71-3.366-6.696-5.05-14.401-5.05-23.117 0-8.828 1.702-16.571 5.106-23.229 3.441-6.695 8.323-11.913 14.644-15.654 6.321-3.778 13.839-5.667 22.555-5.667 7.518 0 14.102 1.365 19.75 4.096 5.648 2.73 10.118 6.564 13.41 11.502 3.291 4.937 5.105 10.735 5.442 17.393h-22.555c-.636-4.302-2.319-7.762-5.05-10.38-2.693-2.656-6.228-3.984-10.604-3.984-3.704 0-6.939 1.01-9.707 3.03-2.731 1.982-4.863 4.882-6.396 8.697-1.534 3.815-2.301 8.435-2.301 13.858 0 5.499.748 10.175 2.244 14.028 1.534 3.852 3.685 6.788 6.453 8.808 2.768 2.02 6.003 3.03 9.707 3.03 2.73 0 5.18-.561 7.35-1.683 2.207-1.122 4.021-2.749 5.442-4.881 1.459-2.17 2.413-4.77 2.862-7.8h22.555c-.374 6.584-2.169 12.381-5.386 17.393-3.18 4.975-7.575 8.865-13.186 11.67-5.61 2.806-12.25 4.208-19.918 4.208ZM585.604 91.7L585.66 63.03h3.479l27.605-32.711h27.437L607.094 73.634H601.427L585.604 91.7ZM563.946 116.5V1.59h23.902V116.5H563.946ZM617.81 116.5L592.449 78.964l15.935-16.889L645.808 116.5H617.81ZM752.471 59.046c0 12.53-2.375 23.191-7.125 31.981-4.713 8.79-11.147 15.504-19.301 20.143-8.117 4.601-17.244 6.901-27.381 6.901-10.212 0-19.376-2.319-27.493-6.957-8.117-4.638-14.532-11.352-19.245-20.142-4.713-8.79-7.07-19.432-7.07-31.926 0-12.53 2.357-23.19 7.07-31.981 4.713-8.79 11.128-15.485 19.245-20.086C679.288 2.339 688.452.02 698.664.02c10.137 0 19.264 2.32 27.381 6.958 8.154 4.601 14.588 11.296 19.301 20.086 4.75 8.79 7.125 19.451 7.125 31.981Zm-24.631 0c0-8.117-1.216-14.963-3.647-20.536-2.394-5.574-5.779-9.8-10.155-12.681-4.377-2.88-9.501-4.32-15.374-4.32-5.873 0-10.997 1.44-15.374 4.32-4.376 2.881-7.78 7.107-10.211 12.681-2.394 5.573-3.591 12.419-3.591 20.536 0 8.117 1.197 14.962 3.591 20.536 2.431 5.573 5.835 9.8 10.211 12.68 4.377 2.88 9.501 4.32 15.374 4.32 5.873 0 10.997-1.44 15.374-4.32 4.376-2.88 7.761-7.107 10.155-12.68 2.431-5.574 3.647-12.419 3.647-20.536ZM784.441 66.676V116.5H760.539V30.318h22.78V45.523h1.01c1.908-5.012 5.106-8.977 9.594-11.895 4.489-2.955 9.932-4.432 16.328-4.432 5.985 0 11.203 1.309 15.654 3.928 4.451 2.618 7.911 6.358 10.38 11.221 2.469 4.825 3.703 10.586 3.703 17.281V116.5H816.086V65.891c.037-5.274-1.309-9.389-4.04-12.344-2.73-2.992-6.49-4.488-11.277-4.488-3.217 0-6.06.692-8.529 2.076-2.431 1.384-4.339 3.404-5.723 6.06-1.346 2.618-2.038 5.779-2.076 9.482ZM888.622 118.183c-8.865 0-16.496-1.795-22.892-5.386-6.359-3.628-11.259-8.753-14.7-15.374-3.442-6.658-5.162-14.532-5.162-23.621 0-8.865 1.72-16.645 5.162-23.341 3.441-6.695 8.285-11.913 14.532-15.654 6.284-3.74 13.652-5.61 22.106-5.61 5.686 0 10.979.916 15.879 2.749 4.937 1.795 9.239 4.507 12.904 8.135 3.704 3.628 6.584 8.192 8.641 13.69 2.057 5.461 3.086 11.858 3.086 19.189V79.525H855.406V64.712H905.679c0-3.441-.748-6.49-2.245-9.145-1.496-2.656-3.572-4.732-6.228-6.228-2.618-1.534-5.666-2.301-9.145-2.301-3.628 0-6.845.842-9.651 2.525-2.768 1.646-4.937 3.872-6.508 6.677-1.571 2.768-2.376 5.854-2.413 9.258V79.581c0 4.264.786 7.949 2.357 11.053 1.608 3.105 3.871 5.499 6.789 7.182 2.917 1.683 6.377 2.525 10.38 2.525 2.655 0 5.087-.374 7.294-1.122 2.207-.748 4.096-1.87 5.667-3.366 1.571-1.496 2.768-3.329 3.591-5.499l22.106 1.459c-1.122 5.311-3.423 9.949-6.901 13.914-3.442 3.928-7.893 6.995-13.354 9.202-5.424 2.169-11.689 3.254-18.796 3.254Z" fill="white"/><defs><linearGradient id="a" x1="133.335" y1="20.111" x2="66.668" y2="20.111" gradientUnits="userSpaceOnUse"><stop stop-color="#00AF66"/><stop offset="1" stop-color="#285C4D"/></linearGradient><linearGradient id="b" x1="66.668" y1="97.889" x2="133.335" y2="97.889" gradientUnits="userSpaceOnUse"><stop stop-color="#00AF66"/><stop offset="1" stop-color="#285C4D"/></linearGradient><clipPath id="c"><rect width="200" height="116.667" fill="white" transform="translate(0 .667)"/></clipPath></defs></svg>
+  <span>stackone.com</span>
+</div>
+
+<div id="dots">
+  <div class="dot active" onclick="goTo(0)"></div>
+  <div class="dot" onclick="goTo(1)"></div>
+  <div class="dot" onclick="goTo(2)"></div>
+  <div class="dot" onclick="goTo(3)"></div>
+  <div class="dot" onclick="goTo(4)"></div>
+  <div class="dot" onclick="goTo(5)"></div>
+</div>
+
+<div id="progress-bar"></div>
+
+<script>
+const DURATION = 10000; // ms per slide
+const slides = document.querySelectorAll('.slide');
+const dots = document.querySelectorAll('.dot');
+const bar = document.getElementById('progress-bar');
+let current = 0;
+let timer = null;
+let barTimer = null;
+
+// ── Terminal animation data ──
+const termLines = [
+  { text: '$ stackone build "HiBob HRIS with employee management"', cls: 't-prompt', delay: 0 },
+  { text: '', delay: 300 },
+  { text: '⟡ Researching HiBob API documentation...', delay: 600 },
+  { text: '⟡ Auth detected: OAuth2 + API Key', delay: 1100 },
+  { text: '⟡ Generating YAML configuration...', delay: 1600 },
+  { text: '', delay: 2000 },
+  { text: 'provider:', cls: 't-key', delay: 2200 },
+  { text: '  name: hibob', cls: 't-val', delay: 2350 },
+  { text: '  base_url: https://api.hibob.com/v1', cls: 't-val', delay: 2500 },
+  { text: '  auth:', cls: 't-val', delay: 2650 },
+  { text: '    type: oauth2', cls: 't-val', delay: 2800 },
+  { text: '', delay: 2950 },
+  { text: 'actions:', cls: 't-key', delay: 3100 },
+  { text: '  - name: list_employees', cls: 't-val', delay: 3250 },
+  { text: '    method: GET · path: /people', cls: 't-dim', delay: 3400 },
+  { text: '  - name: get_employee', cls: 't-val', delay: 3550 },
+  { text: '    method: GET · path: /people/{id}', cls: 't-dim', delay: 3700 },
+  { text: '  - name: create_employee', cls: 't-val', delay: 3850 },
+  { text: '    method: POST · path: /people', cls: 't-dim', delay: 4000 },
+  { text: '', delay: 4200 },
+  { text: '✓ list_employees   — 200 OK (142ms)', cls: 't-ok', delay: 4600 },
+  { text: '✓ get_employee     — 200 OK (98ms)', cls: 't-ok', delay: 5100 },
+  { text: '✓ create_employee  — 201 Created (210ms)', cls: 't-ok', delay: 5600 },
+  { text: '', delay: 5900 },
+  { text: 'Connector ready. 3 actions in hibob.connector.s1.yaml', cls: 't-prompt', delay: 6100 },
+];
+
+let termAnimFrame = null;
+let termTimeouts = [];
+
+function clearTermTimeouts() {
+  termTimeouts.forEach(t => clearTimeout(t));
+  termTimeouts = [];
+}
+
+function animateTerm() {
+  const out = document.getElementById('term-output');
+  if (!out) return;
+  out.innerHTML = '';
+  clearTermTimeouts();
+
+  termLines.forEach(({ text, cls, delay }) => {
+    const t = setTimeout(() => {
+      const line = document.createElement('div');
+      if (cls) line.className = cls;
+      line.textContent = text;
+      if (out.contains(document.getElementById('cursor'))) {
+        out.removeChild(document.getElementById('cursor'));
+      }
+      out.appendChild(line);
+      // re-append cursor
+      const cur = document.getElementById('cursor') || (() => {
+        const c = document.createElement('span');
+        c.id = 'cursor';
+        return c;
+      })();
+      out.appendChild(cur);
+      out.scrollTop = out.scrollHeight;
+    }, delay);
+    termTimeouts.push(t);
+  });
+}
+
+// ── Bar animation ──
+function startBar() {
+  bar.style.transition = 'none';
+  bar.style.width = '0%';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      bar.style.transition = `width ${DURATION}ms linear`;
+      bar.style.width = '100%';
+    });
+  });
+}
+
+// ── Navigation ──
+function goTo(idx) {
+  slides[current].classList.remove('active');
+  dots[current].classList.remove('active');
+  current = (idx + slides.length) % slides.length;
+  slides[current].classList.add('active');
+  dots[current].classList.add('active');
+
+  // Trigger slide-specific animations
+  if (current === 1) animateTerm();
+  if (current === 5) animateBars();
+
+  resetTimer();
+  startBar();
+}
+
+function next() { goTo(current + 1); }
+
+function resetTimer() {
+  if (timer) clearInterval(timer);
+  timer = setTimeout(next, DURATION);
+}
+
+// ── Defender bar animation ──
+function animateBars() {
+  document.querySelectorAll('.b-bar').forEach(b => {
+    b.style.width = '0%';
+  });
+  setTimeout(() => {
+    document.querySelectorAll('.b-bar').forEach(b => {
+      b.style.width = b.dataset.width + '%';
+    });
+  }, 300);
+}
+
+// ── Keyboard nav ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') next();
+  if (e.key === 'ArrowLeft') goTo(current - 1);
+});
+
+// ── Init ──
+startBar();
+resetTimer();
+// Init bars if on slide 6
+animateBars();
+</script>
+</body>
+</html>

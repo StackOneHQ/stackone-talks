@@ -1,0 +1,5 @@
+[
+  { "id": "your-stackone-gmail-account-id", "provider": "Gmail" },
+  { "id": "your-stackone-trello-account-id", "provider": "Trello" },
+  { "id": "your-stackone-github-account-id", "provider": "GitHub" }
+]

@@ -19,7 +19,7 @@ const talks = readdirSync(".")
     const name = dir.replace(/^\d{4}-\d{2}-/, "").replace(/-/g, " ");
     return { dir, title: name, event: "", date: dir.slice(0, 7) };
   })
-  .sort((a, b) => b.dir.localeCompare(a.dir)); // newest first
+  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // newest first
 
 const publicDir = "public";
 
@@ -27,20 +27,30 @@ const publicDir = "public";
 rmSync(publicDir, { recursive: true, force: true });
 mkdirSync(publicDir, { recursive: true });
 
-// Copy each talk's slides.html → public/<talk-dir>/index.html
+// Copy each talk's directory contents → public/<talk-dir>/
 for (const talk of talks) {
-  const src = join(talk.dir, "slides.html");
   const dest = join(publicDir, talk.dir);
   mkdirSync(dest, { recursive: true });
-  copyFileSync(src, join(dest, "index.html"));
-  console.log(`Copied ${src} → ${join(dest, "index.html")}`);
 
-  // Copy assets if they exist
-  const assetsDir = join(talk.dir, "assets");
-  if (existsSync(assetsDir)) {
-    cpSync(assetsDir, join(dest, "assets"), { recursive: true });
-    console.log(`Copied assets for ${talk.dir}`);
+  // Copy all files from the talk directory
+  const entries = readdirSync(talk.dir);
+  for (const entry of entries) {
+    const srcPath = join(talk.dir, entry);
+    const destPath = join(dest, entry);
+    if (statSync(srcPath).isDirectory()) {
+      cpSync(srcPath, destPath, { recursive: true });
+    } else {
+      copyFileSync(srcPath, destPath);
+    }
   }
+
+  // Rename slides.html to index.html for serving
+  const slidesPath = join(dest, "slides.html");
+  const indexPath = join(dest, "index.html");
+  if (existsSync(slidesPath) && !existsSync(indexPath)) {
+    copyFileSync(slidesPath, indexPath);
+  }
+  console.log(`Copied ${talk.dir}/ → ${dest}/ (${entries.length} files)`);
 }
 
 // Generate landing page
@@ -129,4 +139,12 @@ ${talkListHtml}
 
 writeFileSync(join(publicDir, "index.html"), indexHtml);
 console.log(`Generated landing page at ${join(publicDir, "index.html")}`);
+
+// Generate redirects for old date-prefixed slugs
+const redirects = [
+  "/2026-02-making-and-breaking-agents-with-1000-tools/* /making-and-breaking-agents-with-1000-tools/:splat 301",
+].join("\n");
+writeFileSync(join(publicDir, "_redirects"), redirects);
+console.log(`Generated _redirects`);
+
 console.log(`Build complete: ${talks.length} talk(s)`);

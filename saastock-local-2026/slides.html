@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Agent IS the Product</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a1e;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'JetBrains Mono', monospace;
+    color: #e0e0e0;
+  }
+  .slide {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: none;
+  }
+  .slide.active { display: block; }
+  .slide svg.slide-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .content {
+    position: absolute;
+    top: 14%; left: 14%;
+    width: 72%; height: 72%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 2;
+    font-size: 2.4rem;
+    font-weight: 600;
+    text-align: left;
+    color: #ccc;
+  }
+  .title-slide .title {
+    font-size: 3.2rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #e0e0e0;
+    margin-bottom: 2.5rem;
+  }
+  .title-slide .title span { color: #4A9E7E; }
+  .title-slide .subtitle {
+    font-size: 1.3rem;
+    font-weight: 400;
+    color: #888;
+    line-height: 1.6;
+  }
+  .title-slide .subtitle .author { display: block; margin-bottom: 0.3rem; }
+  .title-slide .subtitle .affiliation {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .title-slide .subtitle .stackone-logo {
+    height: 1.3em;
+    vertical-align: middle;
+    margin: 0 0.25em;
+  }
+  .title-slide .event-tag {
+    font-size: 1rem;
+    font-weight: 400;
+    color: #555;
+    margin-top: 2rem;
+  }
+  .section-slide .content {
+    align-items: center;
+    justify-content: center;
+  }
+  .slide-heading {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: #e0e0e0;
+    margin-bottom: 2rem;
+    padding-left: 1.2rem;
+    border-left: 4px solid #4A9E7E;
+  }
+  .slide-heading span { color: #4A9E7E; }
+  .big-quote {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: #e0e0e0;
+    line-height: 1.35;
+    font-style: italic;
+  }
+  .big-quote span { color: #4A9E7E; font-style: normal; }
+  .results-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1.1rem;
+    font-weight: 400;
+  }
+  .results-table th {
+    text-align: left;
+    color: #4A9E7E;
+    padding: 0.55rem 1rem;
+    border-bottom: 1px solid #333;
+    font-weight: 600;
+  }
+  .results-table td {
+    padding: 0.55rem 1rem;
+    color: #aaa;
+    border-bottom: 1px solid #222;
+  }
+  .results-table tr.highlight td {
+    color: #4A9E7E;
+    font-weight: 600;
+  }
+  .results-table .dim { color: #555; }
+  .methods {
+    display: flex;
+    gap: 1.5rem;
+    width: 100%;
+  }
+  .methods .method {
+    flex: 1;
+    background: #111114;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  .methods .method h3 {
+    font-size: 1.3rem;
+    color: #4A9E7E;
+    margin-bottom: 0.8rem;
+    font-weight: 600;
+  }
+  .methods .method p {
+    font-size: 1rem;
+    color: #888;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+  .pricing-flow {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    width: 100%;
+    justify-content: center;
+  }
+  .pricing-era {
+    text-align: center;
+    padding: 1.2rem 1.5rem;
+    border-radius: 10px;
+    min-width: 150px;
+  }
+  .pricing-era.dead { background: #111114; border: 1px solid #333; }
+  .pricing-era.dead h4 { color: #555; }
+  .pricing-era.dead p { color: #444; }
+  .pricing-era.dying { background: #111114; border: 1px solid #e0525255; }
+  .pricing-era.dying h4 { color: #e05252; }
+  .pricing-era.dying p { color: #888; }
+  .pricing-era.now { background: #111114; border: 2px solid #4A9E7E; }
+  .pricing-era.now h4 { color: #4A9E7E; }
+  .pricing-era.now p { color: #ccc; }
+  .pricing-era h4 { font-size: 1.15rem; font-weight: 600; margin-bottom: 0.4rem; }
+  .pricing-era p { font-size: 0.9rem; font-weight: 400; }
+  .pricing-arrow { color: #4A9E7E; font-size: 1.8rem; }
+  .shift-tag {
+    display: inline-block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1a1a1e;
+    background: #4A9E7E;
+    padding: 0.2rem 0.8rem;
+    border-radius: 4px;
+    margin-bottom: 1.2rem;
+    letter-spacing: 0.05em;
+  }
+  .slide-counter {
+    position: fixed;
+    bottom: 16px; right: 24px;
+    font-size: 0.8rem;
+    color: #555;
+    z-index: 100;
+    font-variant-numeric: tabular-nums;
+  }
+  .footer-logo {
+    position: fixed;
+    bottom: 14px; left: 24px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .footer-logo img { height: 1.4rem; opacity: 0.8; }
+  .footer-logo span { font-size: 0.8rem; color: #555; font-weight: 600; }
+  .footer-url {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    color: #444;
+    z-index: 100;
+    letter-spacing: 0.02em;
+  }
+</style>
+</head>
+<body>
+
+<div id="deck"></div>
+<div class="footer-logo"><img src="stackone-logo.svg" alt="StackOne" style="height:1.2rem"></div>
+<div class="footer-url">talks.stackone.space/saastock-local-2026</div>
+<div class="slide-counter" id="counter"></div>
+
+<script>
+const TOTAL = 17;
+const GREEN = '#4A9E7E';
+const DOT_SIZE = 21;
+const DOT_R = 7;
+const STROKE = 3;
+const GAP = 7;
+const ANIM_MS = 400;
+
+const BORDER = [
+  { x: 0.10, y: 0.10 },
+  { x: 0.50, y: 0.10 },
+  { x: 0.90, y: 0.10 },
+  { x: 0.90, y: 0.50 },
+  { x: 0.90, y: 0.90 },
+  { x: 0.50, y: 0.90 },
+  { x: 0.10, y: 0.90 },
+  { x: 0.10, y: 0.50 },
+];
+
+function seededRandom(seed) {
+  let s = seed;
+  return function () { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+}
+const rand = seededRandom(99);
+
+const slideDotIdx = [];
+for (let i = 0; i < TOTAL; i++) {
+  let idx;
+  do { idx = Math.floor(rand() * 8); } while (i > 0 && idx === slideDotIdx[i - 1]);
+  slideDotIdx.push(idx);
+}
+
+function perimDist(a, b) { const cw = (b - a + 8) % 8; return Math.min(cw, 8 - cw); }
+function shortestArc(from, to) {
+  if (from === to) return [from];
+  const cw = (to - from + 8) % 8, ccw = (from - to + 8) % 8, step = cw <= ccw ? 1 : -1;
+  const path = [from]; let cur = from;
+  while (cur !== to) { cur = (cur + step + 8) % 8; path.push(cur); }
+  return path;
+}
+
+const CORRIDORS = [{ exit: 6, enter: 0 }, { exit: 5, enter: 1 }, { exit: 4, enter: 2 }];
+const transCorridors = [];
+for (let i = 0; i < TOTAL - 1; i++) {
+  const a = slideDotIdx[i], b = slideDotIdx[i + 1];
+  let arrivalNeighbor = -1;
+  if (i > 0) { const prev = transCorridors[i - 1]; const inArc = shortestArc(prev.enter, a); if (inArc.length >= 2) arrivalNeighbor = inArc[inArc.length - 2]; }
+  let best = null, bestCost = Infinity;
+  for (const c of CORRIDORS) { const outArc = shortestArc(a, c.exit); if (outArc.length >= 2 && outArc[1] === arrivalNeighbor) continue; const cost = perimDist(a, c.exit) + perimDist(c.enter, b); if (cost < bestCost) { bestCost = cost; best = c; } }
+  if (!best) { for (const c of CORRIDORS) { const cost = perimDist(a, c.exit) + perimDist(c.enter, b); if (cost < bestCost) { bestCost = cost; best = c; } } }
+  transCorridors.push(best);
+}
+
+function transitionPaths(ti, vw, vh) {
+  const a = slideDotIdx[ti], b = slideDotIdx[ti + 1], corr = transCorridors[ti];
+  const outArc = shortestArc(a, corr.exit), outPts = outArc.map(i => ({ x: BORDER[i].x * vw, y: BORDER[i].y * vh }));
+  outPts.push({ x: BORDER[corr.exit].x * vw, y: vh + 40 });
+  const inArc = shortestArc(corr.enter, b), inPts = [{ x: BORDER[corr.enter].x * vw, y: -40 }];
+  inArc.forEach(i => inPts.push({ x: BORDER[i].x * vw, y: BORDER[i].y * vh }));
+  return { outPts, inPts };
+}
+
+function ptsString(pts) { return pts.map(p => `${p.x},${p.y}`).join(' '); }
+function ptsLength(pts) { let l = 0; for (let i = 1; i < pts.length; i++) { const dx = pts[i].x - pts[i-1].x, dy = pts[i].y - pts[i-1].y; l += Math.sqrt(dx*dx+dy*dy); } return l; }
+function trimStart(pts, amt) { if (pts.length < 2 || amt <= 0) return [...pts]; let rem = amt, i = 0; while (i < pts.length - 1) { const dx = pts[i+1].x - pts[i].x, dy = pts[i+1].y - pts[i].y; const seg = Math.sqrt(dx*dx+dy*dy); if (rem >= seg) { rem -= seg; i++; } else { const t = rem / seg; const out = [{ x: pts[i].x + dx*t, y: pts[i].y + dy*t }]; for (let j = i+1; j < pts.length; j++) out.push(pts[j]); return out; } } return [pts[pts.length-1]]; }
+function trimEnd(pts, amt) { return trimStart([...pts].reverse(), amt).reverse(); }
+
+let currentSlide = 0, transitioning = false;
+const deck = document.getElementById('deck'), counter = document.getElementById('counter');
+
+function buildSlides() {
+  deck.innerHTML = '';
+  const vw = window.innerWidth, vh = window.innerHeight;
+  for (let i = 0; i < TOTAL; i++) {
+    const slide = document.createElement('div');
+    slide.className = 'slide' + (i === currentSlide ? ' active' : '');
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'slide-svg'); svg.setAttribute('viewBox', `0 0 ${vw} ${vh}`); svg.setAttribute('preserveAspectRatio', 'none');
+    const idx = slideDotIdx[i], cx = BORDER[idx].x * vw, cy = BORDER[idx].y * vh;
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    dot.setAttribute('x', cx - DOT_SIZE/2); dot.setAttribute('y', cy - DOT_SIZE/2); dot.setAttribute('width', DOT_SIZE); dot.setAttribute('height', DOT_SIZE); dot.setAttribute('rx', DOT_R); dot.setAttribute('ry', DOT_R); dot.setAttribute('fill', GREEN);
+    svg.appendChild(dot);
+    if (i > 0) { const { inPts } = transitionPaths(i-1, vw, vh); const pts = trimEnd(inPts, GAP + DOT_SIZE/2); if (pts.length >= 2) svg.appendChild(makeLine(pts, 'incoming-line')); }
+    if (i < TOTAL - 1) { const { outPts } = transitionPaths(i, vw, vh); const pts = trimStart(outPts, GAP + DOT_SIZE/2); if (pts.length >= 2) svg.appendChild(makeLine(pts, 'outgoing-line')); }
+    slide.appendChild(svg);
+    const content = document.createElement('div'); content.className = 'content';
+    if (SLIDE_HTML[i]) { if (SLIDE_HTML[i].cls) slide.classList.add(SLIDE_HTML[i].cls); content.innerHTML = SLIDE_HTML[i].html; }
+    else { content.textContent = `Slide ${i + 1}`; }
+    slide.appendChild(content); deck.appendChild(slide);
+  }
+  updateCounter();
+}
+
+function makeLine(pts, cls) {
+  const len = ptsLength(pts);
+  const pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+  pl.setAttribute('points', ptsString(pts)); pl.setAttribute('fill', 'none'); pl.setAttribute('stroke', GREEN); pl.setAttribute('stroke-width', STROKE); pl.setAttribute('stroke-linecap', 'round'); pl.setAttribute('stroke-linejoin', 'round'); pl.setAttribute('stroke-dasharray', len); pl.setAttribute('stroke-dashoffset', len); pl.setAttribute('class', cls); pl.dataset.length = len;
+  return pl;
+}
+
+function updateCounter() { counter.textContent = `${currentSlide + 1} / ${TOTAL}`; }
+function getSlide(i) { return deck.querySelectorAll('.slide')[i]; }
+function animLine(el, mode) {
+  return new Promise(resolve => {
+    if (!el) return resolve();
+    const len = parseFloat(el.dataset.length);
+    if (mode === 'draw') { el.getBoundingClientRect(); el.style.transition = `stroke-dashoffset ${ANIM_MS}ms ease-out`; el.setAttribute('stroke-dashoffset', '0'); setTimeout(resolve, ANIM_MS); }
+    else if (mode === 'undraw') { el.getBoundingClientRect(); el.style.transition = `stroke-dashoffset ${ANIM_MS}ms ease-in`; el.setAttribute('stroke-dashoffset', len); setTimeout(resolve, ANIM_MS); }
+    else if (mode === 'reset-drawn') { el.style.transition = 'none'; el.setAttribute('stroke-dashoffset', '0'); resolve(); }
+    else { el.style.transition = 'none'; el.setAttribute('stroke-dashoffset', len); resolve(); }
+  });
+}
+async function goForward() { if (transitioning || currentSlide >= TOTAL-1) return; transitioning = true; const curr = getSlide(currentSlide), next = getSlide(currentSlide+1); await animLine(curr.querySelector('.outgoing-line'), 'draw'); curr.classList.remove('active'); next.classList.add('active'); currentSlide++; updateCounter(); await animLine(next.querySelector('.incoming-line'), 'draw'); transitioning = false; }
+async function goBackward() { if (transitioning || currentSlide <= 0) return; transitioning = true; const curr = getSlide(currentSlide), target = getSlide(currentSlide-1); await animLine(curr.querySelector('.incoming-line'), 'undraw'); curr.classList.remove('active'); target.classList.add('active'); currentSlide--; updateCounter(); await animLine(target.querySelector('.outgoing-line'), 'undraw'); transitioning = false; }
+function jumpForward() { if (transitioning || currentSlide >= TOTAL-1) return; const curr = getSlide(currentSlide), next = getSlide(currentSlide+1); animLine(curr.querySelector('.outgoing-line'), 'reset-drawn'); curr.classList.remove('active'); next.classList.add('active'); currentSlide++; animLine(next.querySelector('.incoming-line'), 'reset-drawn'); updateCounter(); }
+function jumpBackward() { if (transitioning || currentSlide <= 0) return; const curr = getSlide(currentSlide), target = getSlide(currentSlide-1); animLine(curr.querySelector('.incoming-line'), 'reset'); curr.classList.remove('active'); target.classList.add('active'); currentSlide--; animLine(target.querySelector('.outgoing-line'), 'reset'); updateCounter(); }
+document.addEventListener('keydown', e => { if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goForward(); } else if (e.key === 'ArrowLeft') { e.preventDefault(); goBackward(); } else if (e.key === 'ArrowDown') { e.preventDefault(); jumpForward(); } else if (e.key === 'ArrowUp') { e.preventDefault(); jumpBackward(); } });
+
+// --- SLIDES ---
+const SLIDE_HTML = {
+
+  // 1. TITLE
+  0: {
+    cls: 'title-slide',
+    html: `<div class="title">The <span>Agent</span> IS the Product</div>
+<div style="font-size:1.5rem;font-weight:400;color:#888;margin-bottom:2.5rem">Reinventing software categories in the age of AI</div>
+<div class="subtitle">
+  <span class="author" style="font-size:1.4rem;color:#ccc;font-weight:600">Romain Sestier</span>
+  <span class="affiliation">Co-founder & CEO @ StackOne</span>
+</div>
+<div class="event-tag">SaaStock Local London &middot; March 2026</div>`
+  },
+
+  // 2. ABOUT ME
+  1: {
+    html: `<div style="display:flex;align-items:center;gap:3rem;width:100%">
+  <div style="flex-shrink:0">
+    <img src="romain.jpeg" style="width:180px;height:180px;border-radius:50%;object-fit:cover;border:3px solid #333">
+  </div>
+  <div style="flex:1">
+    <div style="font-size:2.4rem;font-weight:700;color:#e0e0e0;margin-bottom:1.5rem">Hi, I'm <span style="color:#4A9E7E">Romain</span></div>
+    <div style="display:flex;align-items:center;gap:0.6rem;font-size:1.4rem;font-weight:600;margin-bottom:2rem">
+      <span style="color:#888">FR</span>
+      <span style="color:#4A9E7E">&rarr;</span>
+      <span style="color:#ccc">UK</span>
+      <span style="color:#4A9E7E">&rarr;</span>
+      <span style="color:#ccc">US</span>
+      <span style="color:#4A9E7E">&rarr;</span>
+      <span style="color:#ccc">UK</span>
+      <span style="color:#4A9E7E">&rarr;</span>
+      <span style="color:#e8a735">US</span>
+    </div>
+    <div style="font-size:1.3rem;color:#aaa;font-weight:400;line-height:1.7">Building <span style="color:#4A9E7E;font-weight:600">StackOne</span> &mdash; integration infrastructure for AI agents.</div>
+    <div style="font-size:1rem;color:#666;font-weight:400;margin-top:0.8rem">Ex Google Labs PM &middot; 2x B2B SaaS exits</div>
+  </div>
+</div>`
+  },
+
+  // 3. A NEW BREED OF COMPANIES — acceleration chart
+  2: {
+    html: `<div class="slide-heading">A New Breed of <span>Companies</span></div>
+<div style="font-size:1rem;color:#888;font-weight:400;margin-bottom:1.2rem">Time to $100M ARR &mdash; collapsing with each generation.</div>
+<div style="position:relative;width:100%;background:#111114;border:1px solid #333;border-radius:8px;padding:1rem 1.5rem 1rem 1.5rem">
+  <div style="display:flex;flex-direction:column;gap:0.25rem;font-size:0.8rem">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:0.6rem;padding-bottom:0.4rem;border-bottom:1px solid #2a2a2e">
+      <div style="width:14rem;text-align:right;flex-shrink:0;color:#555;font-size:0.7rem">COMPANY</div>
+      <div style="flex:1"></div>
+      <div style="width:6.5rem;flex-shrink:0;color:#555;font-size:0.7rem">TIME TO $100M ARR</div>
+    </div>
+    <!-- Sorted longest to shortest -->
+    <div style="display:flex;align-items:center;gap:0.6rem;height:1.3rem">
+      <div style="width:14rem;text-align:right;flex-shrink:0"><span style="color:#555;font-weight:600">Salesforce</span> <span style="color:#444;font-size:0.7rem">CRM</span></div>
+      <div style="flex:1;position:relative;height:0.7rem"><div style="width:100%;height:100%;background:#333;border-radius:0 3px 3px 0"></div></div>
+      <div style="width:6.5rem;flex-shrink:0;color:#555">~10 years</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:0.6rem;height:1.3rem">
+      <div style="width:14rem;text-align:right;flex-shrink:0"><span style="color:#666;font-weight:600">Slack</span> <span style="color:#444;font-size:0.7rem">Messaging</span></div>
+      <div style="flex:1;position:relative;height:0.7rem"><div style="width:50%;height:100%;background:#444;border-radius:0 3px 3px 0"></div></div>
+      <div style="width:6.5rem;flex-shrink:0;color:#666">~5 years</div>
+    </div>
+    <!-- Divider -->
+    <div style="height:0.3rem;border-bottom:1px dashed #2a2a2e"></div>
+    <!-- AI Era — sorted longest to shortest -->
+    <div style="display:flex;align-items:center;gap:0.6rem;height:1.3rem">
+      <div style="width:14rem;text-align:right;flex-shrink:0"><span style="color:#ccc;font-weight:600">Sierra</span> <span style="color:#4A9E7E;font-size:0.7rem">$10B &middot; Customer Experience</span></div>
+      <div style="flex:1;position:relative;height:0.7rem"><div style="width:17.5%;height:100%;background:linear-gradient(to right,#3a7e64,#4A9E7E);border-radius:0 3px 3px 0"></div></div>
+      <div style="width:6.5rem;flex-shrink:0;color:#4A9E7E;font-weight:600">21 months</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:0.6rem;height:1.3rem">
+      <div style="width:14rem;text-align:right;flex-shrink:0"><span style="color:#ccc;font-weight:600">Cursor</span> <span style="color:#4A9E7E;font-size:0.7rem">$29B &middot; Developer Tools</span></div>
+      <div style="flex:1;position:relative;height:0.7rem"><div style="width:15%;height:100%;background:linear-gradient(to right,#3a7e64,#4A9E7E);border-radius:0 3px 3px 0"></div></div>
+      <div style="width:6.5rem;flex-shrink:0;color:#4A9E7E;font-weight:600">18 months</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:0.6rem;height:1.3rem">
+      <div style="width:14rem;text-align:right;flex-shrink:0"><span style="color:#ccc;font-weight:600">Clay</span> <span style="color:#4A9E7E;font-size:0.7rem">$3.1B &middot; Sales / GTM</span></div>
+      <div style="flex:1;position:relative;height:0.7rem"><div style="width:13.3%;height:100%;background:linear-gradient(to right,#3a7e64,#4A9E7E);border-radius:0 3px 3px 0"></div></div>
+      <div style="width:6.5rem;flex-shrink:0;color:#4A9E7E;font-weight:600">~16 months</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:0.6rem;height:1.3rem">
+      <div style="width:14rem;text-align:right;flex-shrink:0"><span style="color:#ccc;font-weight:600">Glean</span> <span style="color:#4A9E7E;font-size:0.7rem">$7.2B &middot; Enterprise Search</span></div>
+      <div style="flex:1;position:relative;height:0.7rem"><div style="width:12.5%;height:100%;background:linear-gradient(to right,#3a7e64,#4A9E7E);border-radius:0 3px 3px 0"></div></div>
+      <div style="width:6.5rem;flex-shrink:0;color:#4A9E7E;font-weight:600">~15 months</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:0.6rem;height:1.3rem">
+      <div style="width:14rem;text-align:right;flex-shrink:0"><span style="color:#ccc;font-weight:600">Synthesia</span> <span style="color:#4A9E7E;font-size:0.7rem">$2.1B &middot; Video</span></div>
+      <div style="flex:1;position:relative;height:0.7rem"><div style="width:11.7%;height:100%;background:linear-gradient(to right,#3a7e64,#4A9E7E);border-radius:0 3px 3px 0"></div></div>
+      <div style="width:6.5rem;flex-shrink:0;color:#4A9E7E;font-weight:600">~14 months</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:0.6rem;height:1.3rem">
+      <div style="width:14rem;text-align:right;flex-shrink:0"><span style="color:#ccc;font-weight:600">Perplexity</span> <span style="color:#4A9E7E;font-size:0.7rem">$9B &middot; Search</span></div>
+      <div style="flex:1;position:relative;height:0.7rem"><div style="width:10.8%;height:100%;background:linear-gradient(to right,#3a7e64,#4A9E7E);border-radius:0 3px 3px 0"></div></div>
+      <div style="width:6.5rem;flex-shrink:0;color:#4A9E7E;font-weight:600">~13 months</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:0.6rem;height:1.3rem">
+      <div style="width:14rem;text-align:right;flex-shrink:0"><span style="color:#ccc;font-weight:600">Harvey</span> <span style="color:#4A9E7E;font-size:0.7rem">$11B &middot; Legal</span></div>
+      <div style="flex:1;position:relative;height:0.7rem"><div style="width:10%;height:100%;background:linear-gradient(to right,#3a7e64,#4A9E7E);border-radius:0 3px 3px 0"></div></div>
+      <div style="width:6.5rem;flex-shrink:0;color:#4A9E7E;font-weight:600">~12 months</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:0.6rem;height:1.3rem">
+      <div style="width:14rem;text-align:right;flex-shrink:0"><span style="color:#e8a735;font-weight:700">Lovable</span> <span style="color:#e8a735;font-size:0.7rem">$6.6B &middot; App Building</span></div>
+      <div style="flex:1;position:relative;height:0.7rem"><div style="width:6.7%;height:100%;background:linear-gradient(to right,#c88e2a,#e8a735);border-radius:0 3px 3px 0;box-shadow:0 0 10px #e8a73544"></div></div>
+      <div style="width:6.5rem;flex-shrink:0;color:#e8a735;font-weight:700">8 months</div>
+    </div>
+  </div>
+</div>
+<div style="font-size:0.95rem;color:#ccc;font-weight:400;margin-top:0.8rem">To build like this requires confronting some hard <span style="color:#e05252;font-weight:600">objections</span>.</div>`
+  },
+
+  // 4. ARCHITECTURE: PAST vs FUTURE
+  3: {
+    html: `<div style="display:flex;gap:2rem;width:100%;height:100%">
+  <!-- LEFT: Traditional Workflows -->
+  <div style="flex:1;display:flex;flex-direction:column">
+    <div style="font-size:1.3rem;font-weight:700;color:#e05252;margin-bottom:1rem">Past: <span style="color:#ccc">Triggers &amp; Workflows</span></div>
+    <div style="flex:1;position:relative;background:#111114;border:1px solid #333;border-radius:8px;padding:1rem;overflow:hidden">
+      <svg viewBox="0 0 400 320" style="width:100%;height:100%" xmlns="http://www.w3.org/2000/svg">
+        <!-- Complex workflow spaghetti -->
+        <!-- Nodes -->
+        <rect x="170" y="5" width="60" height="24" rx="4" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="200" y="21" fill="#888" font-size="7" text-anchor="middle" font-family="monospace">Webhook</text>
+        <rect x="60" y="55" width="56" height="24" rx="4" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="88" y="71" fill="#888" font-size="6" text-anchor="middle" font-family="monospace">Validate</text>
+        <rect x="170" y="55" width="60" height="24" rx="4" fill="#2a2a2e" stroke="#e05252" stroke-width="1"/>
+        <text x="200" y="71" fill="#e05252" font-size="6" text-anchor="middle" font-family="monospace">Branch</text>
+        <rect x="290" y="55" width="56" height="24" rx="4" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="318" y="71" fill="#888" font-size="6" text-anchor="middle" font-family="monospace">Auth</text>
+        <rect x="10" y="110" width="56" height="24" rx="4" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="38" y="126" fill="#888" font-size="6" text-anchor="middle" font-family="monospace">API Call</text>
+        <rect x="80" y="110" width="56" height="24" rx="4" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="108" y="126" fill="#888" font-size="6" text-anchor="middle" font-family="monospace">Transform</text>
+        <rect x="160" y="110" width="56" height="24" rx="4" fill="#2a2a2e" stroke="#e05252" stroke-width="1"/>
+        <text x="188" y="126" fill="#e05252" font-size="6" text-anchor="middle" font-family="monospace">Filter</text>
+        <rect x="240" y="110" width="56" height="24" rx="4" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="268" y="126" fill="#888" font-size="6" text-anchor="middle" font-family="monospace">Map</text>
+        <rect x="320" y="110" width="56" height="24" rx="4" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="348" y="126" fill="#888" font-size="6" text-anchor="middle" font-family="monospace">DB Query</text>
+        <rect x="30" y="165" width="56" height="24" rx="4" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="58" y="181" fill="#888" font-size="6" text-anchor="middle" font-family="monospace">Parse</text>
+        <rect x="110" y="165" width="56" height="24" rx="4" fill="#2a2a2e" stroke="#e05252" stroke-width="1"/>
+        <text x="138" y="181" fill="#e05252" font-size="6" text-anchor="middle" font-family="monospace">Branch</text>
+        <rect x="200" y="165" width="56" height="24" rx="4" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="228" y="181" fill="#888" font-size="6" text-anchor="middle" font-family="monospace">Enrich</text>
+        <rect x="290" y="165" width="56" height="24" rx="4" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="318" y="181" fill="#888" font-size="6" text-anchor="middle" font-family="monospace">Notify</text>
+        <rect x="50" y="220" width="56" height="24" rx="4" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="78" y="236" fill="#888" font-size="6" text-anchor="middle" font-family="monospace">Format</text>
+        <rect x="150" y="220" width="56" height="24" rx="4" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="178" y="236" fill="#888" font-size="6" text-anchor="middle" font-family="monospace">Send Email</text>
+        <rect x="260" y="220" width="56" height="24" rx="4" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="288" y="236" fill="#888" font-size="6" text-anchor="middle" font-family="monospace">Log</text>
+        <rect x="90" y="270" width="56" height="24" rx="4" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="118" y="286" fill="#888" font-size="6" text-anchor="middle" font-family="monospace">Retry</text>
+        <rect x="200" y="270" width="56" height="24" rx="4" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="228" y="286" fill="#888" font-size="6" text-anchor="middle" font-family="monospace">Error</text>
+        <rect x="310" y="270" width="56" height="24" rx="4" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="338" y="286" fill="#888" font-size="6" text-anchor="middle" font-family="monospace">Report</text>
+        <!-- Connections — spaghetti -->
+        <g stroke="#555" stroke-width="0.8" fill="none" opacity="0.6">
+          <line x1="200" y1="29" x2="88" y2="55"/>
+          <line x1="200" y1="29" x2="200" y2="55"/>
+          <line x1="200" y1="29" x2="318" y2="55"/>
+          <line x1="88" y1="79" x2="38" y2="110"/>
+          <line x1="88" y1="79" x2="108" y2="110"/>
+          <line x1="200" y1="79" x2="188" y2="110"/>
+          <line x1="200" y1="79" x2="268" y2="110"/>
+          <line x1="318" y1="79" x2="348" y2="110"/>
+          <line x1="318" y1="79" x2="268" y2="110"/>
+          <line x1="38" y1="134" x2="58" y2="165"/>
+          <line x1="108" y1="134" x2="138" y2="165"/>
+          <line x1="188" y1="134" x2="138" y2="165"/>
+          <line x1="268" y1="134" x2="228" y2="165"/>
+          <line x1="348" y1="134" x2="318" y2="165"/>
+          <line x1="58" y1="189" x2="78" y2="220"/>
+          <line x1="138" y1="189" x2="78" y2="220"/>
+          <line x1="138" y1="189" x2="178" y2="220"/>
+          <line x1="228" y1="189" x2="178" y2="220"/>
+          <line x1="228" y1="189" x2="288" y2="220"/>
+          <line x1="318" y1="189" x2="288" y2="220"/>
+          <line x1="78" y1="244" x2="118" y2="270"/>
+          <line x1="178" y1="244" x2="228" y2="270"/>
+          <line x1="288" y1="244" x2="338" y2="270"/>
+          <line x1="288" y1="244" x2="228" y2="270"/>
+          <line x1="118" y1="294" x2="178" y2="244"/>
+          <path d="M348,134 Q380,150 348,165" stroke="#e05252" stroke-dasharray="3"/>
+          <path d="M38,134 Q5,150 58,165" stroke="#e05252" stroke-dasharray="3"/>
+        </g>
+      </svg>
+    </div>
+    <div style="font-size:0.85rem;color:#888;margin-top:0.8rem;line-height:1.5">Complex &middot; Brittle &middot; Hard to change<br><span style="color:#555">Every edge case = another branch</span></div>
+  </div>
+  <!-- DIVIDER -->
+  <div style="width:1px;background:#333;flex-shrink:0"></div>
+  <!-- RIGHT: Agent-core -->
+  <div style="flex:1;display:flex;flex-direction:column">
+    <div style="font-size:1.3rem;font-weight:700;color:#4A9E7E;margin-bottom:1rem">Future: <span style="color:#ccc">Prompts &amp; Agents</span></div>
+    <div style="flex:1;position:relative;background:#111114;border:1px solid #333;border-radius:8px;padding:1rem;overflow:hidden">
+      <svg viewBox="0 0 400 320" style="width:100%;height:100%" xmlns="http://www.w3.org/2000/svg">
+        <!-- Trigger -->
+        <rect x="170" y="10" width="60" height="28" rx="6" fill="#2a2a2e" stroke="#4A9E7E" stroke-width="1.5"/>
+        <text x="200" y="28" fill="#4A9E7E" font-size="8" text-anchor="middle" font-family="monospace" font-weight="600">Prompt</text>
+        <!-- Arrow down -->
+        <line x1="200" y1="38" x2="200" y2="70" stroke="#4A9E7E" stroke-width="1.5"/>
+        <polygon points="195,68 200,76 205,68" fill="#4A9E7E"/>
+        <!-- Agent core — large central node -->
+        <rect x="120" y="78" width="160" height="60" rx="12" fill="url(#agentGrad)" stroke="#4A9E7E" stroke-width="2"/>
+        <text x="200" y="106" fill="#fff" font-size="11" text-anchor="middle" font-family="monospace" font-weight="700">LLM Agent</text>
+        <text x="200" y="122" fill="rgba(255,255,255,0.6)" font-size="7" text-anchor="middle" font-family="monospace">reasons &middot; decides &middot; acts</text>
+        <defs>
+          <linearGradient id="agentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#3a7e64"/>
+            <stop offset="100%" stop-color="#2a5a48"/>
+          </linearGradient>
+        </defs>
+        <!-- Lines fanning out from agent to tools -->
+        <g stroke="#4A9E7E" stroke-width="1.2" fill="none" opacity="0.7">
+          <line x1="145" y1="138" x2="45" y2="195"/>
+          <line x1="165" y1="138" x2="115" y2="195"/>
+          <line x1="185" y1="138" x2="185" y2="195"/>
+          <line x1="200" y1="138" x2="245" y2="195"/>
+          <line x1="220" y1="138" x2="315" y2="195"/>
+          <line x1="255" y1="138" x2="375" y2="195"/>
+        </g>
+        <!-- Arrows at ends -->
+        <g fill="#4A9E7E">
+          <polygon points="42,193 48,193 45,200"/>
+          <polygon points="112,193 118,193 115,200"/>
+          <polygon points="182,193 188,193 185,200"/>
+          <polygon points="242,193 248,193 245,200"/>
+          <polygon points="312,193 318,193 315,200"/>
+          <polygon points="372,193 378,193 375,200"/>
+        </g>
+        <!-- Bidirectional arrows (reads & writes) -->
+        <g fill="#4A9E7E" opacity="0.5">
+          <polygon points="48,195 42,195 45,188"/>
+          <polygon points="118,195 112,195 115,188"/>
+          <polygon points="188,195 182,195 185,188"/>
+          <polygon points="248,195 242,195 245,188"/>
+          <polygon points="318,195 312,195 315,188"/>
+          <polygon points="378,195 372,195 375,188"/>
+        </g>
+        <!-- Tool nodes -->
+        <rect x="15" y="200" width="60" height="36" rx="6" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="45" y="216" fill="#ccc" font-size="7" text-anchor="middle" font-family="monospace">CRM</text>
+        <text x="45" y="228" fill="#555" font-size="5.5" text-anchor="middle" font-family="monospace">Salesforce</text>
+        <rect x="85" y="200" width="60" height="36" rx="6" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="115" y="216" fill="#ccc" font-size="7" text-anchor="middle" font-family="monospace">HRIS</text>
+        <text x="115" y="228" fill="#555" font-size="5.5" text-anchor="middle" font-family="monospace">Workday</text>
+        <rect x="155" y="200" width="60" height="36" rx="6" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="185" y="216" fill="#ccc" font-size="7" text-anchor="middle" font-family="monospace">ATS</text>
+        <text x="185" y="228" fill="#555" font-size="5.5" text-anchor="middle" font-family="monospace">Greenhouse</text>
+        <rect x="225" y="200" width="60" height="36" rx="6" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="255" y="216" fill="#ccc" font-size="7" text-anchor="middle" font-family="monospace">Email</text>
+        <text x="255" y="228" fill="#555" font-size="5.5" text-anchor="middle" font-family="monospace">Gmail</text>
+        <rect x="295" y="200" width="60" height="36" rx="6" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="325" y="216" fill="#ccc" font-size="7" text-anchor="middle" font-family="monospace">Calendar</text>
+        <text x="325" y="228" fill="#555" font-size="5.5" text-anchor="middle" font-family="monospace">GCal</text>
+        <rect x="360" y="200" width="36" height="36" rx="6" fill="#2a2a2e" stroke="#555" stroke-width="1"/>
+        <text x="378" y="222" fill="#555" font-size="9" text-anchor="middle" font-family="monospace">...</text>
+        <!-- Read/Write labels -->
+        <text x="80" y="175" fill="#4A9E7E" font-size="7" font-family="monospace" opacity="0.8">reads &amp; writes</text>
+        <text x="270" y="175" fill="#4A9E7E" font-size="7" font-family="monospace" opacity="0.8">reads &amp; writes</text>
+        <!-- Outcome -->
+        <rect x="130" y="260" width="140" height="32" rx="8" fill="#2a2a2e" stroke="#4A9E7E" stroke-width="1.5" stroke-dasharray="4"/>
+        <text x="200" y="280" fill="#4A9E7E" font-size="8" text-anchor="middle" font-family="monospace" font-weight="600">Outcome delivered</text>
+        <line x1="200" y1="236" x2="200" y2="260" stroke="#4A9E7E" stroke-width="1" stroke-dasharray="4" opacity="0.5"/>
+      </svg>
+    </div>
+    <div style="font-size:0.85rem;color:#888;margin-top:0.8rem;line-height:1.5">Simple &middot; Adaptive &middot; Outcome-driven<br><span style="color:#4A9E7E">The agent orchestrates everything</span></div>
+  </div>
+</div>`
+  },
+
+  // 5. ONBOARDING IS AGENTIC — PASSIONFROOT
+  4: {
+    html: `<div class="shift-tag">THE AGENT IS THE PRODUCT</div>
+<div class="slide-heading">Onboarding is <span>Agentic</span></div>
+<div style="display:flex;gap:2.5rem;width:100%;align-items:stretch">
+  <div style="width:45%;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+    <img src="passionfroot.png" style="width:100%;border-radius:8px;border:1px solid #333;object-fit:cover" onerror="this.style.display='none'">
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center">
+    <div style="font-size:1.6rem;font-weight:700;color:#e0e0e0;margin-bottom:0.8rem">Passionfroot</div>
+    <div style="font-size:1rem;color:#888;font-weight:400;line-height:1.7;margin-bottom:1.2rem">An AI agent onboards you, understands your brand, and creates full marketing campaigns with creators &mdash; no forms, no dashboards, no 12-step wizard.</div>
+    <div style="font-size:0.95rem;color:#4A9E7E;font-weight:600;border-left:3px solid #4A9E7E;padding-left:1rem">The onboarding <em>is</em> the agent. The agent <em>is</em> the product.</div>
+  </div>
+</div>`
+  },
+
+  // 6. INTEGRATIONS ARE AGENTIC — KINFOLK
+  5: {
+    html: `<div class="shift-tag">THE AGENT IS THE PRODUCT</div>
+<div class="slide-heading">Integrations are <span>Agentic</span></div>
+<div style="display:flex;gap:2.5rem;width:100%;align-items:stretch">
+  <div style="width:45%;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+    <img src="kinfolk.png" style="width:100%;border-radius:8px;border:1px solid #333;object-fit:cover" onerror="this.style.display='none'">
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center">
+    <div style="font-size:1.6rem;font-weight:700;color:#e0e0e0;margin-bottom:0.8rem">Kinfolk</div>
+    <div style="font-size:1rem;color:#888;font-weight:400;line-height:1.7;margin-bottom:1.2rem">An AI HR agent in Slack that connects to your ATS &amp; HRIS. It handles PTO requests, onboarding tasks, and policy questions &mdash; by actually <em>acting</em> inside Workday, BambooHR, or Greenhouse.</div>
+    <div style="font-size:0.95rem;color:#4A9E7E;font-weight:600;border-left:3px solid #4A9E7E;padding-left:1rem">Integrations aren't plumbing anymore. They're how the agent thinks and acts.</div>
+  </div>
+</div>`
+  },
+
+  // 7. UI IS AGENTIC — G-P GIA
+  6: {
+    html: `<div class="shift-tag">THE AGENT IS THE PRODUCT</div>
+<div class="slide-heading">UI is <span>Agentic</span></div>
+<div style="display:flex;gap:2.5rem;width:100%;align-items:stretch">
+  <div style="width:45%;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+    <img src="gp-gia.png" style="width:100%;border-radius:8px;border:1px solid #333;object-fit:cover" onerror="this.style.display='none'">
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center">
+    <div style="font-size:1.6rem;font-weight:700;color:#e0e0e0;margin-bottom:0.8rem">G-P Gia</div>
+    <div style="font-size:1rem;color:#888;font-weight:400;line-height:1.7;margin-bottom:1.2rem">G-P's agentic AI for global HR compliance. Gia has an A2A partnership with SAP &mdash; it delivers its agent directly inside SAP's interface. No separate portal. No context switching.</div>
+    <div style="font-size:0.95rem;color:#4A9E7E;font-weight:600;border-left:3px solid #4A9E7E;padding-left:1rem">The UI isn't a dashboard. It's an agent that meets you where you already work.</div>
+  </div>
+</div>`
+  },
+
+  // 8. FEATURE SET IS NON-CAPPED — JACK & JILL
+  7: {
+    html: `<div class="shift-tag">THE AGENT IS THE PRODUCT</div>
+<div class="slide-heading">Feature Set is <span>Non-Capped</span></div>
+<div style="display:flex;gap:2.5rem;width:100%;align-items:stretch">
+  <div style="width:45%;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+    <img src="jackandjill.png" style="width:100%;border-radius:8px;border:1px solid #333;object-fit:cover" onerror="this.style.display='none'">
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center">
+    <div style="font-size:1.6rem;font-weight:700;color:#e0e0e0;margin-bottom:0.8rem">Jack &amp; Jill</div>
+    <div style="font-size:1rem;color:#888;font-weight:400;line-height:1.7;margin-bottom:1.2rem">An AI recruitment agent that agentically comes up with ways to negotiate between companies and candidates. The feature set isn't a spec &mdash; it's whatever the agent figures out works.</div>
+    <div style="font-size:0.95rem;color:#4A9E7E;font-weight:600;border-left:3px solid #4A9E7E;padding-left:1rem">Features aren't shipped. They emerge. The agent's capability ceiling is the model's ceiling.</div>
+  </div>
+</div>`
+  },
+
+  // 9. OBJECTIONS YOU'LL FACE
+  8: {
+    html: `<div class="slide-heading">Objections <span>You'll Face</span></div>
+<div style="font-size:1.1rem;color:#888;font-weight:400;margin-bottom:2rem">If you're going AI-native, you'll hear these from many enterprise buyers, board members, and investors.</div>
+<div style="display:flex;flex-direction:column;gap:1.2rem;width:100%">
+  <div style="display:flex;gap:1.5rem;align-items:stretch">
+    <div style="width:3rem;display:flex;align-items:center;justify-content:center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#e05252" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="1" width="22" height="22" rx="4"/><circle cx="8" cy="8" r="1.5" fill="#e05252"/><circle cx="16" cy="8" r="1.5" fill="#e05252"/><circle cx="8" cy="16" r="1.5" fill="#e05252"/><circle cx="16" cy="16" r="1.5" fill="#e05252"/><circle cx="12" cy="12" r="1.5" fill="#e05252"/></svg></div>
+    <div style="flex:1;background:#111114;border:1px solid #e0525233;border-radius:8px;padding:1.2rem 1.5rem">
+      <div style="font-size:1.15rem;color:#e05252;font-weight:600;margin-bottom:0.4rem">"It's not reliable &mdash; it's probabilistic"</div>
+      <div style="font-size:0.95rem;color:#888;font-weight:400;line-height:1.6">Enterprise has been deterministic for 30 years. Same input = same output. AI breaks that assumption.</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:1.5rem;align-items:stretch">
+    <div style="width:3rem;display:flex;align-items:center;justify-content:center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#e05252" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+    <div style="flex:1;background:#111114;border:1px solid #e0525233;border-radius:8px;padding:1.2rem 1.5rem">
+      <div style="font-size:1.15rem;color:#e05252;font-weight:600;margin-bottom:0.4rem">"It's too expensive at scale"</div>
+      <div style="font-size:0.95rem;color:#888;font-weight:400;line-height:1.6">LLM inference costs, token usage, infrastructure &mdash; it doesn't pencil out vs. traditional software.</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:1.5rem;align-items:stretch">
+    <div style="width:3rem;display:flex;align-items:center;justify-content:center"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#e05252" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+    <div style="flex:1;background:#111114;border:1px solid #e0525233;border-radius:8px;padding:1.2rem 1.5rem">
+      <div style="font-size:1.15rem;color:#e05252;font-weight:600;margin-bottom:0.4rem">"It's not secure"</div>
+      <div style="font-size:0.95rem;color:#888;font-weight:400;line-height:1.6">How do you trust an agent with production data? Who's accountable when it gets it wrong?</div>
+    </div>
+  </div>
+</div>
+<div style="font-size:1.1rem;color:#4A9E7E;font-weight:600;margin-top:1.5rem">They can all be addressed.</div>`
+  },
+
+  // 10. ACCURACY > DETERMINISM
+  9: {
+    html: `<div class="shift-tag">OBJECTION 1</div>
+<div class="slide-heading"><span>Accuracy</span> &gt; Determinism</div>
+<div style="font-size:1.05rem;color:#888;font-weight:400;line-height:1.7;margin-bottom:0.8rem">"Deterministic" systems are only as reliable as the humans operating them.</div>
+<div style="position:relative;width:100%;height:20rem">
+  <!-- Dynamic SVG arrows — drawn by JS -->
+  <svg id="accuracy-arrows" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:3"></svg>
+  <!-- Red box — bottom left -->
+  <div id="red-box" style="position:absolute;left:0;top:50%;transform:translateY(-50%);width:22%;z-index:2">
+    <div style="background:#111114;border:1px solid #e0525233;border-radius:8px;padding:0.8rem">
+      <div style="font-size:0.8rem;color:#e05252;font-weight:600;margin-bottom:0.3rem">"Deterministic" in practice</div>
+      <div style="font-size:0.7rem;color:#888;line-height:1.7">
+        <span style="color:#ccc">&bull;</span> Misconfigurations<br>
+        <span style="color:#ccc">&bull;</span> Human error in manual steps<br>
+        <span style="color:#ccc">&bull;</span> Knowledge loss on turnover<br>
+        <span style="color:#ccc">&bull;</span> Delays, workarounds, drift
+      </div>
+    </div>
+  </div>
+  <!-- Center: bar chart -->
+  <div style="position:absolute;left:26%;top:0;width:48%;height:100%;background:#111114;border:1px solid #333;border-radius:8px;padding:0.8rem 1.5rem;display:flex;flex-direction:column;z-index:1">
+    <div style="font-size:0.7rem;color:#555;font-weight:600;text-align:center;letter-spacing:0.05em;margin-bottom:0.4rem">REAL-WORLD ACCURACY</div>
+    <div style="flex:1;display:flex;align-items:flex-end;justify-content:center;gap:2.5rem">
+      <!-- Traditional bar -->
+      <div style="display:flex;flex-direction:column;align-items:center;width:5.5rem">
+        <div style="font-size:0.75rem;color:#888;font-weight:600;margin-bottom:0.2rem">"100%"</div>
+        <div id="trad-bar" style="width:100%;height:12rem;position:relative;border-radius:4px 4px 0 0;overflow:hidden">
+          <div style="position:absolute;bottom:0;width:100%;height:80%;background:#444"></div>
+          <div id="red-zone" style="position:absolute;top:0;width:100%;height:20%;background:#e0525233;background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,#e0525244 4px,#e0525244 8px)"></div>
+          <div style="position:absolute;top:20%;width:100%;border-top:2px dashed #e05252"></div>
+          <div style="position:absolute;top:4%;width:100%;text-align:center;font-size:0.55rem;color:#e05252;font-weight:600;line-height:1.3">~20% hidden</div>
+          <div style="position:absolute;bottom:30%;width:100%;text-align:center;font-size:0.75rem;color:#888;font-weight:600">~80%<br><span style="font-size:0.5rem;font-weight:400">actual accuracy</span></div>
+        </div>
+        <div style="font-size:0.7rem;color:#888;margin-top:0.4rem;text-align:center;line-height:1.3"><span style="color:#ccc;font-weight:600">"Deterministic"</span><br>+ humans</div>
+      </div>
+      <!-- AI bar -->
+      <div style="display:flex;flex-direction:column;align-items:center;width:5.5rem">
+        <div style="font-size:0.75rem;color:#4A9E7E;font-weight:600;margin-bottom:0.2rem">~95%</div>
+        <div id="green-bar" style="width:100%;height:11.4rem;background:linear-gradient(to top,#3a7e64,#4A9E7E);border-radius:4px 4px 0 0;box-shadow:0 0 16px #4A9E7E33"></div>
+        <div style="font-size:0.7rem;color:#888;margin-top:0.4rem;text-align:center;line-height:1.3"><span style="color:#4A9E7E;font-weight:600">AI-native</span><br>agent</div>
+      </div>
+    </div>
+  </div>
+  <!-- Green box — right -->
+  <div id="green-box" style="position:absolute;right:0;top:50%;transform:translateY(-50%);width:22%;z-index:2">
+    <div style="background:#111114;border:1px solid #4A9E7E55;border-radius:8px;padding:0.8rem">
+      <div style="font-size:0.8rem;color:#4A9E7E;font-weight:600;margin-bottom:0.3rem">AI-native in practice</div>
+      <div style="font-size:0.7rem;color:#888;line-height:1.7">
+        <span style="color:#ccc">&bull;</span> Model fine-tuning<br>
+        <span style="color:#ccc">&bull;</span> Tools optimization<br>
+        <span style="color:#ccc">&bull;</span> Deterministic guardrails<br>
+        <span style="color:#ccc">&bull;</span> Multi-model systems<br>
+        <span style="color:#555">&bull;</span> <span style="color:#555">...</span>
+      </div>
+    </div>
+  </div>
+</div>`
+  },
+
+  // 11. WAYMO — REAL-WORLD EXAMPLE
+  10: {
+    html: `<div class="shift-tag">REAL-WORLD EXAMPLE</div>
+<div class="slide-heading"><span>Waymo</span> &mdash; Probabilistic Beats "Reliable"</div>
+<div style="display:flex;gap:2rem;width:100%;align-items:stretch">
+  <!-- Left: image -->
+  <div style="width:30%;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+    <img src="waymo.webp" style="width:100%;border-radius:8px;border:1px solid #333;object-fit:cover;max-height:16rem">
+    <div style="font-size:0.7rem;color:#555;margin-top:0.5rem;font-style:italic;text-align:center">Looks clumsy. Gets stuck.<br>People laugh at it.</div>
+  </div>
+  <!-- Right: stats -->
+  <div style="flex:1;display:flex;flex-direction:column;gap:0.8rem">
+    <div style="font-size:1rem;color:#888;font-weight:400;line-height:1.6">But across <span style="color:#ccc;font-weight:600">170M+ miles</span> in SF, Phoenix, LA, Austin:</div>
+    <div style="flex:1;background:#111114;border:1px solid #333;border-radius:8px;padding:1rem 1.5rem;display:flex;flex-direction:column">
+      <div style="font-size:0.7rem;color:#555;font-weight:600;letter-spacing:0.05em;margin-bottom:0.5rem">INJURY-CAUSING CRASHES PER MILLION MILES</div>
+      <div style="flex:1;display:flex;align-items:flex-end;justify-content:center;gap:3rem">
+        <!-- Human bar -->
+        <div style="display:flex;flex-direction:column;align-items:center;width:5.5rem">
+          <div style="font-size:0.85rem;color:#e05252;font-weight:700;margin-bottom:0.2rem">2.80</div>
+          <div style="width:100%;height:10rem;background:#e0525244;border-radius:4px 4px 0 0;border:1px solid #e0525255"></div>
+          <div style="font-size:0.7rem;color:#888;margin-top:0.4rem;text-align:center"><span style="color:#ccc;font-weight:600">Human</span> drivers</div>
+        </div>
+        <!-- Waymo bar -->
+        <div style="display:flex;flex-direction:column;align-items:center;width:5.5rem">
+          <div style="font-size:0.85rem;color:#4A9E7E;font-weight:700;margin-bottom:0.2rem">0.41</div>
+          <div style="width:100%;height:1.46rem;background:linear-gradient(to top,#3a7e64,#4A9E7E);border-radius:4px 4px 0 0;box-shadow:0 0 12px #4A9E7E44"></div>
+          <div style="font-size:0.7rem;color:#888;margin-top:0.4rem;text-align:center"><span style="color:#4A9E7E;font-weight:600">Waymo</span> autonomous</div>
+        </div>
+      </div>
+    </div>
+    <div style="font-size:1.15rem;color:#ccc;font-weight:600;text-align:center"><span style="color:#4A9E7E">85% fewer</span> injury crashes. <span style="color:#4A9E7E">6.7x safer.</span></div>
+    <div style="font-size:0.6rem;color:#555;text-align:center">Source: Waymo / Swiss Re, 170.7M rider-only miles through Dec 2025</div>
+  </div>
+</div>`
+  },
+
+  // 12. AGENTIC COST < TRADITIONAL TCO — ICEBERG
+  11: {
+    html: `<div class="shift-tag">OBJECTION 2</div>
+<div class="slide-heading">Agentic Cost &lt; <span>Traditional TCO</span></div>
+<div style="display:flex;gap:3rem;width:100%;align-items:center;margin-top:1rem">
+  <div style="flex:0 0 45%;position:relative;height:22rem">
+    <svg viewBox="0 0 400 340" width="100%" height="100%" style="overflow:visible">
+      <!-- Water line -->
+      <line x1="0" y1="100" x2="400" y2="100" stroke="#4A9E7E" stroke-width="1.5" stroke-dasharray="6,4" opacity="0.5"/>
+      <text x="395" y="93" fill="#4A9E7E" font-family="JetBrains Mono" font-size="10" text-anchor="end" opacity="0.6">waterline</text>
+      <!-- Above water: small tip -->
+      <polygon points="160,20 240,20 260,100 140,100" fill="#4A9E7E" opacity="0.25" stroke="#4A9E7E" stroke-width="1.5"/>
+      <text x="200" y="55" fill="#4A9E7E" font-family="JetBrains Mono" font-size="12" font-weight="600" text-anchor="middle">Software</text>
+      <text x="200" y="72" fill="#4A9E7E" font-family="JetBrains Mono" font-size="11" text-anchor="middle">license</text>
+      <!-- Below water: massive -->
+      <polygon points="140,100 260,100 320,310 80,310" fill="#e05252" opacity="0.12" stroke="#e05252" stroke-width="1.5"/>
+      <text x="200" y="160" fill="#e05252" font-family="JetBrains Mono" font-size="12" font-weight="600" text-anchor="middle">Team operating</text>
+      <text x="200" y="178" fill="#e05252" font-family="JetBrains Mono" font-size="12" font-weight="600" text-anchor="middle">the software</text>
+      <text x="200" y="210" fill="#888" font-family="JetBrains Mono" font-size="10" text-anchor="middle">Hiring &bull; Training</text>
+      <text x="200" y="226" fill="#888" font-family="JetBrains Mono" font-size="10" text-anchor="middle">Management &bull; Turnover</text>
+      <text x="200" y="242" fill="#888" font-family="JetBrains Mono" font-size="10" text-anchor="middle">Benefits &bull; Office space</text>
+      <!-- Annotations -->
+      <text x="290" y="55" fill="#888" font-family="JetBrains Mono" font-size="10" text-anchor="start">What you think</text>
+      <text x="290" y="68" fill="#888" font-family="JetBrains Mono" font-size="10" text-anchor="start">you're paying</text>
+      <line x1="262" y1="55" x2="285" y2="55" stroke="#888" stroke-width="1"/>
+      <text x="330" y="180" fill="#e05252" font-family="JetBrains Mono" font-size="10" text-anchor="start">The real</text>
+      <text x="330" y="193" fill="#e05252" font-family="JetBrains Mono" font-size="10" text-anchor="start">cost</text>
+      <line x1="262" y1="180" x2="325" y2="180" stroke="#e05252" stroke-width="1"/>
+      <!-- Bottom label -->
+      <text x="200" y="335" fill="#4A9E7E" font-family="JetBrains Mono" font-size="11" font-weight="600" text-anchor="middle">Agentic software collapses the iceberg.</text>
+    </svg>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:1.2rem">
+    <div style="font-size:1.1rem;color:#ccc;font-weight:400;line-height:1.7">When you buy Zendesk, you pay for the software <span style="color:#e05252;font-weight:600">AND</span> the team using it.</div>
+    <div style="font-size:1.1rem;color:#ccc;font-weight:400;line-height:1.7">When you buy Sierra, you pay per resolution. <span style="color:#4A9E7E;font-weight:600">The agent IS the team.</span></div>
+    <div style="background:#111114;border:2px solid #4A9E7E;border-radius:8px;padding:1.2rem 1.5rem;margin-top:0.5rem">
+      <div style="font-size:0.9rem;color:#4A9E7E;font-weight:600;margin-bottom:0.5rem">Sequoia's thesis</div>
+      <div style="font-size:1.05rem;color:#ccc;font-weight:400;line-height:1.6">The addressable market isn't $600B (software).<br>It's <span style="font-weight:700;color:#4A9E7E">$10T</span> (services).</div>
+      <div style="font-size:0.85rem;color:#888;margin-top:0.6rem">Price for outcomes &rarr; compete against labor costs, not software budgets.</div>
+    </div>
+  </div>
+</div>`
+  },
+
+  // 13. SIERRA — REAL-WORLD COST EXAMPLE
+  12: {
+    html: `<div class="shift-tag">REAL-WORLD EXAMPLE</div>
+<div class="slide-heading"><span>Sierra</span> vs Zendesk + Team Cost Comparison</div>
+<div style="display:flex;gap:2rem;width:100%;align-items:stretch">
+  <!-- Left: Sierra image + stats -->
+  <div style="width:38%;flex-shrink:0;display:flex;flex-direction:column;gap:0.6rem">
+    <img src="sierra.png" style="width:100%;border-radius:8px;border:1px solid #333;object-fit:cover;max-height:11rem">
+    <div style="display:flex;gap:0.5rem">
+      <div style="flex:1;background:#111114;border:1px solid #333;border-radius:6px;padding:0.5rem;text-align:center"><div style="font-size:1.2rem;font-weight:700;color:#4A9E7E">$10B</div><div style="font-size:0.55rem;color:#888">valuation</div></div>
+      <div style="flex:1;background:#111114;border:1px solid #333;border-radius:6px;padding:0.5rem;text-align:center"><div style="font-size:1.2rem;font-weight:700;color:#4A9E7E">$150M</div><div style="font-size:0.55rem;color:#888">ARR</div></div>
+      <div style="flex:1;background:#111114;border:1px solid #333;border-radius:6px;padding:0.5rem;text-align:center"><div style="font-size:1.2rem;font-weight:700;color:#4A9E7E">&lt;2yr</div><div style="font-size:0.55rem;color:#888">to get there</div></div>
+    </div>
+    <div style="background:#111114;border:2px solid #4A9E7E;border-radius:6px;padding:0.5rem;text-align:center">
+      <div style="font-size:0.95rem;color:#ccc;font-weight:600;line-height:1.4">Pay per resolution. <span style="color:#e05252">Escalated = free.</span></div>
+    </div>
+  </div>
+  <!-- Right: comparison -->
+  <div style="flex:1;display:flex;flex-direction:column;gap:0.7rem">
+    <div style="font-size:0.85rem;color:#888;font-weight:400;line-height:1.6;margin-bottom:0.2rem">What a 50-agent support operation actually costs:</div>
+    <div style="display:flex;gap:0.6rem">
+      <div style="flex:1;background:#111114;border:1px solid #e0525233;border-radius:8px;padding:0.7rem">
+        <div style="font-size:0.7rem;color:#e05252;font-weight:600;margin-bottom:0.3rem">Traditional (Zendesk + team)</div>
+        <div style="font-size:0.65rem;color:#888;line-height:1.7">
+          <span style="color:#ccc">&bull;</span> 50 agents &times; $65K = <span style="color:#e05252;font-weight:600">$3.25M</span>/yr<br>
+          <span style="color:#ccc">&bull;</span> Software: $200K/yr<br>
+          <span style="color:#ccc">&bull;</span> Training, QA, management: $500K/yr<br>
+          <span style="color:#ccc">&bull;</span> 24/7 coverage: night shifts, overtime<br>
+          <span style="color:#ccc">&bull;</span> Peak surges: hire temps, pray
+        </div>
+        <div style="font-size:1rem;color:#e05252;font-weight:700;margin-top:0.4rem;text-align:center">~$4M / year</div>
+      </div>
+      <div style="flex:1;background:#111114;border:1px solid #4A9E7E55;border-radius:8px;padding:0.7rem">
+        <div style="font-size:0.7rem;color:#4A9E7E;font-weight:600;margin-bottom:0.3rem">Sierra (AI agent)</div>
+        <div style="font-size:0.65rem;color:#888;line-height:1.7">
+          <span style="color:#ccc">&bull;</span> 70-74% resolved autonomously<br>
+          <span style="color:#ccc">&bull;</span> CSAT: <span style="color:#4A9E7E;font-weight:600">4.6/5</span> (WeightWatchers)<br>
+          <span style="color:#ccc">&bull;</span> 2x surge handled instantly (Casper)<br>
+          <span style="color:#ccc">&bull;</span> 24/7 included by default<br>
+          <span style="color:#ccc">&bull;</span> Escalations are free
+        </div>
+        <div style="font-size:0.65rem;color:#888;margin-top:0.4rem;text-align:center">Pay only for outcomes</div>
+      </div>
+    </div>
+    <div style="font-size:0.9rem;color:#ccc;font-weight:400;line-height:1.5;border-left:3px solid #4A9E7E;padding-left:1rem;margin-top:0.2rem">Sierra didn't improve helpdesks. It <span style="color:#4A9E7E;font-weight:600">replaced Zendesk + the entire support team at a fraction of the cost</span>.</div>
+  </div>
+</div>`
+  },
+
+  // 14. AGENTIC SECURITY — INTERACTIVE TRUST SPECTRUM
+  13: {
+    html: `<div class="shift-tag">OBJECTION 3</div>
+<div class="slide-heading">Agentic <span>Security</span></div>
+<div style="font-size:1.05rem;color:#888;font-weight:400;line-height:1.7;margin-bottom:1.2rem">The elephant in the room. "How do we trust it? How do we secure it?"</div>
+<div style="width:100%;margin-bottom:1.2rem">
+  <!-- Trust spectrum bar -->
+  <div id="spectrum-track" style="position:relative;width:100%;height:2.2rem;margin-bottom:0.3rem;cursor:pointer;user-select:none">
+    <div style="position:absolute;left:0;top:0;width:100%;height:100%;background:linear-gradient(to right, #e05252 0%, #e8a735 40%, #4A9E7E 100%);border-radius:6px;opacity:0.15"></div>
+    <div id="spectrum-fill" style="position:absolute;left:0;top:0;height:100%;width:5%;background:linear-gradient(to right, #e05252 0%, #e8a735 50%, #4A9E7E 100%);border-radius:6px;opacity:0.4;transition:none"></div>
+    <!-- Draggable handle -->
+    <div id="spectrum-handle" style="position:absolute;left:5%;top:50%;transform:translate(-50%,-50%);width:1.4rem;height:2.6rem;background:#ccc;border-radius:4px;cursor:grab;z-index:5;display:flex;align-items:center;justify-content:center;box-shadow:0 0 10px rgba(74,158,126,0.4)">
+      <div style="display:flex;flex-direction:column;gap:3px">
+        <div style="width:8px;height:1.5px;background:#1a1a1e;border-radius:1px"></div>
+        <div style="width:8px;height:1.5px;background:#1a1a1e;border-radius:1px"></div>
+        <div style="width:8px;height:1.5px;background:#1a1a1e;border-radius:1px"></div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:space-between;font-size:0.8rem;margin-bottom:0.2rem">
+    <span style="color:#e05252;font-weight:600">HUMAN ONLY</span>
+    <span style="color:#4A9E7E;font-weight:600">FULLY AUTONOMOUS</span>
+  </div>
+  <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#666">
+    <span>"Secure" but slow</span>
+    <span>"Fast" but scary</span>
+  </div>
+</div>
+<!-- Security layers — ordered from basic (lights up first) to advanced (lights up last) -->
+<div id="security-cards" style="display:flex;gap:1rem;width:100%;margin-bottom:1.2rem">
+  <div class="sec-card" data-idx="0" style="flex:1;background:#111114;border:1px solid #333;border-radius:8px;padding:1.2rem;text-align:center;opacity:0.3;transition:opacity 0.4s ease, border-color 0.4s ease">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:0.5rem;color:#555"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    <div style="font-size:1rem;font-weight:600;margin-bottom:0.3rem;color:#888">Human-in-the-loop</div>
+    <div style="font-size:0.85rem;color:#777;line-height:1.5">Configurable by risk level, not a binary</div>
+  </div>
+  <div class="sec-card" data-idx="1" style="flex:1;background:#111114;border:1px solid #333;border-radius:8px;padding:1.2rem;text-align:center;opacity:0.3;transition:opacity 0.4s ease, border-color 0.4s ease">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:0.5rem;color:#555"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    <div style="font-size:1rem;font-weight:600;margin-bottom:0.3rem;color:#888">Decision<br>traces</div>
+    <div style="font-size:0.85rem;color:#777;line-height:1.5">Full audit trail, every action replayable</div>
+  </div>
+  <div class="sec-card" data-idx="2" style="flex:1;background:#111114;border:1px solid #333;border-radius:8px;padding:1.2rem;text-align:center;opacity:0.3;transition:opacity 0.4s ease, border-color 0.4s ease">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:0.5rem;color:#555"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <div style="font-size:1rem;font-weight:600;margin-bottom:0.3rem;color:#888">Deterministic<br>governance</div>
+    <div style="font-size:0.85rem;color:#777;line-height:1.5">Scoped permissions, approval workflows, RBAC</div>
+  </div>
+  <div class="sec-card" data-idx="3" style="flex:1;background:#111114;border:1px solid #333;border-radius:8px;padding:1.2rem;text-align:center;opacity:0.3;transition:opacity 0.4s ease, border-color 0.4s ease">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:0.5rem;color:#555"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="9" y1="12" x2="15" y2="12" stroke="currentColor" stroke-width="2"/></svg>
+    <div style="font-size:1rem;font-weight:600;margin-bottom:0.3rem;color:#888">Prompt injection<br>defense</div>
+    <div style="font-size:0.85rem;color:#777;line-height:1.5">Input validation, output filtering, judge models</div>
+  </div>
+</div>
+<div id="audit-punchline" style="font-size:1rem;color:#ccc;font-weight:400;line-height:1.5;border-left:3px solid #333;padding-left:1rem;opacity:0.3;transition:opacity 0.5s ease, border-color 0.5s ease">Agents with audit trails are <span style="color:#555;font-weight:600;transition:color 0.5s ease" id="audit-highlight">more auditable than humans</span>.<br>When an agent decides, you can replay exactly why. When a human decides, you get a Post-it note.</div>`
+  },
+
+  // 15. GARFIELD.LAW — REAL-WORLD SECURITY EXAMPLE
+  14: {
+    html: `<div class="shift-tag">REAL-WORLD EXAMPLE</div>
+<div class="slide-heading"><span>Garfield.Law</span> &mdash; AI-Only Law Firm</div>
+<div style="display:flex;gap:2rem;width:100%;align-items:stretch">
+  <!-- Left: image -->
+  <div style="width:38%;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+    <img src="garfield-law.png" style="width:100%;border-radius:8px;border:1px solid #333;object-fit:cover;max-height:16rem" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    <div style="display:none;width:100%;height:14rem;background:#111114;border:1px solid #333;border-radius:8px;align-items:center;justify-content:center;flex-direction:column;gap:0.5rem">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4A9E7E" stroke-width="1.5"><path d="M3 21h18M5 21V7l8-4 8 4v14M9 21v-6h6v6"/><rect x="9" y="9" width="2" height="2" fill="#4A9E7E"/><rect x="13" y="9" width="2" height="2" fill="#4A9E7E"/></svg>
+      <div style="font-size:1.2rem;color:#4A9E7E;font-weight:700">Garfield.Law</div>
+      <div style="font-size:0.7rem;color:#888">UK's first AI-only law firm</div>
+    </div>
+    <div style="font-size:0.7rem;color:#555;margin-top:0.5rem;font-style:italic;text-align:center">First UK regulator-approved<br>AI-only law firm. Here. In London.</div>
+  </div>
+  <!-- Right: security details -->
+  <div style="flex:1;display:flex;flex-direction:column;gap:0.8rem">
+    <div style="font-size:1rem;color:#888;font-weight:400;line-height:1.6">The <span style="color:#ccc;font-weight:600">SRA</span> (Solicitors Regulation Authority) &mdash; one of the strictest legal regulators in the world &mdash; approved this.</div>
+    <div style="display:flex;flex-wrap:wrap;gap:0.6rem">
+      <div style="flex:1;min-width:45%;background:#111114;border:1px solid #4A9E7E33;border-radius:8px;padding:0.7rem">
+        <div style="font-size:0.75rem;color:#4A9E7E;font-weight:600;margin-bottom:0.2rem">Client approval at every stage</div>
+        <div style="font-size:0.65rem;color:#888;line-height:1.5">AI cannot act autonomously. Every document requires human sign-off.</div>
+      </div>
+      <div style="flex:1;min-width:45%;background:#111114;border:1px solid #4A9E7E33;border-radius:8px;padding:0.7rem">
+        <div style="font-size:0.75rem;color:#4A9E7E;font-weight:600;margin-bottom:0.2rem">No case law generation</div>
+        <div style="font-size:0.65rem;color:#888;line-height:1.5">System blocked from proposing case law &mdash; highest hallucination risk area.</div>
+      </div>
+      <div style="flex:1;min-width:45%;background:#111114;border:1px solid #4A9E7E33;border-radius:8px;padding:0.7rem">
+        <div style="font-size:0.75rem;color:#4A9E7E;font-weight:600;margin-bottom:0.2rem">Solicitor accountability</div>
+        <div style="font-size:0.65rem;color:#888;line-height:1.5">Named regulated solicitors legally responsible for all outputs.</div>
+      </div>
+      <div style="flex:1;min-width:45%;background:#111114;border:1px solid #4A9E7E33;border-radius:8px;padding:0.7rem">
+        <div style="font-size:0.75rem;color:#4A9E7E;font-weight:600;margin-bottom:0.2rem">8-month SRA review</div>
+        <div style="font-size:0.65rem;color:#888;line-height:1.5">Quality checks, conflict-of-interest safeguards, enhanced monitoring.</div>
+      </div>
+    </div>
+    <div style="font-size:0.95rem;color:#ccc;font-weight:400;line-height:1.5;border-left:3px solid #4A9E7E;padding-left:1rem;margin-top:0.3rem">If agentic security is good enough for <span style="color:#4A9E7E;font-weight:600">privileged legal work</span> under one of the world's strictest regulators &mdash; it's good enough for your SaaS product.</div>
+  </div>
+</div>`
+  },
+
+  // 16. WHAT THIS MEANS FOR YOU
+  15: {
+    html: `<div class="slide-heading">What This Means for <span>You</span></div>
+<div style="display:flex;flex-direction:column;gap:1.5rem;width:100%">
+  <div style="display:flex;gap:1.5rem;align-items:stretch">
+    <div style="width:3rem;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;color:#4A9E7E">1</div>
+    <div style="flex:1;background:#111114;border:1px solid #333;border-radius:8px;padding:1.2rem 1.5rem">
+      <div style="font-size:1.15rem;color:#ccc;font-weight:600;margin-bottom:0.4rem">Re-ask your category's question</div>
+      <div style="font-size:0.95rem;color:#888;font-weight:400;line-height:1.6">Don't ask "how do we add AI to [category]?" Ask: <span style="color:#4A9E7E">"If this category didn't exist and we had agents that could reason and act &mdash; what would we build?"</span></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:1.5rem;align-items:stretch">
+    <div style="width:3rem;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;color:#4A9E7E">2</div>
+    <div style="flex:1;background:#111114;border:1px solid #333;border-radius:8px;padding:1.2rem 1.5rem">
+      <div style="font-size:1.15rem;color:#ccc;font-weight:600;margin-bottom:0.4rem">Architect for the write path</div>
+      <div style="font-size:0.95rem;color:#888;font-weight:400;line-height:1.6">The agent does the work. <span style="color:#555">Read path:</span> "Here's what I found." <span style="color:#4A9E7E">Write path:</span> "I did it." If your agent only suggests &mdash; you've built a copilot. If it executes &mdash; you've built a category.</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:1.5rem;align-items:stretch">
+    <div style="width:3rem;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;color:#4A9E7E">3</div>
+    <div style="flex:1;background:#111114;border:1px solid #333;border-radius:8px;padding:1.2rem 1.5rem">
+      <div style="font-size:1.15rem;color:#ccc;font-weight:600;margin-bottom:0.4rem">Build your intelligence moat</div>
+      <div style="font-size:0.95rem;color:#888;font-weight:400;line-height:1.6">The model is a commodity. Your moat is the <span style="color:#4A9E7E">compounding intelligence</span> from every interaction. Persist the decision trace. It becomes training data, audit trail, and competitive advantage. <span style="color:#555">This is why Cursor doubled from $1B to $2B ARR in 3 months.</span></div>
+    </div>
+  </div>
+</div>`
+  },
+
+  // 17. STACKONE CTA
+  16: {
+    html: `<div style="max-width:90%">
+<div style="font-size:1.3rem;color:#888;font-weight:400;line-height:1.7;margin-bottom:2.5rem">If you're building this kind of company &mdash; an AI-native product that needs to connect to enterprise systems, read from Workday, write to Salesforce, act inside your customers' tech stack &mdash;</div>
+<div style="font-size:2.2rem;font-weight:700;color:#e0e0e0;margin-bottom:2.5rem">Come talk to me.</div>
+<div style="display:flex;align-items:center;gap:1.2rem;margin-bottom:2rem">
+  <img src="https://www.stackone.com/favicon.svg" style="height:2.5rem">
+  <div>
+    <div style="font-size:1.3rem;color:#4A9E7E;font-weight:600">StackOne</div>
+    <div style="font-size:1rem;color:#888;font-weight:400">Integration infrastructure for the next generation of agentic software.</div>
+  </div>
+</div>
+<div style="font-size:1rem;color:#555;font-weight:400">romain@stackone.com</div>
+</div>`
+  },
+
+};
+
+buildSlides();
+window.addEventListener('resize', buildSlides);
+
+// --- INTERACTIVE TRUST SPECTRUM ---
+function initSpectrum() {
+  const track = document.getElementById('spectrum-track');
+  const handle = document.getElementById('spectrum-handle');
+  const fill = document.getElementById('spectrum-fill');
+  const cards = document.querySelectorAll('.sec-card');
+  const punchline = document.getElementById('audit-punchline');
+  const highlight = document.getElementById('audit-highlight');
+  if (!track || !handle) return;
+
+  let dragging = false;
+  let pct = 5;
+
+  function updateSpectrum(p) {
+    pct = Math.max(2, Math.min(98, p));
+    handle.style.left = pct + '%';
+    fill.style.width = pct + '%';
+
+    // Color the handle based on position
+    const r = pct < 50 ? 224 : Math.round(224 - (pct - 50) * 2.98);
+    const g = pct < 40 ? Math.round(82 + pct * 3.5) : pct < 60 ? Math.round(167) : Math.round(158);
+    const b = pct < 50 ? Math.round(82 + pct * 1.4) : Math.round(82 + pct * 0.88);
+    handle.style.background = `rgb(${r},${g},${b})`;
+
+    // Light up cards progressively: 4 cards, each lights up at 25% intervals
+    cards.forEach((card, i) => {
+      const threshold = (i + 1) * 22; // 22%, 44%, 66%, 88%
+      const active = pct >= threshold;
+      card.style.opacity = active ? '1' : '0.3';
+      card.style.borderColor = active ? '#4A9E7E' : '#333';
+      const svg = card.querySelector('svg');
+      const titleDiv = card.querySelectorAll('div')[0]; // first child div with text
+      const allDivs = card.querySelectorAll('div');
+      if (svg) svg.style.color = active ? '#4A9E7E' : '#555';
+      allDivs.forEach(d => {
+        if (d.style.fontWeight === '600' || d.style.fontWeight === 'bold') {
+          d.style.color = active ? '#4A9E7E' : '#555';
+        } else if (d.style.fontSize && parseFloat(d.style.fontSize) < 0.8) {
+          d.style.color = active ? '#888' : '#555';
+        }
+      });
+    });
+
+    // Punchline lights up when fully right (>85%)
+    const punchActive = pct > 85;
+    if (punchline) {
+      punchline.style.opacity = punchActive ? '1' : '0.3';
+      punchline.style.borderColor = punchActive ? '#4A9E7E' : '#333';
+    }
+    if (highlight) {
+      highlight.style.color = punchActive ? '#4A9E7E' : '#555';
+    }
+  }
+
+  function getPercent(e) {
+    const rect = track.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    return ((clientX - rect.left) / rect.width) * 100;
+  }
+
+  handle.addEventListener('mousedown', (e) => { e.preventDefault(); e.stopPropagation(); dragging = true; handle.style.cursor = 'grabbing'; });
+  handle.addEventListener('touchstart', (e) => { e.stopPropagation(); dragging = true; }, { passive: true });
+
+  document.addEventListener('mousemove', (e) => { if (dragging) updateSpectrum(getPercent(e)); });
+  document.addEventListener('touchmove', (e) => { if (dragging) updateSpectrum(getPercent(e)); }, { passive: true });
+
+  document.addEventListener('mouseup', () => { if (dragging) { dragging = false; handle.style.cursor = 'grab'; } });
+  document.addEventListener('touchend', () => { if (dragging) { dragging = false; } });
+
+  // Click on track to jump
+  track.addEventListener('click', (e) => { if (e.target === handle || handle.contains(e.target)) return; updateSpectrum(getPercent(e)); });
+
+  // Initial state
+  updateSpectrum(5);
+}
+
+// --- DYNAMIC ACCURACY ARROWS ---
+function drawAccuracyArrows() {
+  const svg = document.getElementById('accuracy-arrows');
+  const redBox = document.getElementById('red-box');
+  const greenBox = document.getElementById('green-box');
+  const redZone = document.getElementById('red-zone');
+  const greenBar = document.getElementById('green-bar');
+  if (!svg || !redBox || !greenBox || !redZone || !greenBar) return;
+
+  const container = svg.parentElement;
+  const cr = container.getBoundingClientRect();
+  // Skip if slide is hidden (display:none gives 0 dimensions)
+  if (cr.width === 0 || cr.height === 0) return;
+
+  function rel(el) {
+    const r = el.getBoundingClientRect();
+    return { left: r.left - cr.left, top: r.top - cr.top, right: r.right - cr.left, bottom: r.bottom - cr.top, cx: (r.left + r.right) / 2 - cr.left, cy: (r.top + r.bottom) / 2 - cr.top, w: r.width, h: r.height };
+  }
+
+  const rb = rel(redBox);
+  const gb = rel(greenBox);
+  const rz = rel(redZone);
+  const gbar = rel(greenBar);
+
+  svg.setAttribute('viewBox', `0 0 ${cr.width} ${cr.height}`);
+  svg.innerHTML = '';
+
+  // Red arrow: right edge of red box → left edge of red zone (hatched area)
+  const rx1 = rb.right, ry1 = rb.cy;
+  const rx2 = rz.left, ry2 = rz.cy;
+  const rcpx = (rx1 + rx2) / 2;
+
+  // Green arrow: right edge of green bar → left edge of green box
+  const gx1 = gbar.right, gy1 = gbar.cy;
+  const gx2 = gb.left, gy2 = gb.cy;
+  const gcpx = (gx1 + gx2) / 2;
+
+  const ns = 'http://www.w3.org/2000/svg';
+
+  // Red path
+  const rp = document.createElementNS(ns, 'path');
+  rp.setAttribute('d', `M${rx1},${ry1} C${rcpx},${ry1} ${rcpx},${ry2} ${rx2-6},${ry2}`);
+  rp.setAttribute('stroke', '#e05252'); rp.setAttribute('stroke-width', '1.5'); rp.setAttribute('fill', 'none'); rp.setAttribute('opacity', '0.6');
+  svg.appendChild(rp);
+
+  // Red arrowhead
+  const ra = document.createElementNS(ns, 'polygon');
+  ra.setAttribute('points', `${rx2-8},${ry2-5} ${rx2},${ry2} ${rx2-8},${ry2+5}`);
+  ra.setAttribute('fill', '#e05252'); ra.setAttribute('opacity', '0.7');
+  svg.appendChild(ra);
+
+  // Green path
+  const gp = document.createElementNS(ns, 'path');
+  gp.setAttribute('d', `M${gx1},${gy1} C${gcpx},${gy1} ${gcpx},${gy2} ${gx2+6},${gy2}`);
+  gp.setAttribute('stroke', '#4A9E7E'); gp.setAttribute('stroke-width', '1.5'); gp.setAttribute('fill', 'none'); gp.setAttribute('opacity', '0.6');
+  svg.appendChild(gp);
+
+  // Green arrowhead
+  const ga = document.createElementNS(ns, 'polygon');
+  ga.setAttribute('points', `${gx2+8},${gy2-5} ${gx2},${gy2} ${gx2+8},${gy2+5}`);
+  ga.setAttribute('fill', '#4A9E7E'); ga.setAttribute('opacity', '0.7');
+  svg.appendChild(ga);
+}
+
+// Re-init everything after slides are built
+const origBuildSlides = buildSlides;
+buildSlides = function() { origBuildSlides(); initSpectrum(); requestAnimationFrame(drawAccuracyArrows); };
+initSpectrum();
+requestAnimationFrame(drawAccuracyArrows);
+window.addEventListener('resize', () => requestAnimationFrame(drawAccuracyArrows));
+</script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+{"root":["./src/builtin-tools.ts","./src/config.ts","./src/defense-mode.ts","./src/display.ts","./src/index.ts","./src/search-anthropic.ts","./src/search-bm25-tfidf.ts","./src/test-search.ts","./src/util.ts","./src/code-mode/index.ts","./src/code-mode/sandbox.ts"],"errors":true,"version":"5.9.3"}
