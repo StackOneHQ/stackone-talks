@@ -3,3 +3,10 @@ __pycache__/
 *.pyc
 .venv/
 node_modules/
+uv.lock
+.graphify_uncached.txt
+.graphify_python
+
+# Personal content — don't commit
+vault/random/
+vault/grants/grant-proposal-*.md

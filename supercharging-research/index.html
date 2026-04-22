@@ -330,7 +330,7 @@
 </div>
 
 <script>
-let TOTAL = 19; // updated by SLIDES.length after definition
+let TOTAL = 15; // updated by SLIDES.length after definition
 const GREEN = '#4A9E7E';
 const DOT_SIZE = 21;
 const DOT_R = 7;
@@ -673,18 +673,10 @@ const SLIDES = [
   {
     num: '0.',
     html: `<div class="slide-heading">Assumptions</div>
-<div class="methods">
-  <div class="method">
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="#4A9E7E" style="margin-bottom:0.6rem"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-    <h3>GitHub</h3><p>save + history</p>
-  </div>
-  <div class="method">
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4A9E7E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:0.6rem"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-    <h3>Python</h3><p>or Julia / C ...</p>
-  </div>
-  <div class="method">
+<div style="display:flex;justify-content:flex-start;width:100%">
+  <div class="method" style="border-color:#4A9E7E;text-align:left">
     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4A9E7E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:0.6rem"><rect x="5" y="8" width="14" height="12" rx="2"/><line x1="12" y1="8" x2="12" y2="4"/><circle cx="12" cy="3" r="1"/><circle cx="9" cy="13" r="1" fill="#4A9E7E"/><circle cx="15" cy="13" r="1" fill="#4A9E7E"/><line x1="9" y1="17" x2="15" y2="17"/><line x1="3" y1="13" x2="5" y2="13"/><line x1="19" y1="13" x2="21" y2="13"/></svg>
-    <h3>An Agent</h3><p>Claude Code, Cursor<br>Copilot ...</p>
+    <p style="font-size:2.4rem;color:#ccc;margin-bottom:0.5rem">You know what an Agent is</p><p style="font-size:2rem;color:#888">Claude Code, Cursor, Copilot ...</p>
   </div>
 </div>`
   },
@@ -706,6 +698,9 @@ const SLIDES = [
 <div style="font-size:1.2rem;font-weight:400;color:#888;line-height:1.7">
 Call it <span style="color:#4A9E7E">CLAUDE.md</span>, <span style="color:#5B8CB8">agents.md</span>, .cursorrules &mdash; doesn't matter.<br>
 Your agent reads it. Knows your patterns. Follows your rules.
+</div>
+<div style="font-size:1.1rem;font-weight:400;color:#555;margin-top:1.5rem;font-style:italic;line-height:2.2">
+  [1] github.com/forrestchang/andrej-karpathy-skills
 </div>`
   },
 
@@ -731,24 +726,22 @@ Your agent reads it. Knows your patterns. Follows your rules.
     num: 'III.',
     html: `<div class="slide-heading">Getting the Most Out of <span>your LLM</span></div>
 <div class="methods">
-  <div class="method"><h3>Verify</h3><p>measurable outcomes<br>not vague goals<br><span style="color:#555;font-size:0.85rem">"tests pass" not "make it good"</span></p></div>
-  <div class="method"><h3>Plan Mode</h3><p>think before coding<br>align on approach<br><span style="color:#555;font-size:0.85rem">/plan to enter</span></p></div>
-  <div class="method"><h3>Rewind</h3><p>undo bad turns<br>keep context clean<br><span style="color:#555;font-size:0.85rem">/rewind</span></p></div>
-  <div class="method"><h3>Parallelise</h3><p>multiple windows<br>different tasks<br><span style="color:#555;font-size:0.85rem">work on everything at once</span></p></div>
+  <div class="method" style="border-color:#4A9E7E"><h3>Plan Mode</h3><p>think before coding<br>align on approach<br><span style="color:#555;font-size:0.85rem">/plan to enter</span></p></div>
+  <div class="method" style="border-color:#4A9E7E"><h3>Rewind</h3><p>undo bad turns<br>keep context clean<br><span style="color:#555;font-size:0.85rem">/rewind</span></p></div>
+  <div class="method" style="border-color:#4A9E7E"><h3>Parallelise</h3><p>multiple windows<br>different tasks<br><span style="color:#555;font-size:0.85rem">work on everything at once</span></p></div>
+  <div class="method" style="border-color:#4A9E7E"><h3>Verify</h3><p>measurable outcomes<br>not vague goals<br><span style="color:#555;font-size:0.85rem">"tests pass" not "make it good"</span></p></div>
 </div>`
   },
 
   // Routines
   {
     num: 'IV.',
-    html: `<div class="slide-heading"><span>Routines</span></div>
-<div class="term" style="margin-bottom:1.5rem;width:100%">
-<div><span class="dim"># a routine = a skill that runs on autopilot</span></div>
-<div>&nbsp;</div>
-<div><span class="warn">every morning</span> <span class="dim">&rarr;</span> <span class="cmd">check arXiv for new papers</span></div>
-<div><span class="warn">every friday</span>  <span class="dim">&rarr;</span> <span class="cmd">weekly research digest</span></div>
-<div>&nbsp;</div>
-<div><span class="dim">your agent works while you rest.</span></div>
+    html: `<div class="slide-heading"><span>Routines</span> While You Sleep</div>
+<div style="font-size:1.2rem;font-weight:400;color:#888;margin-bottom:1.5rem">background agents &mdash; run while you sleep &mdash; wake up to results</div>
+<div class="methods">
+  <div class="method" style="border-color:#4A9E7E"><h3>Phone</h3><p>Claude app<br>push notifications<br><span style="color:#555;font-size:0.85rem">research done? ping.</span></p></div>
+  <div class="method" style="border-color:#4A9E7E"><h3>Email</h3><p>routine summaries<br>daily digests<br><span style="color:#555;font-size:0.85rem">inbox as dashboard</span></p></div>
+  <div class="method" style="border-color:#4A9E7E"><h3>Resume</h3><p>pick up anywhere<br>Claude app or CLI<br><span style="color:#555;font-size:0.85rem">context preserved</span></p></div>
 </div>`
   },
 
@@ -756,7 +749,7 @@ Your agent reads it. Knows your patterns. Follows your rules.
   {
     num: 'V.',
     html: `<div class="slide-heading"><span>MCP</span> &mdash; Model Context Protocol</div>
-<div style="font-size:1.2rem;font-weight:400;color:#888;margin-bottom:2rem">Plug any tool into any agent. USB for AI.</div>
+<div style="font-size:1.2rem;font-weight:400;color:#888;margin-bottom:2rem">The plug socket for AI. Allows LLMs to connect to external services.</div>
 <div style="display:flex;gap:3rem;width:100%;justify-content:center;align-items:center">
   <div style="background:#111114;border:2px solid #4A9E7E;border-radius:12px;padding:24px 32px;text-align:center;min-width:140px">
     <p style="font-size:1.6rem;font-weight:700;color:#4A9E7E">Agent</p>
@@ -770,7 +763,7 @@ Your agent reads it. Knows your patterns. Follows your rules.
       <svg width="1.2em" height="1.2em" viewBox="0 0 24 24" fill="#e0e0e0"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg> <span style="color:#ccc;font-size:1rem">GitHub</span>
     </div>
     <div style="display:flex;align-items:center;gap:10px;background:#111114;border:1px solid #333;border-radius:8px;padding:10px 18px">
-      <svg width="1.2em" height="1.2em" viewBox="0 0 24 24" fill="#e0e0e0"><path d="M3.357 3.357a1.566 1.566 0 0 0-.07 2.142l15.214 15.214a1.566 1.566 0 0 0 2.142-.07 12.014 12.014 0 0 0-.07-17.216 12.014 12.014 0 0 0-17.216-.07zM1.474 6.949a1.566 1.566 0 0 0-.123 2.142L13.91 21.65a1.566 1.566 0 0 0 2.142-.123A12.1 12.1 0 0 0 20.122 24H3.878A3.878 3.878 0 0 1 0 20.122V3.878c0 1.09.537 2.141 1.474 3.071zM22.526 17.051a1.566 1.566 0 0 0 .123-2.142L10.09 2.35a1.566 1.566 0 0 0-2.142.123A12.1 12.1 0 0 0 3.878 0h16.244A3.878 3.878 0 0 1 24 3.878v16.244c0-1.09-.537-2.141-1.474-3.071z"/></svg> <span style="color:#ccc;font-size:1rem">Linear</span>
+      <img src="https://cdn.simpleicons.org/linear/e0e0e0" style="height:1.2em"> <span style="color:#ccc;font-size:1rem">Linear</span>
     </div>
     <div style="display:flex;align-items:center;gap:10px;background:#111114;border:1px solid #333;border-radius:8px;padding:10px 18px">
       <svg width="1.2em" height="1.2em" viewBox="0 0 24 24" fill="#e0e0e0"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zm10.122 2.521a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.268 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zm-2.523 10.122a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zm0-1.268a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/></svg> <span style="color:#ccc;font-size:1rem">Slack</span>
@@ -783,7 +776,7 @@ Your agent reads it. Knows your patterns. Follows your rules.
     </div>
   </div>
 </div>
-<div style="font-size:0.9rem;font-weight:400;color:#555;margin-top:1.5rem;text-align:center">
+<div style="font-size:1.1rem;font-weight:400;color:#555;margin-top:1.5rem;text-align:center">
   native servers or via providers like <span style="color:#4A9E7E">StackOne</span> / <span style="color:#4A9E7E">disco.dev</span>
 </div>`
   },
@@ -794,88 +787,49 @@ Your agent reads it. Knows your patterns. Follows your rules.
   {
     num: 'VI.',
     html: `<div class="slide-heading">Building a <span>Second Brain</span></div>
-<div style="display:flex;align-items:stretch;gap:32px;width:100%;justify-content:center">
-  <div style="display:flex;flex-direction:column;gap:12px;justify-content:center">
-    <div style="background:#111114;border:1px solid #333;border-radius:8px;padding:12px 20px;font-size:1.1rem;color:#888;font-weight:400">Papers</div>
-    <div style="background:#111114;border:1px solid #333;border-radius:8px;padding:12px 20px;font-size:1.1rem;color:#888;font-weight:400">Tweets</div>
-    <div style="background:#111114;border:1px solid #333;border-radius:8px;padding:12px 20px;font-size:1.1rem;color:#888;font-weight:400">Meetings</div>
-    <div style="background:#111114;border:1px solid #333;border-radius:8px;padding:12px 20px;font-size:1.1rem;color:#888;font-weight:400">Tasks</div>
-    <div style="background:#111114;border:1px solid #333;border-radius:8px;padding:12px 20px;font-size:1.1rem;color:#888;font-weight:400">Notes</div>
+<div style="display:flex;align-items:center;gap:20px;width:100%;justify-content:center">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="background:#111114;border:1px solid #333;border-radius:6px;padding:8px 14px;font-size:0.85rem;color:#888">arXiv</div>
+    <div style="background:#111114;border:1px solid #333;border-radius:6px;padding:8px 14px;font-size:0.85rem;color:#888">Linear</div>
+    <div style="background:#111114;border:1px solid #333;border-radius:6px;padding:8px 14px;font-size:0.85rem;color:#888">Slack</div>
+    <div style="background:#111114;border:1px solid #333;border-radius:6px;padding:8px 14px;font-size:0.85rem;color:#888">GitHub</div>
   </div>
-  <div style="display:flex;flex-direction:column;justify-content:center">
-    <span style="font-size:2.4rem;color:#4A9E7E">&rarr;</span>
+  <span style="font-size:1.8rem;color:#4A9E7E">&rarr;</span>
+  <div style="background:#111114;border:2px solid #4A9E7E;border-radius:10px;padding:20px 24px;text-align:center">
+    <p style="font-size:1.3rem;font-weight:700;color:#4A9E7E;margin-bottom:4px">Claude</p>
+    <p style="font-size:0.8rem;color:#888">/lit &middot; /graphify<br>/draft</p>
   </div>
-  <div style="display:flex;flex-direction:column;justify-content:center">
-    <div style="background:#111114;border:2px solid #4A9E7E;border-radius:12px;padding:28px 36px;text-align:center">
-      <p style="font-size:1.8rem;font-weight:700;color:#4A9E7E;margin-bottom:8px">Agent</p>
-      <p style="font-size:1rem;color:#888;font-weight:400">collects, connects,<br>synthesizes</p>
-    </div>
+  <span style="font-size:1.8rem;color:#4A9E7E">&rarr;</span>
+  <div style="background:#111114;border:2px solid #9B72CF;border-radius:10px;padding:20px 24px;text-align:center">
+    <p style="font-size:1.3rem;font-weight:700;color:#9B72CF;margin-bottom:4px">Obsidian Vault</p>
+    <p style="font-size:0.8rem;color:#888">papers / graphs<br>tweets / grants</p>
   </div>
-  <div style="display:flex;flex-direction:column;justify-content:center">
-    <span style="font-size:2.4rem;color:#4A9E7E">&rarr;</span>
+  <span style="font-size:1.8rem;color:#9B72CF">&rarr;</span>
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="background:#111114;border:1px solid #5B8CB8;border-radius:6px;padding:8px 14px;font-size:0.85rem;color:#5B8CB8">lit reviews</div>
+    <div style="background:#111114;border:1px solid #5B8CB8;border-radius:6px;padding:8px 14px;font-size:0.85rem;color:#5B8CB8">grant drafts</div>
+    <div style="background:#111114;border:1px solid #5B8CB8;border-radius:6px;padding:8px 14px;font-size:0.85rem;color:#5B8CB8">papers</div>
   </div>
-  <div style="display:flex;flex-direction:column;justify-content:center">
-    <div style="background:#111114;border:2px solid #5B8CB8;border-radius:12px;padding:28px 36px;text-align:center">
-      <p style="font-size:1.8rem;font-weight:700;color:#5B8CB8;margin-bottom:8px">Obsidian Vault</p>
-      <p style="font-size:1rem;color:#888;font-weight:400">connected notes<br>graph view</p>
-    </div>
-  </div>
+</div>
+<div style="font-size:1.1rem;font-weight:400;color:#555;margin-top:1.5rem;font-style:italic;line-height:2.2">
+  [1] feynman.is &mdash; Feynman research skills<br>
+  [2] graphify.net &mdash; knowledge graphs<br>
+  [3] obsidian.md &mdash; local-first knowledge base
 </div>`
   },
 
-  // Resources Live Everywhere
+  // Feynman: Literature Review
   {
     num: 'VII.',
-    html: `<div class="slide-heading">Resources Live <span>Everywhere</span></div>
-<div class="methods" style="margin-bottom:1.5rem">
-  <div class="method"><h3>arXiv</h3><p>papers<br>preprints<br><span style="color:#555;font-size:0.85rem">the firehose</span></p></div>
-  <div class="method"><h3>X / Twitter</h3><p>threads<br>hot takes<br><span style="color:#555;font-size:0.85rem">real-time signal</span></p></div>
-  <div class="method"><h3>Fireflies</h3><p>meeting notes<br>transcripts<br><span style="color:#555;font-size:0.85rem">decisions made</span></p></div>
-  <div class="method"><h3>Linear</h3><p>tasks<br>progress<br><span style="color:#555;font-size:0.85rem">what's happening</span></p></div>
-  <div class="method"><h3>Notion</h3><p>docs<br>wikis<br><span style="color:#555;font-size:0.85rem">team knowledge</span></p></div>
-</div>
-<div style="font-size:1.2rem;font-weight:400;color:#555;text-align:center">all disconnected. all manual. all painful.</div>`
-  },
-
-  // DEMO — Graphify
-  {
-    html: `<div class="demo-label" style="text-align:center;margin-bottom:0.5rem">DEMO</div>
-<div class="demo-sub" style="text-align:center;margin-bottom:2rem">Graphify: paper &rarr; knowledge graph &rarr; Obsidian</div>
-<div class="term" style="width:60%;margin:0 auto;font-size:1rem;line-height:1.7;padding:1rem 1.4rem">
-<div><span class="dim"># drop a PDF into vault/papers/, then:</span></div>
+    html: `<div class="slide-heading">Feynman: <span>Research + Draft + Review</span></div>
+<div class="term" style="width:100%;font-size:1rem;line-height:1.7;padding:1rem 1.4rem">
+<div><span class="prompt">$</span> <span class="cmd">claude</span></div>
+<div><span class="prompt">&gt;</span> <span class="cmd">/literature-review "finetuning LLMs new attention mechanisms"</span></div>
 <div>&nbsp;</div>
-<div><span class="prompt">$</span> <span class="cmd">claude /graphify vault/papers/react-synergizing-reasoning-and-acting.md</span></div>
+<div><span class="dim"># researcher agent &rarr; searches papers &rarr; verifier checks sources</span></div>
+<div><span class="dim"># outputs cited review to outputs/ with provenance tracking</span></div>
 <div>&nbsp;</div>
-<div><span class="dim"># entities &rarr; relationships &rarr; HTML graph + JSON</span></div>
-<div><span class="dim"># output lands in vault/graphs/</span></div>
-</div>`
-  },
-
-  // DEMO — AutoResearcher
-  {
-    html: `<div class="demo-label" style="text-align:center;margin-bottom:0.5rem">DEMO</div>
-<div class="demo-sub" style="text-align:center;margin-bottom:2rem">AutoResearcher: arXiv &rarr; Claude &rarr; vault</div>
-<div class="term" style="width:60%;margin:0 auto;font-size:1rem;line-height:1.7;padding:1rem 1.4rem">
-<div><span class="prompt">$</span> <span class="cmd">uv run python scripts/auto_research.py "AI agent architectures" --max 5</span></div>
-<div>&nbsp;</div>
-<div><span class="dim"># arXiv API &rarr; fetch papers &rarr; Claude summarizes each</span></div>
-<div><span class="dim"># saves to vault/papers/ with frontmatter + [[wikilinks]]</span></div>
-<div>&nbsp;</div>
-<div><span class="dim"># or set up as a Claude routine:</span></div>
-<div><span class="warn">every morning</span> <span class="dim">&rarr;</span> <span class="cmd">check arXiv, summarize, add to vault</span></div>
-</div>`
-  },
-
-  // DEMO — Grant Review
-  {
-    html: `<div class="demo-label" style="text-align:center;margin-bottom:0.5rem">DEMO</div>
-<div class="demo-sub" style="text-align:center;margin-bottom:2rem">Grant Review: vault &rarr; lit review &rarr; draft</div>
-<div class="term" style="width:60%;margin:0 auto;font-size:1rem;line-height:1.7;padding:1rem 1.4rem">
-<div><span class="prompt">$</span> <span class="cmd">uv run python scripts/grant_review.py "agent tool use for research automation"</span></div>
-<div>&nbsp;</div>
-<div><span class="dim"># reads all vault/papers/ &rarr; sends to Claude</span></div>
-<div><span class="dim"># produces: related work, key findings, gaps, citations</span></div>
-<div><span class="dim"># saves to vault/grants/ with [[wikilinks]] back to papers</span></div>
+<div><span class="dim"># also: /deepresearch, /draft, /autoresearch</span></div>
 </div>`
   },
 
@@ -918,59 +872,42 @@ Your agent reads it. Knows your patterns. Follows your rules.
 </div>`
   },
 
-  // Notifications & Continuity
+  // Graphify into Vault
   {
     num: 'IX.',
-    html: `<div class="slide-heading">Notifications & <span>Continuity</span></div>
-<div class="methods">
-  <div class="method" style="border-color:#4A9E7E"><h3>Phone</h3><p>Claude app<br>push notifications<br><span style="color:#555;font-size:0.85rem">research done? ping.</span></p></div>
-  <div class="method" style="border-color:#4A9E7E"><h3>Email</h3><p>routine summaries<br>daily digests<br><span style="color:#555;font-size:0.85rem">inbox as dashboard</span></p></div>
-  <div class="method" style="border-color:#4A9E7E"><h3>Resume</h3><p>pick up anywhere<br>Claude app or CLI<br><span style="color:#555;font-size:0.85rem">context preserved</span></p></div>
-  <div class="method" style="border-color:#5B8CB8"><h3>Routines</h3><p>background agents<br>run while you sleep<br><span style="color:#555;font-size:0.85rem">wake up to results</span></p></div>
+    html: `<div class="slide-heading">Graphify: <span>Connect Everything</span></div>
+<div class="term" style="width:100%;font-size:1rem;line-height:1.7;padding:1rem 1.4rem">
+<div><span class="prompt">$</span> <span class="cmd">claude</span></div>
+<div><span class="prompt">&gt;</span> <span class="cmd">/graphify</span></div>
+<div>&nbsp;</div>
+<div><span class="dim"># auto-detects vault/papers/ &rarr; extracts entities + relationships</span></div>
+<div><span class="dim"># community detection finds cross-paper connections</span></div>
+<div><span class="dim"># outputs: HTML graph + JSON &rarr; vault/graphs/</span></div>
+<div>&nbsp;</div>
+<div><span class="dim"># add new papers anytime, rerun to update the graph</span></div>
 </div>`
   },
 
   // ── PART 4: PUTTING IT TOGETHER ──
 
-  // Grant Writing
+  // Grant Draft
   {
     num: 'X.',
-    html: `<div class="slide-heading">Grant Writing: <span>Before & After</span></div>
-<div style="display:flex;gap:2rem;width:100%">
-  <div style="flex:1;background:#111114;border:2px solid #e05252;border-radius:12px;padding:24px">
-    <p style="font-size:1.3rem;font-weight:600;color:#e05252;margin-bottom:14px">Before</p>
-    <div style="font-size:0.95rem;color:#888;font-weight:400;line-height:1.8">
-      manual literature search<br>
-      copy-paste from 20 tabs<br>
-      rewrite for each funder<br>
-      3 weeks of pain<br>
-      <span style="color:#e05252">hope for the best</span>
-    </div>
-  </div>
-  <div style="flex:1;background:#111114;border:2px solid #4A9E7E;border-radius:12px;padding:24px">
-    <p style="font-size:1.3rem;font-weight:600;color:#4A9E7E;margin-bottom:14px">After</p>
-    <div style="font-size:0.95rem;color:#888;font-weight:400;line-height:1.8">
-      agent searches &amp; summarizes<br>
-      knowledge graph connects ideas<br>
-      draft adapts to funder criteria<br>
-      2 days with citations<br>
-      <span style="color:#4A9E7E">backed by evidence</span>
-    </div>
-  </div>
-</div>`
-  },
-
-  // DEMO — Full End-to-End
-  {
-    html: `<div class="demo-label" style="text-align:center;margin-bottom:0.5rem">DEMO</div>
-<div class="demo-sub" style="text-align:center;margin-bottom:2rem">the complete research system</div>
-<div class="term" style="width:60%;margin:0 auto;font-size:1rem;line-height:1.7;padding:1rem 1.4rem">
-<div><span class="prompt">$</span> <span class="cmd">uv run python scripts/full_pipeline.py "AI agent architectures"</span></div>
+    html: `<div class="slide-heading">Grant <span>Draft</span></div>
+<div style="font-size:1.1rem;font-weight:400;color:#888;margin-bottom:1.5rem;line-height:1.8">
+  agent searches &amp; summarizes<br>
+  knowledge graph connects ideas<br>
+  draft adapts to funder criteria
+</div>
+<div class="term" style="width:100%;font-size:1rem;line-height:1.7;padding:1rem 1.4rem">
+<div><span class="prompt">&gt;</span> <span class="cmd">look at my knowledge graph, check Linear for current</span></div>
+<div><span class="prompt">&nbsp;</span> <span class="cmd">project goals on WLR, pull recent Slack discussions</span></div>
+<div><span class="prompt">&nbsp;</span> <span class="cmd">from #ai-research, and draft a grant proposal for</span></div>
+<div><span class="prompt">&nbsp;</span> <span class="cmd">"agent tool use for research automation"</span></div>
 <div>&nbsp;</div>
-<div><span class="dim"># 1. search arXiv &rarr; summarize papers &rarr; vault/papers/</span></div>
-<div><span class="dim"># 2. collect tweets &rarr; vault/tweets/</span></div>
-<div><span class="dim"># 3. lit review from vault &rarr; vault/grants/</span></div>
-<div><span class="dim"># 4. rebuild _index.md with [[wikilinks]]</span></div>
+<div><span class="dim"># vault/papers/ + vault/graphs/ &rarr; related work + citations</span></div>
+<div><span class="dim"># Linear &rarr; current milestones + deliverables</span></div>
+<div><span class="dim"># Slack &rarr; team discussions + decisions</span></div>
 </div>`
   },
 
@@ -978,22 +915,16 @@ Your agent reads it. Knows your patterns. Follows your rules.
   {
     num: 'XI.',
     html: `<div class="slide-heading">Take It <span>Home</span></div>
-<div class="term" style="margin-bottom:1.5rem;width:60%">
-<div><span class="dim"># everything you need to start</span></div>
+<div class="term" style="margin-bottom:1.5rem;width:100%">
+<div><span class="dim"># install the open-source tools</span></div>
 <div>&nbsp;</div>
-<div><span class="prompt">$</span> <span class="cmd">git clone github.com/willleeney/research-agent</span></div>
-<div><span class="prompt">$</span> <span class="cmd">cd research-agent && uv sync</span></div>
-<div><span class="prompt">$</span> <span class="cmd">uv run python scripts/auto_research.py "your topic"</span></div>
+<div><span class="prompt">$</span> <span class="cmd">curl -fsSL https://feynman.is/install-skills | bash</span></div>
+<div><span class="prompt">$</span> <span class="cmd">pip install graphifyy</span></div>
+<div><span class="prompt">$</span> <span class="cmd">brew install --cask obsidian</span></div>
 <div>&nbsp;</div>
-<div><span class="ok">you now have a research agent. go use it.</span></div>
-</div>
-<div style="display:flex;gap:2rem;align-items:center">
-  <div style="width:140px;height:140px;border-radius:8px;background:#222;display:flex;align-items:center;justify-content:center;color:#555;font-size:0.8rem">QR &rarr; repo</div>
-  <div style="font-size:1rem;font-weight:400;color:#888;line-height:1.8">
-    Slides, scripts, vault template,<br>
-    MCP configs, everything.<br>
-    <span style="color:#4A9E7E">One repo. One command.</span>
-  </div>
+<div><span class="dim"># create a vault, connect your MCP servers, start researching</span></div>
+<div>&nbsp;</div>
+<div><span class="ok">build your own second brain.</span></div>
 </div>`
   },
 
@@ -1003,15 +934,11 @@ Your agent reads it. Knows your patterns. Follows your rules.
 <div style="font-size:1.2rem;color:#888;font-weight:400;text-align:center;margin-bottom:1.5rem">Will Leeney &middot; <span style="color:#4A9E7E">@StackOne</span></div>
 <div style="display:flex;gap:3rem;width:100%;justify-content:center;align-items:flex-start">
   <div style="display:flex;flex-direction:column;align-items:center;gap:0.8rem">
-    <div style="width:200px;height:200px;border-radius:8px;background:#222;display:flex;align-items:center;justify-content:center;color:#555;font-size:0.9rem">QR placeholder</div>
-    <span style="font-size:1.1rem;color:#4A9E7E;font-weight:600">repo</span>
-  </div>
-  <div style="display:flex;flex-direction:column;align-items:center;gap:0.8rem">
-    <div style="width:200px;height:200px;border-radius:8px;background:#222;display:flex;align-items:center;justify-content:center;color:#555;font-size:0.9rem">QR placeholder</div>
+    <img src="qr-linkedin.png" style="width:240px;height:240px;border-radius:8px;background:#fff;padding:6px">
     <span style="font-size:1.1rem;color:#4A9E7E;font-weight:600">LinkedIn</span>
   </div>
   <div style="display:flex;flex-direction:column;align-items:center;gap:0.8rem">
-    <div style="width:200px;height:200px;border-radius:8px;background:#222;display:flex;align-items:center;justify-content:center;color:#555;font-size:0.9rem">QR placeholder</div>
+    <img src="qr-website.png" style="width:240px;height:240px;border-radius:8px;background:#fff;padding:6px">
     <span style="font-size:1.1rem;color:#4A9E7E;font-weight:600">willleeney.com</span>
   </div>
 </div>`
