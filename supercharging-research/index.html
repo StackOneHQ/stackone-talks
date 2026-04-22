@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supercharging Research with Agents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a1e;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Crimson Pro', Georgia, serif;
+    color: #e0e0e0;
+  }
+  .slide {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: none;
+    background: #1a1a1e;
+  }
+  .slide.active { display: block; }
+  .slide svg.slide-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .content {
+    position: absolute;
+    top: 16%; left: 16%;
+    width: 68%; height: 68%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 2;
+    font-size: 2.4rem;
+    font-weight: 600;
+    text-align: left;
+    color: #ccc;
+  }
+  .title-slide .title {
+    font-size: 3.6rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #e0e0e0;
+    margin-bottom: 2.5rem;
+  }
+  .title-slide .title span { color: #4A9E7E; }
+  .title-slide .subtitle {
+    font-size: 1.4rem;
+    font-weight: 400;
+    color: #888;
+    line-height: 1.6;
+  }
+  .title-slide .subtitle .author { display: block; margin-bottom: 0.3rem; }
+  .title-slide .subtitle .affiliation { display: flex; align-items: center; gap: 0.5rem; }
+  .title-slide .subtitle .stackone-logo { height: 1.3em; vertical-align: middle; margin: 0 0.25em; }
+
+  /* Terminal */
+  .term {
+    background: #111114;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 1.5rem 2rem;
+    width: 50%;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.4rem;
+    font-weight: 400;
+    line-height: 1.8;
+    color: #aaa;
+    overflow: hidden;
+  }
+  .term .prompt { color: #4A9E7E; }
+  .term .cmd { color: #e0e0e0; }
+  .term .dim { color: #555; }
+  .term .warn { color: #5B8CB8; }
+  .term .err { color: #e05252; }
+  .term .ok { color: #4A9E7E; }
+
+  /* Slide heading */
+  .slide-heading {
+    font-size: 2.6rem;
+    font-weight: 700;
+    color: #e0e0e0;
+    margin-bottom: 2rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid #333;
+    width: 100%;
+  }
+  .slide-heading span { color: #4A9E7E; }
+  .slide-num { font-style: italic; font-size: 0.7em; color: #4A9E7E88; letter-spacing: 0.05em; }
+
+  /* Pipeline flow */
+  .pipeline {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 1.6rem;
+    font-weight: 600;
+    flex-wrap: wrap;
+  }
+  .pipeline .step {
+    background: #111114;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 0.8rem 1.4rem;
+    color: #ccc;
+  }
+  .pipeline .arrow { color: #4A9E7E; font-size: 1.8rem; }
+
+  /* Method boxes */
+  .methods {
+    display: flex;
+    gap: 1.5rem;
+    width: 100%;
+  }
+  .methods .method {
+    flex: 1;
+    background: #111114;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  .methods .method h3 { font-size: 1.4rem; color: #4A9E7E; margin-bottom: 0.8rem; font-weight: 600; }
+  .methods .method p { font-size: 1rem; color: #888; font-weight: 400; line-height: 1.5; }
+
+  /* Big quote */
+  .big-quote {
+    font-size: 2.8rem; font-weight: 700; color: #e0e0e0; line-height: 1.3; font-style: italic;
+  }
+  .big-quote span { color: #4A9E7E; font-style: normal; }
+
+  /* Demo slide */
+  .demo-label { font-size: 5rem; font-weight: 700; color: #4A9E7E; letter-spacing: 0.2em; }
+  .demo-sub { font-size: 1.4rem; font-weight: 400; color: #666; margin-top: 1rem; }
+
+  .slide-counter {
+    position: fixed;
+    bottom: 16px; right: 24px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem; color: #555;
+    z-index: 100;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ── Severance / Lumon Industries aesthetic ── */
+  .severance {}
+  .severance .content {
+    align-items: center;
+    text-align: center;
+  }
+  .dept-header {
+    position: absolute;
+    top: 6%; left: 0; width: 100%;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: #4A9E7E44;
+    z-index: 3;
+  }
+  .protocol-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: #4A9E7E88;
+    margin-bottom: 0.8rem;
+  }
+  .protocol-title {
+    font-size: 2.8rem;
+    font-weight: 700;
+    color: #e0e0e0;
+    margin-bottom: 1.8rem;
+    letter-spacing: 0.02em;
+  }
+  .protocol-box {
+    background: #111114;
+    border: 1px solid #2a2a2e;
+    border-radius: 3px;
+    padding: 2rem 2.5rem;
+    max-width: 620px;
+    text-align: left;
+  }
+  .protocol-box p {
+    font-size: 1.05rem;
+    font-weight: 400;
+    color: #777;
+    line-height: 1.9;
+  }
+  .protocol-box .hl { color: #4A9E7E; }
+  .protocol-box .wn { color: #5B8CB8; }
+  .protocol-box .code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.95rem;
+    color: #aaa;
+    background: #0a0a0d;
+    padding: 2px 6px;
+    border-radius: 2px;
+  }
+  .sev-card {
+    background: #111114;
+    border: 2px solid #4A9E7E22;
+    border-radius: 3px;
+    padding: 3.5rem 5rem;
+    text-align: center;
+  }
+  .sev-card-title {
+    font-size: 2.6rem;
+    font-weight: 700;
+    color: #e0e0e0;
+    letter-spacing: 0.04em;
+    margin-bottom: 1.2rem;
+  }
+  .sev-card-sub {
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: #555;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    line-height: 1.8;
+  }
+  .sev-two-col {
+    display: flex;
+    gap: 2rem;
+    max-width: 700px;
+    width: 100%;
+  }
+  .sev-two-col > div {
+    flex: 1;
+    background: #111114;
+    border: 1px solid #2a2a2e;
+    border-radius: 3px;
+    padding: 1.5rem 2rem;
+    text-align: left;
+  }
+  .sev-two-col h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #4A9E7E;
+    margin-bottom: 0.8rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .sev-two-col p {
+    font-size: 0.95rem;
+    font-weight: 400;
+    color: #777;
+    line-height: 1.8;
+  }
+
+  /* ── Demo mode: slides shrink to left half ── */
+  body.demo-mode .slide { width: 50vw; }
+  body.demo-mode .slide svg.slide-svg { width: 50vw; }
+  body.demo-mode .content { font-size: 1.5rem; }
+  body.demo-mode .title-slide .title { font-size: 2.2rem; }
+  body.demo-mode .slide-heading { font-size: 1.6rem; margin-bottom: 1.2rem; }
+  body.demo-mode .term { font-size: 0.95rem; padding: 1rem 1.2rem; }
+  body.demo-mode .methods .method h3 { font-size: 1rem; }
+  body.demo-mode .methods .method p { font-size: 0.8rem; }
+  body.demo-mode .demo-label { font-size: 3rem; }
+  body.demo-mode .demo-sub { font-size: 1rem; }
+  body.demo-mode .pipeline .step { font-size: 1rem; padding: 0.5rem 0.8rem; }
+  body.demo-mode .protocol-title { font-size: 1.8rem; }
+  body.demo-mode .protocol-box { padding: 1.2rem 1.5rem; max-width: 400px; }
+  body.demo-mode .protocol-box p { font-size: 0.85rem; }
+  body.demo-mode .sev-card { padding: 2rem 3rem; }
+  body.demo-mode .sev-card-title { font-size: 1.6rem; }
+  body.demo-mode .sev-two-col { max-width: 440px; }
+  body.demo-mode .dept-header { font-size: 0.55rem; }
+
+  .demo-panel {
+    display: none;
+    position: fixed;
+    top: 0; left: 50vw;
+    width: 50vw; height: 100vh;
+    background: #111114;
+    border-left: 2px solid #333;
+    z-index: 50;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  body.demo-mode .demo-panel { display: flex; }
+  .demo-panel-text { font-family: 'JetBrains Mono', monospace; color: #333; font-size: 1.2rem; text-align: center; line-height: 2; }
+  .demo-panel-text span { color: #4A9E7E; }
+
+  .mode-indicator {
+    display: none;
+    position: fixed;
+    top: 12px; left: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem; color: #4A9E7E;
+    z-index: 200;
+    padding: 4px 10px;
+    border: 1px solid #4A9E7E33;
+    border-radius: 4px;
+    background: #1a1a1e;
+  }
+  body.demo-mode .mode-indicator { display: block; }
+</style>
+</head>
+<body>
+
+<div id="deck"></div>
+<div class="slide-counter" id="counter"></div>
+<div class="mode-indicator">DEMO MODE &mdash; press D to exit</div>
+
+<div class="demo-panel">
+  <div class="demo-panel-text">
+    <span>terminal goes here</span><br>
+    resize this window to left half<br>
+    and open terminal on the right<br><br>
+    or use <span>Cmd+Tab</span> to switch
+  </div>
+</div>
+
+<script>
+let TOTAL = 15; // updated by SLIDES.length after definition
+const GREEN = '#4A9E7E';
+const DOT_SIZE = 21;
+const DOT_R = 7;
+const STROKE = 3;
+const GAP = 7;
+const ANIM_MS = 400;
+
+let demoMode = false;
+
+const BORDER = [
+  { x: 0.12, y: 0.12 },
+  { x: 0.50, y: 0.12 },
+  { x: 0.88, y: 0.12 },
+  { x: 0.88, y: 0.50 },
+  { x: 0.88, y: 0.88 },
+  { x: 0.50, y: 0.88 },
+  { x: 0.12, y: 0.88 },
+  { x: 0.12, y: 0.50 },
+];
+
+function seededRandom(seed) {
+  let s = seed;
+  return function () {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+}
+const rand = seededRandom(77);
+
+const slideDotIdx = [];
+for (let i = 0; i < TOTAL; i++) {
+  let idx;
+  do { idx = Math.floor(rand() * 8); } while (i > 0 && idx === slideDotIdx[i - 1]);
+  slideDotIdx.push(idx);
+}
+
+function perimDist(a, b) {
+  const cw = (b - a + 8) % 8;
+  return Math.min(cw, 8 - cw);
+}
+
+function shortestArc(from, to) {
+  if (from === to) return [from];
+  const cw = (to - from + 8) % 8;
+  const ccw = (from - to + 8) % 8;
+  const step = cw <= ccw ? 1 : -1;
+  const path = [from];
+  let cur = from;
+  while (cur !== to) {
+    cur = (cur + step + 8) % 8;
+    path.push(cur);
+  }
+  return path;
+}
+
+const CORRIDORS = [
+  { exit: 6, enter: 0 },
+  { exit: 5, enter: 1 },
+  { exit: 4, enter: 2 },
+];
+
+const transCorridors = [];
+for (let i = 0; i < TOTAL - 1; i++) {
+  const a = slideDotIdx[i], b = slideDotIdx[i + 1];
+  let arrivalNeighbor = -1;
+  if (i > 0) {
+    const prev = transCorridors[i - 1];
+    const inArc = shortestArc(prev.enter, a);
+    if (inArc.length >= 2) arrivalNeighbor = inArc[inArc.length - 2];
+  }
+  let best = null, bestCost = Infinity;
+  for (const c of CORRIDORS) {
+    const outArc = shortestArc(a, c.exit);
+    if (outArc.length >= 2 && outArc[1] === arrivalNeighbor) continue;
+    const cost = perimDist(a, c.exit) + perimDist(c.enter, b);
+    if (cost < bestCost) { bestCost = cost; best = c; }
+  }
+  if (!best) {
+    bestCost = Infinity;
+    for (const c of CORRIDORS) {
+      const cost = perimDist(a, c.exit) + perimDist(c.enter, b);
+      if (cost < bestCost) { bestCost = cost; best = c; }
+    }
+  }
+  transCorridors.push(best);
+}
+
+function transitionPaths(transIdx, vw, vh) {
+  const a = slideDotIdx[transIdx], b = slideDotIdx[transIdx + 1];
+  const corr = transCorridors[transIdx];
+  const outArc = shortestArc(a, corr.exit);
+  const outPts = outArc.map(i => ({ x: BORDER[i].x * vw, y: BORDER[i].y * vh }));
+  outPts.push({ x: BORDER[corr.exit].x * vw, y: vh + 40 });
+  const inArc = shortestArc(corr.enter, b);
+  const inPts = [{ x: BORDER[corr.enter].x * vw, y: -40 }];
+  inArc.forEach(i => inPts.push({ x: BORDER[i].x * vw, y: BORDER[i].y * vh }));
+  return { outPts, inPts };
+}
+
+function ptsString(pts) { return pts.map(p => `${p.x},${p.y}`).join(' '); }
+
+function ptsLength(pts) {
+  let l = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const dx = pts[i].x - pts[i - 1].x, dy = pts[i].y - pts[i - 1].y;
+    l += Math.sqrt(dx * dx + dy * dy);
+  }
+  return l;
+}
+
+function trimStart(pts, amt) {
+  if (pts.length < 2 || amt <= 0) return [...pts];
+  let rem = amt, i = 0;
+  while (i < pts.length - 1) {
+    const dx = pts[i + 1].x - pts[i].x, dy = pts[i + 1].y - pts[i].y;
+    const seg = Math.sqrt(dx * dx + dy * dy);
+    if (rem >= seg) { rem -= seg; i++; } else {
+      const t = rem / seg;
+      const out = [{ x: pts[i].x + dx * t, y: pts[i].y + dy * t }];
+      for (let j = i + 1; j < pts.length; j++) out.push(pts[j]);
+      return out;
+    }
+  }
+  return [pts[pts.length - 1]];
+}
+
+function trimEnd(pts, amt) {
+  return trimStart([...pts].reverse(), amt).reverse();
+}
+
+let currentSlide = 0;
+let transitioning = false;
+const deck = document.getElementById('deck');
+const counter = document.getElementById('counter');
+
+function getEffectiveWidth() {
+  return demoMode ? window.innerWidth / 2 : window.innerWidth;
+}
+
+function buildSlides() {
+  deck.innerHTML = '';
+  const vw = getEffectiveWidth(), vh = window.innerHeight;
+
+  for (let i = 0; i < TOTAL; i++) {
+    const slide = document.createElement('div');
+    slide.className = 'slide' + (i === currentSlide ? ' active' : '');
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'slide-svg');
+    svg.setAttribute('viewBox', `0 0 ${vw} ${vh}`);
+    svg.setAttribute('preserveAspectRatio', 'none');
+
+    const idx = slideDotIdx[i];
+    const cx = BORDER[idx].x * vw, cy = BORDER[idx].y * vh;
+
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    dot.setAttribute('x', cx - DOT_SIZE / 2);
+    dot.setAttribute('y', cy - DOT_SIZE / 2);
+    dot.setAttribute('width', DOT_SIZE);
+    dot.setAttribute('height', DOT_SIZE);
+    dot.setAttribute('rx', DOT_R);
+    dot.setAttribute('ry', DOT_R);
+    dot.setAttribute('fill', GREEN);
+    svg.appendChild(dot);
+
+    if (i > 0) {
+      const { inPts } = transitionPaths(i - 1, vw, vh);
+      const pts = trimEnd(inPts, GAP + DOT_SIZE / 2);
+      if (pts.length >= 2) svg.appendChild(makeLine(pts, 'incoming-line'));
+    }
+    if (i < TOTAL - 1) {
+      const { outPts } = transitionPaths(i, vw, vh);
+      const pts = trimStart(outPts, GAP + DOT_SIZE / 2);
+      if (pts.length >= 2) svg.appendChild(makeLine(pts, 'outgoing-line'));
+    }
+
+    slide.appendChild(svg);
+
+    // Severance slides get the grid + dept header
+    if (SLIDES[i] && SLIDES[i].sev) {
+      slide.classList.add('severance');
+      const dh = document.createElement('div');
+      dh.className = 'dept-header';
+      dh.textContent = 'Department of Agent Refinement';
+      slide.appendChild(dh);
+    }
+
+    const content = document.createElement('div');
+    content.className = 'content';
+    if (SLIDES[i]) {
+      if (SLIDES[i].cls) slide.classList.add(SLIDES[i].cls);
+      // Auto-inject numeral into first .slide-heading if num is set
+      let html = SLIDES[i].html;
+      if (SLIDES[i].num) {
+        const tag = '<div class="slide-heading">';
+        const idx = html.indexOf(tag);
+        if (idx !== -1) {
+          html = html.slice(0, idx + tag.length)
+            + `<span class="slide-num">${SLIDES[i].num}</span> `
+            + html.slice(idx + tag.length);
+        }
+      }
+      content.innerHTML = html;
+    } else {
+      content.textContent = `Slide ${i + 1}`;
+    }
+    slide.appendChild(content);
+    deck.appendChild(slide);
+  }
+  updateCounter();
+}
+
+function makeLine(pts, cls) {
+  const len = ptsLength(pts);
+  const pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+  pl.setAttribute('points', ptsString(pts));
+  pl.setAttribute('fill', 'none');
+  pl.setAttribute('stroke', GREEN);
+  pl.setAttribute('stroke-width', STROKE);
+  pl.setAttribute('stroke-linecap', 'round');
+  pl.setAttribute('stroke-linejoin', 'round');
+  pl.setAttribute('stroke-dasharray', len);
+  pl.setAttribute('stroke-dashoffset', len);
+  pl.setAttribute('class', cls);
+  pl.dataset.length = len;
+  return pl;
+}
+
+function updateCounter() {
+  counter.textContent = `${currentSlide + 1} / ${TOTAL}`;
+}
+
+function getSlide(i) { return deck.querySelectorAll('.slide')[i]; }
+
+function animLine(el, mode) {
+  return new Promise(resolve => {
+    if (!el) return resolve();
+    const len = parseFloat(el.dataset.length);
+    if (mode === 'draw') {
+      el.getBoundingClientRect();
+      el.style.transition = `stroke-dashoffset ${ANIM_MS}ms ease-out`;
+      el.setAttribute('stroke-dashoffset', '0');
+      setTimeout(resolve, ANIM_MS);
+    } else if (mode === 'undraw') {
+      el.getBoundingClientRect();
+      el.style.transition = `stroke-dashoffset ${ANIM_MS}ms ease-in`;
+      el.setAttribute('stroke-dashoffset', len);
+      setTimeout(resolve, ANIM_MS);
+    } else if (mode === 'reset-drawn') {
+      el.style.transition = 'none';
+      el.setAttribute('stroke-dashoffset', '0');
+      resolve();
+    } else {
+      el.style.transition = 'none';
+      el.setAttribute('stroke-dashoffset', len);
+      resolve();
+    }
+  });
+}
+
+async function goForward() {
+  if (transitioning || currentSlide >= TOTAL - 1) return;
+  transitioning = true;
+  const curr = getSlide(currentSlide);
+  const next = getSlide(currentSlide + 1);
+  await animLine(curr.querySelector('.outgoing-line'), 'draw');
+  curr.classList.remove('active');
+  next.classList.add('active');
+  currentSlide++;
+  updateCounter();
+  await animLine(next.querySelector('.incoming-line'), 'draw');
+  transitioning = false;
+}
+
+async function goBackward() {
+  if (transitioning || currentSlide <= 0) return;
+  transitioning = true;
+  const curr = getSlide(currentSlide);
+  const target = getSlide(currentSlide - 1);
+  await animLine(curr.querySelector('.incoming-line'), 'undraw');
+  curr.classList.remove('active');
+  target.classList.add('active');
+  currentSlide--;
+  updateCounter();
+  await animLine(target.querySelector('.outgoing-line'), 'undraw');
+  transitioning = false;
+}
+
+function jumpForward() {
+  if (transitioning || currentSlide >= TOTAL - 1) return;
+  const curr = getSlide(currentSlide);
+  const next = getSlide(currentSlide + 1);
+  animLine(curr.querySelector('.outgoing-line'), 'reset-drawn');
+  curr.classList.remove('active');
+  next.classList.add('active');
+  currentSlide++;
+  animLine(next.querySelector('.incoming-line'), 'reset-drawn');
+  updateCounter();
+}
+
+function jumpBackward() {
+  if (transitioning || currentSlide <= 0) return;
+  const curr = getSlide(currentSlide);
+  const target = getSlide(currentSlide - 1);
+  animLine(curr.querySelector('.incoming-line'), 'reset');
+  curr.classList.remove('active');
+  target.classList.add('active');
+  currentSlide--;
+  animLine(target.querySelector('.outgoing-line'), 'reset');
+  updateCounter();
+}
+
+function toggleDemoMode() {
+  demoMode = !demoMode;
+  document.body.classList.toggle('demo-mode', demoMode);
+  buildSlides();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goForward(); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); goBackward(); }
+  else if (e.key === 'ArrowDown') { e.preventDefault(); jumpForward(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); jumpBackward(); }
+  else if (e.key === 'd' || e.key === 'D') { e.preventDefault(); toggleDemoMode(); }
+});
+
+// ── slide content ──
+const SLIDES = [
+
+  // ── PART 1: INTRO ──
+
+  // Title
+  {
+    cls: 'title-slide',
+    html: `<div class="title"><span>Supercharging</span> Research with Agents</div>
+<div class="subtitle"><span class="author">Will Leeney PhD</span><span class="affiliation">AI Research Engineering @<img class="stackone-logo" src="https://www.stackone.com/favicon.svg" alt="StackOne"> StackOne</span></div>`
+  },
+
+  // Assumptions & Requirements
+  {
+    num: '0.',
+    html: `<div class="slide-heading">Assumptions</div>
+<div style="display:flex;justify-content:flex-start;width:100%">
+  <div class="method" style="border-color:#4A9E7E;text-align:left">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4A9E7E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:0.6rem"><rect x="5" y="8" width="14" height="12" rx="2"/><line x1="12" y1="8" x2="12" y2="4"/><circle cx="12" cy="3" r="1"/><circle cx="9" cy="13" r="1" fill="#4A9E7E"/><circle cx="15" cy="13" r="1" fill="#4A9E7E"/><line x1="9" y1="17" x2="15" y2="17"/><line x1="3" y1="13" x2="5" y2="13"/><line x1="19" y1="13" x2="21" y2="13"/></svg>
+    <p style="font-size:2.4rem;color:#ccc;margin-bottom:0.5rem">You know what an Agent is</p><p style="font-size:2rem;color:#888">Claude Code, Cursor, Copilot ...</p>
+  </div>
+</div>`
+  },
+
+  // ── PART 2: WORKING WITH CLAUDE ──
+
+  // The Context File
+  {
+    num: 'I.',
+    html: `<div class="slide-heading">The <span>Context File</span></div>
+<div class="term" style="margin-bottom:1.2rem;width:100%">
+<div><span class="prompt">#</span> <span class="cmd">context.md</span></div>
+<div>&nbsp;</div>
+<div><span class="dim">You are a research assistant.</span></div>
+<div><span class="dim">Always cite sources with links.</span></div>
+<div><span class="dim">Prefer recent papers (last 2 years).</span></div>
+<div><span class="dim">Output in markdown format.</span></div>
+</div>
+<div style="font-size:1.2rem;font-weight:400;color:#888;line-height:1.7">
+Call it <span style="color:#4A9E7E">CLAUDE.md</span>, <span style="color:#5B8CB8">agents.md</span>, .cursorrules &mdash; doesn't matter.<br>
+Your agent reads it. Knows your patterns. Follows your rules.
+</div>
+<div style="font-size:1.1rem;font-weight:400;color:#555;margin-top:1.5rem;font-style:italic;line-height:2.2">
+  [1] github.com/forrestchang/andrej-karpathy-skills
+</div>`
+  },
+
+  // Skills
+  {
+    num: 'II.',
+    html: `<div class="slide-heading">Skills are <span>Recipes</span></div>
+<div class="term" style="margin-bottom:1.5rem;width:100%">
+<div><span class="dim"># a skill = a recipe your agent can run</span></div>
+<div>&nbsp;</div>
+<div><span class="prompt">/rewind</span>          <span class="dim">&rarr;</span> <span class="cmd">undo and try again</span></div>
+<div><span class="prompt">/resume</span>          <span class="dim">&rarr;</span> <span class="cmd">pick up where you left off</span></div>
+<div><span class="prompt">/review</span>          <span class="dim">&rarr;</span> <span class="cmd">check work before committing</span></div>
+<div><span class="prompt">/start-feature</span>   <span class="dim">&rarr;</span> <span class="cmd">new branch, fresh context</span></div>
+<div><span class="prompt">/summarize</span>       <span class="dim">&rarr;</span> <span class="cmd">condense any document</span></div>
+<div>&nbsp;</div>
+<div><span class="dim">write it once. agent runs it whenever.</span></div>
+</div>`
+  },
+
+  // Getting the Most Out of your LLM
+  {
+    num: 'III.',
+    html: `<div class="slide-heading">Getting the Most Out of <span>your LLM</span></div>
+<div class="methods">
+  <div class="method" style="border-color:#4A9E7E"><h3>Plan Mode</h3><p>think before coding<br>align on approach<br><span style="color:#555;font-size:0.85rem">/plan to enter</span></p></div>
+  <div class="method" style="border-color:#4A9E7E"><h3>Rewind</h3><p>undo bad turns<br>keep context clean<br><span style="color:#555;font-size:0.85rem">/rewind</span></p></div>
+  <div class="method" style="border-color:#4A9E7E"><h3>Parallelise</h3><p>multiple windows<br>different tasks<br><span style="color:#555;font-size:0.85rem">work on everything at once</span></p></div>
+  <div class="method" style="border-color:#4A9E7E"><h3>Verify</h3><p>measurable outcomes<br>not vague goals<br><span style="color:#555;font-size:0.85rem">"tests pass" not "make it good"</span></p></div>
+</div>`
+  },
+
+  // Routines
+  {
+    num: 'IV.',
+    html: `<div class="slide-heading"><span>Routines</span> While You Sleep</div>
+<div style="font-size:1.2rem;font-weight:400;color:#888;margin-bottom:1.5rem">background agents &mdash; run while you sleep &mdash; wake up to results</div>
+<div class="methods">
+  <div class="method" style="border-color:#4A9E7E"><h3>Phone</h3><p>Claude app<br>push notifications<br><span style="color:#555;font-size:0.85rem">research done? ping.</span></p></div>
+  <div class="method" style="border-color:#4A9E7E"><h3>Email</h3><p>routine summaries<br>daily digests<br><span style="color:#555;font-size:0.85rem">inbox as dashboard</span></p></div>
+  <div class="method" style="border-color:#4A9E7E"><h3>Resume</h3><p>pick up anywhere<br>Claude app or CLI<br><span style="color:#555;font-size:0.85rem">context preserved</span></p></div>
+</div>`
+  },
+
+  // MCP
+  {
+    num: 'V.',
+    html: `<div class="slide-heading"><span>MCP</span> &mdash; Model Context Protocol</div>
+<div style="font-size:1.2rem;font-weight:400;color:#888;margin-bottom:2rem">The plug socket for AI. Allows LLMs to connect to external services.</div>
+<div style="display:flex;gap:3rem;width:100%;justify-content:center;align-items:center">
+  <div style="background:#111114;border:2px solid #4A9E7E;border-radius:12px;padding:24px 32px;text-align:center;min-width:140px">
+    <p style="font-size:1.6rem;font-weight:700;color:#4A9E7E">Agent</p>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+    <span style="font-size:0.85rem;color:#888;font-family:'JetBrains Mono',monospace">MCP</span>
+    <span style="font-size:2rem;color:#4A9E7E">&harr;</span>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div style="display:flex;align-items:center;gap:10px;background:#111114;border:1px solid #333;border-radius:8px;padding:10px 18px">
+      <svg width="1.2em" height="1.2em" viewBox="0 0 24 24" fill="#e0e0e0"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg> <span style="color:#ccc;font-size:1rem">GitHub</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;background:#111114;border:1px solid #333;border-radius:8px;padding:10px 18px">
+      <img src="https://cdn.simpleicons.org/linear/e0e0e0" style="height:1.2em"> <span style="color:#ccc;font-size:1rem">Linear</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;background:#111114;border:1px solid #333;border-radius:8px;padding:10px 18px">
+      <svg width="1.2em" height="1.2em" viewBox="0 0 24 24" fill="#e0e0e0"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zm10.122 2.521a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.268 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zm-2.523 10.122a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zm0-1.268a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/></svg> <span style="color:#ccc;font-size:1rem">Slack</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;background:#111114;border:1px solid #333;border-radius:8px;padding:10px 18px">
+      <svg width="1.2em" height="1.2em" viewBox="0 0 24 24" fill="none" stroke="#e0e0e0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg> <span style="color:#ccc;font-size:1rem">arXiv</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;background:#111114;border:1px solid #333;border-radius:8px;padding:10px 18px">
+      <svg width="1.2em" height="1.2em" viewBox="0 0 24 24" fill="none" stroke="#e0e0e0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> <span style="color:#ccc;font-size:1rem">Playwright</span>
+    </div>
+  </div>
+</div>
+<div style="font-size:1.1rem;font-weight:400;color:#555;margin-top:1.5rem;text-align:center">
+  native servers or via providers like <span style="color:#4A9E7E">StackOne</span> / <span style="color:#4A9E7E">disco.dev</span>
+</div>`
+  },
+
+  // ── PART 3: THE RESEARCH SYSTEM ──
+
+  // Second Brain
+  {
+    num: 'VI.',
+    html: `<div class="slide-heading">Building a <span>Second Brain</span></div>
+<div style="display:flex;align-items:center;gap:20px;width:100%;justify-content:center">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="background:#111114;border:1px solid #333;border-radius:6px;padding:8px 14px;font-size:0.85rem;color:#888">arXiv</div>
+    <div style="background:#111114;border:1px solid #333;border-radius:6px;padding:8px 14px;font-size:0.85rem;color:#888">Linear</div>
+    <div style="background:#111114;border:1px solid #333;border-radius:6px;padding:8px 14px;font-size:0.85rem;color:#888">Slack</div>
+    <div style="background:#111114;border:1px solid #333;border-radius:6px;padding:8px 14px;font-size:0.85rem;color:#888">GitHub</div>
+  </div>
+  <span style="font-size:1.8rem;color:#4A9E7E">&rarr;</span>
+  <div style="background:#111114;border:2px solid #4A9E7E;border-radius:10px;padding:20px 24px;text-align:center">
+    <p style="font-size:1.3rem;font-weight:700;color:#4A9E7E;margin-bottom:4px">Claude</p>
+    <p style="font-size:0.8rem;color:#888">/lit &middot; /graphify<br>/draft</p>
+  </div>
+  <span style="font-size:1.8rem;color:#4A9E7E">&rarr;</span>
+  <div style="background:#111114;border:2px solid #9B72CF;border-radius:10px;padding:20px 24px;text-align:center">
+    <p style="font-size:1.3rem;font-weight:700;color:#9B72CF;margin-bottom:4px">Obsidian Vault</p>
+    <p style="font-size:0.8rem;color:#888">papers / graphs<br>tweets / grants</p>
+  </div>
+  <span style="font-size:1.8rem;color:#9B72CF">&rarr;</span>
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="background:#111114;border:1px solid #5B8CB8;border-radius:6px;padding:8px 14px;font-size:0.85rem;color:#5B8CB8">lit reviews</div>
+    <div style="background:#111114;border:1px solid #5B8CB8;border-radius:6px;padding:8px 14px;font-size:0.85rem;color:#5B8CB8">grant drafts</div>
+    <div style="background:#111114;border:1px solid #5B8CB8;border-radius:6px;padding:8px 14px;font-size:0.85rem;color:#5B8CB8">papers</div>
+  </div>
+</div>
+<div style="font-size:1.1rem;font-weight:400;color:#555;margin-top:1.5rem;font-style:italic;line-height:2.2">
+  [1] feynman.is &mdash; Feynman research skills<br>
+  [2] graphify.net &mdash; knowledge graphs<br>
+  [3] obsidian.md &mdash; local-first knowledge base
+</div>`
+  },
+
+  // Feynman: Literature Review
+  {
+    num: 'VII.',
+    html: `<div class="slide-heading">Feynman: <span>Research + Draft + Review</span></div>
+<div class="term" style="width:100%;font-size:1rem;line-height:1.7;padding:1rem 1.4rem">
+<div><span class="prompt">$</span> <span class="cmd">claude</span></div>
+<div><span class="prompt">&gt;</span> <span class="cmd">/literature-review "finetuning LLMs new attention mechanisms"</span></div>
+<div>&nbsp;</div>
+<div><span class="dim"># researcher agent &rarr; searches papers &rarr; verifier checks sources</span></div>
+<div><span class="dim"># outputs cited review to outputs/ with provenance tracking</span></div>
+<div>&nbsp;</div>
+<div><span class="dim"># also: /deepresearch, /draft, /autoresearch</span></div>
+</div>`
+  },
+
+  // The Obsidian Vault
+  {
+    num: 'VIII.',
+    html: `<div class="slide-heading">The <span>Obsidian</span> Vault</div>
+<div style="display:flex;align-items:stretch;gap:28px;width:100%;justify-content:center">
+  <div style="display:flex;flex-direction:column;gap:10px;justify-content:center">
+    <div style="background:#111114;border:1px solid #4A9E7E;border-radius:6px;padding:10px 18px;font-size:0.95rem;color:#4A9E7E;font-weight:500">vault/papers/</div>
+    <div style="background:#111114;border:1px solid #4A9E7E;border-radius:6px;padding:10px 18px;font-size:0.95rem;color:#4A9E7E;font-weight:500">vault/grants/</div>
+    <div style="background:#111114;border:1px solid #4A9E7E;border-radius:6px;padding:10px 18px;font-size:0.95rem;color:#4A9E7E;font-weight:500">vault/tweets/</div>
+    <div style="background:#111114;border:1px solid #4A9E7E;border-radius:6px;padding:10px 18px;font-size:0.95rem;color:#4A9E7E;font-weight:500">vault/graphs/</div>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center">
+    <span style="font-size:2rem;color:#4A9E7E">&rarr;</span>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center">
+    <div style="background:#111114;border:2px solid #5B8CB8;border-radius:12px;padding:24px 32px;text-align:center;min-width:220px">
+      <p style="font-size:1.5rem;font-weight:700;color:#5B8CB8;margin-bottom:10px">Obsidian Graph View</p>
+      <p style="font-size:0.95rem;color:#888;font-weight:400;line-height:1.6">
+        YAML frontmatter + tags<br>
+        auto-linked notes<br>
+        visual connections
+      </p>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center">
+    <span style="font-size:2rem;color:#5B8CB8">&rarr;</span>
+  </div>
+  <div style="display:flex;flex-direction:column;justify-content:center">
+    <div style="background:#111114;border:1px solid #333;border-radius:8px;padding:20px 24px;font-size:1rem;color:#888;font-weight:400;line-height:1.7;max-width:260px">
+      <span style="color:#555">---</span><br>
+      <span style="color:#4A9E7E">title:</span> Agent Architectures<br>
+      <span style="color:#4A9E7E">tags:</span> [paper, agents]<br>
+      <span style="color:#4A9E7E">source:</span> arXiv:2406.xxxxx<br>
+      <span style="color:#555">---</span>
+    </div>
+  </div>
+</div>`
+  },
+
+  // Graphify into Vault
+  {
+    num: 'IX.',
+    html: `<div class="slide-heading">Graphify: <span>Connect Everything</span></div>
+<div class="term" style="width:100%;font-size:1rem;line-height:1.7;padding:1rem 1.4rem">
+<div><span class="prompt">$</span> <span class="cmd">claude</span></div>
+<div><span class="prompt">&gt;</span> <span class="cmd">/graphify</span></div>
+<div>&nbsp;</div>
+<div><span class="dim"># auto-detects vault/papers/ &rarr; extracts entities + relationships</span></div>
+<div><span class="dim"># community detection finds cross-paper connections</span></div>
+<div><span class="dim"># outputs: HTML graph + JSON &rarr; vault/graphs/</span></div>
+<div>&nbsp;</div>
+<div><span class="dim"># add new papers anytime, rerun to update the graph</span></div>
+</div>`
+  },
+
+  // ── PART 4: PUTTING IT TOGETHER ──
+
+  // Grant Draft
+  {
+    num: 'X.',
+    html: `<div class="slide-heading">Grant <span>Draft</span></div>
+<div style="font-size:1.1rem;font-weight:400;color:#888;margin-bottom:1.5rem;line-height:1.8">
+  agent searches &amp; summarizes<br>
+  knowledge graph connects ideas<br>
+  draft adapts to funder criteria
+</div>
+<div class="term" style="width:100%;font-size:1rem;line-height:1.7;padding:1rem 1.4rem">
+<div><span class="prompt">&gt;</span> <span class="cmd">look at my knowledge graph, check Linear for current</span></div>
+<div><span class="prompt">&nbsp;</span> <span class="cmd">project goals on WLR, pull recent Slack discussions</span></div>
+<div><span class="prompt">&nbsp;</span> <span class="cmd">from #ai-research, and draft a grant proposal for</span></div>
+<div><span class="prompt">&nbsp;</span> <span class="cmd">"agent tool use for research automation"</span></div>
+<div>&nbsp;</div>
+<div><span class="dim"># vault/papers/ + vault/graphs/ &rarr; related work + citations</span></div>
+<div><span class="dim"># Linear &rarr; current milestones + deliverables</span></div>
+<div><span class="dim"># Slack &rarr; team discussions + decisions</span></div>
+</div>`
+  },
+
+  // Take It Home
+  {
+    num: 'XI.',
+    html: `<div class="slide-heading">Take It <span>Home</span></div>
+<div class="term" style="margin-bottom:1.5rem;width:100%">
+<div><span class="dim"># install the open-source tools</span></div>
+<div>&nbsp;</div>
+<div><span class="prompt">$</span> <span class="cmd">curl -fsSL https://feynman.is/install-skills | bash</span></div>
+<div><span class="prompt">$</span> <span class="cmd">pip install graphifyy</span></div>
+<div><span class="prompt">$</span> <span class="cmd">brew install --cask obsidian</span></div>
+<div>&nbsp;</div>
+<div><span class="dim"># create a vault, connect your MCP servers, start researching</span></div>
+<div>&nbsp;</div>
+<div><span class="ok">build your own second brain.</span></div>
+</div>`
+  },
+
+  // Thanks
+  {
+    html: `<div class="slide-heading" style="text-align:center;border-bottom:none;padding-bottom:0"><span>Thanks</span></div>
+<div style="font-size:1.2rem;color:#888;font-weight:400;text-align:center;margin-bottom:1.5rem">Will Leeney &middot; <span style="color:#4A9E7E">@StackOne</span></div>
+<div style="display:flex;gap:3rem;width:100%;justify-content:center;align-items:flex-start">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:0.8rem">
+    <img src="qr-linkedin.png" style="width:240px;height:240px;border-radius:8px;background:#fff;padding:6px">
+    <span style="font-size:1.1rem;color:#4A9E7E;font-weight:600">LinkedIn</span>
+  </div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:0.8rem">
+    <img src="qr-website.png" style="width:240px;height:240px;border-radius:8px;background:#fff;padding:6px">
+    <span style="font-size:1.1rem;color:#4A9E7E;font-weight:600">willleeney.com</span>
+  </div>
+</div>`
+  },
+];
+
+TOTAL = SLIDES.length;
+
+buildSlides();
+window.addEventListener('resize', buildSlides);
+</script>
+</body>
+</html>

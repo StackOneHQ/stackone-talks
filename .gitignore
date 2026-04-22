@@ -3,4 +3,7 @@ public/
 .wrangler/
 private/
 .env
+supercharging-research/demo/
+supercharging-research/speaker-notes.md
+supercharging-research/base.md
 .superpowers/
