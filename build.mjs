@@ -1,12 +1,12 @@
 import { rmSync, mkdirSync, copyFileSync, cpSync, writeFileSync, readFileSync, existsSync, readdirSync, statSync } from "fs";
 import { join } from "path";
 
-// Auto-discover talks: any directory with a slides.html file
+// Auto-discover talks: any directory with a slides.html or index.html file
 const talks = readdirSync(".")
   .filter((entry) => {
     if (entry.startsWith(".") || entry === "public" || entry === "node_modules") return false;
     if (!statSync(entry).isDirectory()) return false;
-    return existsSync(join(entry, "slides.html"));
+    return existsSync(join(entry, "slides.html")) || existsSync(join(entry, "index.html"));
   })
   .map((dir) => {
     // Load metadata from talk.json if it exists, otherwise derive from dir name
