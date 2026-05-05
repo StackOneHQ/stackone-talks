@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context is King: Optimizing Your Agent's Tool Layer with StackOne</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a1e;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'JetBrains Mono', monospace;
+    color: #e0e0e0;
+    font-size: 20px;
+  }
+  .slide {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100vw;
+    height: 100vh;
+    display: none;
+  }
+  .slide.active { display: block; }
+  .slide svg.slide-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .content {
+    position: absolute;
+    top: 12%; left: 12%;
+    width: 76%; height: 76%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 2;
+  }
+  .interstitial-slide {
+    background: linear-gradient(135deg, #2a5a48 0%, #3a7e64 40%, #4A9E7E 100%);
+  }
+  .interstitial-slide .slide-svg rect { fill: rgba(255,255,255,0.15) !important; }
+  .interstitial-slide .slide-svg polyline { stroke: rgba(255,255,255,0.3) !important; }
+  .interstitial-slide .content {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .slide-counter {
+    position: fixed;
+    bottom: 20px; right: 28px;
+    font-size: 18px;
+    color: #555;
+    z-index: 100;
+    font-variant-numeric: tabular-nums;
+  }
+  .footer-logo {
+    position: fixed;
+    bottom: 18px; left: 28px;
+    z-index: 100;
+  }
+  .footer-logo img { height: 1.4rem; opacity: 0.8; }
+  .footer-url {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 16px;
+    color: #444;
+    z-index: 100;
+    letter-spacing: 0.02em;
+  }
+  /* slide-specific overrides */
+  .wide .content {
+    left: 3%;
+    width: 94%;
+    top: 8%;
+    height: 88%;
+    justify-content: flex-start;
+  }
+  .img-slide { background: #f5f5f3; }
+  .img-slide .content {
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  .pillar-card {
+    flex: 1;
+    background: #111114;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 1.8rem 1.4rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+  .pillar-card .icon { display: flex; justify-content: center; }
+  .pillar-card h3 {
+    font-size: 1.5rem;
+    color: #4A9E7E;
+    font-weight: 700;
+  }
+  .pillar-card .stat {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #e0e0e0;
+    line-height: 1.1;
+  }
+  .pillar-card p {
+    font-size: 1rem;
+    color: #888;
+    font-weight: 400;
+    line-height: 1.5;
+  }
+  img:not([src]), img[src=""] { display: none; }
+</style>
+</head>
+<body>
+
+<div id="deck"></div>
+<div class="footer-logo"><img src="stackone-logo.svg" alt="StackOne" style="height:1.4rem"></div>
+<div class="footer-url">talks.stackone.space/context-is-king-may-2026</div>
+<div class="slide-counter" id="counter"></div>
+
+<script>
+const TOTAL = 5;
+const GREEN = '#4A9E7E';
+const DOT_SIZE = 21;
+const DOT_R = 7;
+const STROKE = 3;
+const GAP = 7;
+const ANIM_MS = 400;
+
+const BORDER = [
+  { x: 0.10, y: 0.10 },
+  { x: 0.50, y: 0.10 },
+  { x: 0.90, y: 0.10 },
+  { x: 0.90, y: 0.50 },
+  { x: 0.90, y: 0.90 },
+  { x: 0.50, y: 0.90 },
+  { x: 0.10, y: 0.90 },
+  { x: 0.10, y: 0.50 },
+];
+
+function seededRandom(seed) {
+  let s = seed;
+  return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+}
+const rand = seededRandom(77);
+const slideDotIdx = [];
+for (let i = 0; i < TOTAL; i++) {
+  let idx;
+  do { idx = Math.floor(rand() * 8); } while (i > 0 && idx === slideDotIdx[i - 1]);
+  slideDotIdx.push(idx);
+}
+
+function perimDist(a, b) { const cw = (b - a + 8) % 8; return Math.min(cw, 8 - cw); }
+function shortestArc(from, to) {
+  if (from === to) return [from];
+  const cw = (to - from + 8) % 8, ccw = (from - to + 8) % 8, step = cw <= ccw ? 1 : -1;
+  const path = [from]; let cur = from;
+  while (cur !== to) { cur = (cur + step + 8) % 8; path.push(cur); }
+  return path;
+}
+const CORRIDORS = [{ exit: 6, enter: 0 }, { exit: 5, enter: 1 }, { exit: 4, enter: 2 }];
+const transCorridors = [];
+for (let i = 0; i < TOTAL - 1; i++) {
+  const a = slideDotIdx[i], b = slideDotIdx[i + 1];
+  let arrivalNeighbor = -1;
+  if (i > 0) { const prev = transCorridors[i - 1]; const inArc = shortestArc(prev.enter, a); if (inArc.length >= 2) arrivalNeighbor = inArc[inArc.length - 2]; }
+  let best = null, bestCost = Infinity;
+  for (const c of CORRIDORS) { const outArc = shortestArc(a, c.exit); if (outArc.length >= 2 && outArc[1] === arrivalNeighbor) continue; const cost = perimDist(a, c.exit) + perimDist(c.enter, b); if (cost < bestCost) { bestCost = cost; best = c; } }
+  if (!best) { for (const c of CORRIDORS) { const cost = perimDist(a, c.exit) + perimDist(c.enter, b); if (cost < bestCost) { bestCost = cost; best = c; } } }
+  transCorridors.push(best);
+}
+
+function transitionPaths(ti, vw, vh) {
+  const a = slideDotIdx[ti], b = slideDotIdx[ti + 1], corr = transCorridors[ti];
+  const outArc = shortestArc(a, corr.exit), outPts = outArc.map(i => ({ x: BORDER[i].x * vw, y: BORDER[i].y * vh }));
+  outPts.push({ x: BORDER[corr.exit].x * vw, y: vh + 40 });
+  const inArc = shortestArc(corr.enter, b), inPts = [{ x: BORDER[corr.enter].x * vw, y: -40 }];
+  inArc.forEach(i => inPts.push({ x: BORDER[i].x * vw, y: BORDER[i].y * vh }));
+  return { outPts, inPts };
+}
+
+function ptsString(pts) { return pts.map(p => `${p.x},${p.y}`).join(' '); }
+function ptsLength(pts) { let l = 0; for (let i = 1; i < pts.length; i++) { const dx = pts[i].x-pts[i-1].x, dy = pts[i].y-pts[i-1].y; l += Math.sqrt(dx*dx+dy*dy); } return l; }
+function trimStart(pts, amt) { if (pts.length < 2 || amt <= 0) return [...pts]; let rem = amt, i = 0; while (i < pts.length-1) { const dx=pts[i+1].x-pts[i].x,dy=pts[i+1].y-pts[i].y,seg=Math.sqrt(dx*dx+dy*dy); if (rem>=seg){rem-=seg;i++;}else{const t=rem/seg,out=[{x:pts[i].x+dx*t,y:pts[i].y+dy*t}];for(let j=i+1;j<pts.length;j++)out.push(pts[j]);return out;} } return [pts[pts.length-1]]; }
+function trimEnd(pts, amt) { return trimStart([...pts].reverse(), amt).reverse(); }
+
+let currentSlide = 0, transitioning = false;
+const deck = document.getElementById('deck'), counter = document.getElementById('counter');
+
+function buildSlides() {
+  deck.innerHTML = '';
+  const vw = window.innerWidth, vh = window.innerHeight;
+  for (let i = 0; i < TOTAL; i++) {
+    const slide = document.createElement('div');
+    slide.className = 'slide' + (i === currentSlide ? ' active' : '');
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'slide-svg'); svg.setAttribute('viewBox', `0 0 ${vw} ${vh}`); svg.setAttribute('preserveAspectRatio', 'none');
+    const idx = slideDotIdx[i], cx = BORDER[idx].x * vw, cy = BORDER[idx].y * vh;
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    dot.setAttribute('x', cx-DOT_SIZE/2); dot.setAttribute('y', cy-DOT_SIZE/2); dot.setAttribute('width', DOT_SIZE); dot.setAttribute('height', DOT_SIZE); dot.setAttribute('rx', DOT_R); dot.setAttribute('ry', DOT_R); dot.setAttribute('fill', GREEN);
+    svg.appendChild(dot);
+    if (i > 0) { const { inPts } = transitionPaths(i-1,vw,vh); const pts = trimEnd(inPts, GAP+DOT_SIZE/2); if (pts.length>=2) svg.appendChild(makeLine(pts,'incoming-line')); }
+    if (i < TOTAL-1) { const { outPts } = transitionPaths(i,vw,vh); const pts = trimStart(outPts, GAP+DOT_SIZE/2); if (pts.length>=2) svg.appendChild(makeLine(pts,'outgoing-line')); }
+    slide.appendChild(svg);
+    const content = document.createElement('div'); content.className = 'content';
+    if (SLIDE_HTML[i]) { if (SLIDE_HTML[i].cls) slide.classList.add(SLIDE_HTML[i].cls); content.innerHTML = SLIDE_HTML[i].html; }
+    slide.appendChild(content); deck.appendChild(slide);
+  }
+  updateCounter();
+}
+
+function makeLine(pts, cls) {
+  const len = ptsLength(pts);
+  const pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+  pl.setAttribute('points', ptsString(pts)); pl.setAttribute('fill', 'none'); pl.setAttribute('stroke', GREEN); pl.setAttribute('stroke-width', STROKE); pl.setAttribute('stroke-linecap', 'round'); pl.setAttribute('stroke-linejoin', 'round'); pl.setAttribute('stroke-dasharray', len); pl.setAttribute('stroke-dashoffset', len); pl.setAttribute('class', cls); pl.dataset.length = len;
+  return pl;
+}
+
+function updateCounter() { counter.textContent = `${currentSlide + 1} / ${TOTAL}`; }
+function getSlide(i) { return deck.querySelectorAll('.slide')[i]; }
+function animLine(el, mode) {
+  return new Promise(resolve => {
+    if (!el) return resolve();
+    const len = parseFloat(el.dataset.length);
+    if (mode === 'draw') { el.getBoundingClientRect(); el.style.transition = `stroke-dashoffset ${ANIM_MS}ms ease-out`; el.setAttribute('stroke-dashoffset', '0'); setTimeout(resolve, ANIM_MS); }
+    else if (mode === 'undraw') { el.getBoundingClientRect(); el.style.transition = `stroke-dashoffset ${ANIM_MS}ms ease-in`; el.setAttribute('stroke-dashoffset', len); setTimeout(resolve, ANIM_MS); }
+    else if (mode === 'reset-drawn') { el.style.transition = 'none'; el.setAttribute('stroke-dashoffset', '0'); resolve(); }
+    else { el.style.transition = 'none'; el.setAttribute('stroke-dashoffset', len); resolve(); }
+  });
+}
+async function goForward() { if (transitioning || currentSlide >= TOTAL-1) return; transitioning = true; const curr = getSlide(currentSlide), next = getSlide(currentSlide+1); await animLine(curr.querySelector('.outgoing-line'), 'draw'); curr.classList.remove('active'); next.classList.add('active'); currentSlide++; updateCounter(); await animLine(next.querySelector('.incoming-line'), 'draw'); transitioning = false; }
+async function goBackward() { if (transitioning || currentSlide <= 0) return; transitioning = true; const curr = getSlide(currentSlide), target = getSlide(currentSlide-1); await animLine(curr.querySelector('.incoming-line'), 'undraw'); curr.classList.remove('active'); target.classList.add('active'); currentSlide--; updateCounter(); await animLine(target.querySelector('.outgoing-line'), 'undraw'); transitioning = false; }
+function jumpForward() { if (transitioning || currentSlide >= TOTAL-1) return; const curr = getSlide(currentSlide), next = getSlide(currentSlide+1); animLine(curr.querySelector('.outgoing-line'), 'reset-drawn'); curr.classList.remove('active'); next.classList.add('active'); currentSlide++; animLine(next.querySelector('.incoming-line'), 'reset-drawn'); updateCounter(); }
+function jumpBackward() { if (transitioning || currentSlide <= 0) return; const curr = getSlide(currentSlide), target = getSlide(currentSlide-1); animLine(curr.querySelector('.incoming-line'), 'reset'); curr.classList.remove('active'); target.classList.add('active'); currentSlide--; animLine(target.querySelector('.outgoing-line'), 'reset'); updateCounter(); }
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goForward(); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); goBackward(); }
+  else if (e.key === 'ArrowDown') { e.preventDefault(); jumpForward(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); jumpBackward(); }
+});
+
+// --- SLIDES ---
+const SLIDE_HTML = {
+
+  // 1. TITLE
+  0: {
+    html: `
+<div style="font-size:4.8rem;font-weight:700;line-height:1.1;color:#e0e0e0;margin-bottom:1.8rem">
+  Context is <span style="color:#4A9E7E">King</span>
+</div>
+<div style="font-size:1.6rem;font-weight:400;color:#888;margin-bottom:3rem;line-height:1.5">
+  Optimizing your agent's tool layer with StackOne
+</div>
+<div style="font-size:1.4rem;color:#ccc;font-weight:600;margin-bottom:0.4rem">Romain Sestier</div>
+<div style="font-size:1.2rem;color:#666;font-weight:400">Co-founder &amp; CEO @ StackOne &middot; May 2026</div>`
+  },
+
+  // 2. ABOUT ROMAIN
+  1: {
+    html: `
+<div style="display:flex;align-items:center;gap:3.5rem;width:100%">
+  <div style="flex-shrink:0">
+    <img src="romain.jpeg" style="width:200px;height:200px;border-radius:50%;object-fit:cover;border:3px solid #333">
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;gap:1.4rem">
+    <div style="font-size:3rem;font-weight:700;color:#e0e0e0">
+      Hi, I'm <span style="color:#4A9E7E">Romain</span>
+    </div>
+    <div style="font-size:1.3rem;color:#aaa;font-weight:400;line-height:1.7">
+      Building <span style="color:#4A9E7E;font-weight:600">StackOne</span> — integration infrastructure for AI agents.<br>
+      <span style="color:#666;font-size:1.1rem">Ex Google Labs PM &middot; 2× B2B SaaS exits</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:1.4rem;margin-top:0.4rem;flex-wrap:wrap">
+      <div style="background:#fff;border-radius:10px;padding:0.8rem 1.6rem;display:flex;align-items:center">
+        <img src="gv.svg" style="height:40px;display:block">
+      </div>
+      <div style="background:#fff;border-radius:10px;padding:0.8rem 1.6rem;display:flex;align-items:center">
+        <img src="workday-ventures.svg" style="height:40px;display:block">
+      </div>
+      <div style="display:flex;flex-direction:column;padding:0.8rem 1.6rem;background:#161616;border:1px solid #1a2a22;border-radius:10px;border-left:3px solid #4A9E7E">
+        <span style="font-size:2rem;font-weight:700;color:#4A9E7E;line-height:1">$24M</span>
+        <span style="font-size:1rem;color:#666;font-weight:400">Series A</span>
+      </div>
+    </div>
+  </div>
+</div>`
+  },
+
+  // 3. STACKONE IMAGE
+  2: {
+    cls: 'img-slide',
+    html: `<img src="stackone.png" style="max-width:100%;max-height:100%;object-fit:contain;display:block">`
+  },
+
+  // 4. DEMO (green interstitial)
+  3: {
+    cls: 'interstitial-slide',
+    html: `
+<div style="font-size:4rem;font-weight:700;color:#fff;margin-bottom:2rem">Demo</div>
+<div style="display:flex;flex-direction:column;gap:1.4rem;text-align:left;max-width:700px">
+  <div style="display:flex;align-items:flex-start;gap:1.2rem;background:rgba(0,0,0,0.2);border-radius:10px;padding:1.4rem 1.6rem">
+    <span style="font-size:1.8rem;font-weight:700;color:rgba(255,255,255,0.5);min-width:2rem">1</span>
+    <div>
+      <div style="font-size:1.5rem;font-weight:700;color:#fff;margin-bottom:0.3rem">Connector Builder</div>
+      <div style="font-size:1.1rem;color:rgba(255,255,255,0.7);font-weight:400">Build a custom action in minutes — no integration work required</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:flex-start;gap:1.2rem;background:rgba(0,0,0,0.2);border-radius:10px;padding:1.4rem 1.6rem">
+    <span style="font-size:1.8rem;font-weight:700;color:rgba(255,255,255,0.5);min-width:2rem">2</span>
+    <div>
+      <div style="font-size:1.5rem;font-weight:700;color:#fff;margin-bottom:0.3rem">Code Mode with Discode</div>
+      <div style="font-size:1.1rem;color:rgba(255,255,255,0.7);font-weight:400">Replace 100s of tool schemas with one — for better efficiency and scalability</div>
+    </div>
+  </div>
+</div>`
+  },
+
+  // 5. END / CTA
+  4: {
+    html: `
+<div style="display:flex;align-items:center;justify-content:space-between;width:100%;gap:2.5rem;height:100%">
+  <div style="flex:1;display:flex;flex-direction:column;gap:2rem;justify-content:center">
+    <div style="font-size:4.8rem;font-weight:700;color:#e0e0e0;line-height:1.05">
+      Start building<br><span style="color:#4A9E7E">for free</span>
+    </div>
+    <div style="font-size:2.4rem;font-weight:600;color:#4A9E7E">stackone.com</div>
+  </div>
+  <div style="flex-shrink:0;display:flex;gap:2.8rem;align-items:flex-start">
+    <!-- stackone.com -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:0;width:220px">
+      <div style="width:220px;height:220px;display:flex;align-items:center;justify-content:center;background:#111114;border-radius:12px 12px 0 0;border:1px solid #262626;border-bottom:none">
+        <img src="stackone-logo.svg" style="width:150px;height:auto">
+      </div>
+      <img src="qr-utm.svg" style="width:220px;height:220px;background:#fff;padding:10px;border-radius:0 0 12px 12px;border:1px solid #262626;border-top:none;display:block">
+      <span style="font-size:14px;color:#666;margin-top:0.6rem">stackone.com</span>
+    </div>
+    <!-- discode -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:0;width:220px">
+      <div style="width:220px;height:220px;display:flex;align-items:center;justify-content:center;gap:0.6rem;background:#111114;border-radius:12px 12px 0 0;border:1px solid #262626;border-bottom:none">
+        <img src="discode-logo.svg" style="height:32px">
+        <span style="font-size:22px;font-weight:700;color:#e0e0e0">Discode</span>
+      </div>
+      <img src="qr-discode.svg" style="width:220px;height:220px;background:#fff;padding:10px;border-radius:0 0 12px 12px;border:1px solid #262626;border-top:none;display:block">
+      <span style="font-size:14px;color:#666;margin-top:0.6rem">discode.stackone.com</span>
+    </div>
+    <!-- /run event -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:0;width:220px">
+      <img src="luma-run-cover.png" style="width:220px;height:220px;object-fit:cover;display:block;border-radius:12px 12px 0 0">
+      <img src="qr-run.svg" style="width:220px;height:220px;background:#fff;padding:10px;border-radius:0 0 12px 12px;border:1px solid #262626;border-top:none;display:block">
+      <span style="font-size:14px;color:#666;margin-top:0.6rem">luma.com/8apdwup5</span>
+    </div>
+  </div>
+</div>`
+  },
+
+};
+
+buildSlides();
+window.addEventListener('resize', buildSlides);
+</script>
+</body>
+</html>

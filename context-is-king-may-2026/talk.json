@@ -1,0 +1,11 @@
+{
+  "title": "Context is King: Optimizing Your Agent's Tool Layer with StackOne",
+  "subtitle": "Why your context window is your most valuable asset",
+  "speaker": "Romain Sestier",
+  "role": "Co-founder & CEO @ StackOne",
+  "event": "May 2026",
+  "date": "2026-05",
+  "slides": 15,
+  "tags": ["agents", "context", "tools", "StackOne", "optimization", "LLM"],
+  "description": "A talk about why the tool layer is the biggest bottleneck in production AI agents, and how StackOne's unified, optimized integration layer helps you build agents that stay sharp at scale."
+}
