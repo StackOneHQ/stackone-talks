@@ -13,7 +13,7 @@
     "@modelcontextprotocol/ext-apps": "latest",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "cors": "^2.8.5",
-    "express": "^4.21.0"
+    "express": "^4.22.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
